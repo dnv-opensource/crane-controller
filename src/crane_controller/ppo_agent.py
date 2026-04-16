@@ -34,7 +34,10 @@ class ProximalPolicyOptimizationAgent:
         trained: tuple[str, bool] | None = None,
     ):
         self.trained = trained
-        self.env = env(**env_kwargs)  # type: ignore[operator] ## should be correct
+        if env_kwargs is None:
+            self.env = env() # type: ignore[operator]  ## the object is callable! (__init__())
+        else:
+            self.env = env(**env_kwargs) # type: ignore[operator]  ## the object is callable! (__init__())
         _n_envs = n_envs = 1 if n_envs <= 0 else n_envs
         self.vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)  # type: ignore ## should be correct
         if n_envs <= 0:

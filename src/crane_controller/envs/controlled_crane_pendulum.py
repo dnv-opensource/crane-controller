@@ -20,7 +20,7 @@ class AntiPendulumEnv(gym.Env):
         acc (float): the acceleration (-,0,+) used on the crane to perform anti-pendulum actions
         start_speed (float) = 1.0: Fixed start angle (in degrees) or
           if <0 random at every episode with [-start_speed ... start_speed]
-        render_modes (str): 'play-back' (use direct animation) or 'data' (return boom.end for all booms)
+        render_modes (str): see metadata dict
         size (int): The axis length in all directions, but -z
         seed (int): Optional possibility to use repeatable random numbers. None: not repeatable.
         reward_limit (float) = 1e-3: reward at which episodes are terminated and anti-pendulum is deemed successful.
@@ -73,6 +73,7 @@ class AntiPendulumEnv(gym.Env):
         elif render_mode == "plot":
             self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": []}
 
+        self.obeservation_space : spaces.Box | spaces.Discrete
         # Observations is a 4-dim np-array with
         # (crane-x, crane-v_x, load-polar-angle_x, load-v_x)
         self.min_speed = 0.1  # np.sqrt(2*reward_limit) # starting with less does not make sense (goal already reached)
@@ -83,7 +84,7 @@ class AntiPendulumEnv(gym.Env):
             self.discrete = {}
             self.spaces_min = np.array((-size, -max_speed, -np.pi / 2, -max_speed), float)
             self.spaces_max = np.array((size, max_speed, np.pi / 2, max_speed), float)
-            self.observation_space = spaces.Box(self.spaces_min, self.spaces_max, shape=(4,), dtype=np.floating)
+            self.observation_space = spaces.Box(self.spaces_min, self.spaces_max, shape=(4,), dtype=np.int64)
 
         self.nresets: int = 0
         # self.reset(seed)
@@ -97,7 +98,7 @@ class AntiPendulumEnv(gym.Env):
         self.dt = dt
 
         # We have 1 acceleration action which can each be min, zero or max, corresponding to acceleration of crane
-        self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.integer)
+        self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.int64)
         self.action_to_acc = {0: -self.acc, 1: 0.0, 2: self.acc}
 
     def _init_discrete(self, spec: dict[str, tuple[float, ...]]):
@@ -174,7 +175,7 @@ class AntiPendulumEnv(gym.Env):
             self.traces[k] = []
         self.rewards = []
 
-    def _get_obs(self) -> tuple[np.ndarray, float, int]:
+    def _get_obs(self) -> tuple[np.ndarray | tuple, float, int]:
         """Translate the current crane state into an observation useable by gym and calculate the related reward.
 
         For discrete mode:
@@ -210,16 +211,14 @@ class AntiPendulumEnv(gym.Env):
                 # if the crane moves towards the origo we do not add 'energy'
         self.reward = reward
 
+        obs : tuple[int,...] | np.ndarray
         if len(self.discrete):
-            obs = np.array(
-                (
-                    level(1, energy, self.discrete["energies"]),  # energy level
-                    int(self.wire.end[0] - self.wire.origin[0] < 0.0),  # load position >=0 / < 0 in x-direction
-                    int(self.wire.cm_v[0] < 0.0),  # load speed >=0 / < 0 in x-direction
-                    level(3, abs(self.crane.position[0]), self.discrete["distance"]),  # distance from origin
-                    int(self.crane.position[0] < 0.0),  # sector with respect to origin, where the crane is
-                ),
-                dtype=int,
+            obs = (
+                level(1, energy, self.discrete["energies"]),  # energy level
+                int(self.wire.end[0] - self.wire.origin[0] < 0.0),  # load position >=0 / < 0 in x-direction
+                int(self.wire.cm_v[0] < 0.0),  # load speed >=0 / < 0 in x-direction
+                level(3, abs(self.crane.position[0]), self.discrete["distance"]),  # distance from origin
+                int(self.crane.position[0] < 0.0),  # sector with respect to origin, where the crane is
             )
 
         else:

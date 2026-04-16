@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from typing import Callable, Generator
 
 import matplotlib.pyplot as plt
@@ -77,6 +78,38 @@ def _crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0):
     )
     crane.calc_statics_dynamics(None)  # make sure that _comSub is calculated for all booms
     return crane
+
+
+def test_environment(crane: Callable, v0: float = 1.0, render_mode="plot", reward_limit=0.0):
+    env = AntiPendulumEnv(
+        crane,
+        start_speed=v0,
+        render_mode=render_mode,
+        reward_limit=reward_limit,
+        discrete={
+            "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
+            "pos": (0, 1),
+            "speed": (0, 1),
+            "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
+            "sector": (0, 1),
+        },
+    )
+    assert env.action_space.n == 3 # type: ignore[attr-defined]
+    assert env.action_space.start == 0 # type: ignore[attr-defined]
+    assert env.action_space.dtype == np.int64
+    assert isinstance(env.action_space.seed(), int)
+    assert len(env.observation_space.nvec) == 5 # type: ignore[attr-defined]
+    assert np.allclose(env.observation_space.nvec, [7, 2, 2, 6, 2]) # type: ignore[attr-defined]
+    assert np.allclose(env.observation_space.start, [0, 0, 0, 0, 0]) # type: ignore[attr-defined]
+    assert env.observation_space.dtype == np.int64
+    assert isinstance(env.observation_space.seed(), int)
+    q_values = defaultdict(lambda: np.array([env.low_reward()] * env.action_space.n))  # type: ignore  ## n!
+    obs1 = np.array((0, 1, 1, 3, 0), int)
+    obs2 = np.array((4, 0, 0, 1, 1), int)
+    q_values[obs1.tobytes()]
+    q_values[obs2.tobytes()]
+    assert np.allclose(q_values[obs1.tobytes()], [-98.1000, -98.1000, -98.1000])
+    assert q_values[obs2.tobytes()][2] == -98.1
 
 
 def movement(crane: Crane, dt: float = 0.01, t_end: float = 10.0) -> Generator[tuple[float, Crane], None, None]:
@@ -234,6 +267,7 @@ def test_training_q(
     reward_limit=-0.05,
     trained=None,
     v0: float = -1.0,
+    max_steps: int = 1000,
     show: int = 0,
 ):
     env = AntiPendulumEnv(
@@ -252,9 +286,9 @@ def test_training_q(
     agent = QLearningAgent(env, trained=trained)
 
     logger.info(f"Agent {agent.env} initialized. Start training...")
-    agent.do_episodes(n_episodes=episodes, max_steps=5000, show=show)
+    agent.do_episodes(n_episodes=episodes, max_steps=max_steps, show=show)
     logger.info(f"Training done. Resets:{agent.env.nresets}, Successes:{agent.env.nsuccess}")  # type: ignore
-    agent.analyse_training()
+    # agent.analyse_training()
 
 
 def test_q_analyse(crane, trained: tuple[str, bool] = ("anti-pendulum.json", False)):
@@ -269,9 +303,17 @@ def test_q_analyse(crane, trained: tuple[str, bool] = ("anti-pendulum.json", Fal
         },
     )
     agent = QLearningAgent(env, trained=trained)
-    print(agent.q_values, len(agent.q_values))
-    agent.analyse_q((-1, 1, 1, -1, -1))
-    agent.analyse_q((-1, 0, 0, -1, -1))
+    for k, v in agent.q_values.items():
+        assert len(k) == 5, len(v) == 3
+    for pos in (0, 1):
+        for speed in (0, 1):
+            res = dict((k, v) for k, v in agent.q_values.items() if k[1] == pos and k[2] == speed)
+            print(f"pos:{pos}, speed:{speed}")
+            acc = []
+            for i in range(3):
+                col = [x[i] for x in res.values()]
+                acc.append(np.average(col))
+            print(acc)
 
 
 def test_training_ppo(
@@ -322,6 +364,19 @@ def test_act(
 if __name__ == "__main__":
     retcode = 0  # pytest.main(["-rA", "-v", "--rootdir", "../", "--show", "True", __file__])
     assert retcode == 0, f"Non-zero return code {retcode}"
+    # test_environment(_crane)
+    # test_training_q(_crane,render_mode='reward-tracking', max_steps=1000, reward_limit=1.0, episodes=10, trained=("pendulum.json",False), v0=0.0)
+    # test_q_analyse(_crane, trained=("pendulum.json",True))
+    test_training_q(
+        _crane,
+        render_mode="plot",
+        max_steps=1000,
+        reward_limit=1.0,
+        episodes=10,
+        trained=("pendulum.json", True),
+        v0=0.0,
+    )
+
     # test_algorithm_strategies(_crane, render_mode="none", start_speed=0.0) # all combinations in start mode
     # test_algorithm_strategies(_crane, render_mode="none", start_speed=1.0) # all combinations in stop mode
     # test_algorithm(_crane, render_mode='plot') # test algorithmic with a few strategies
@@ -329,14 +384,7 @@ if __name__ == "__main__":
     # test_interval_training_q(crane,render_mode='none', reward_limit=0.01, intervals=10)
     # test_training_q(_crane,render_mode='none', reward_limit=1000, episodes=5000, trained=("pendulum.json",True), v0=0.0)
     # test_q_analyse(_crane, trained=("pendulum.json",True))
-    test_training_q(
-        _crane,
-        render_mode="plot",
-        reward_limit=1000,
-        episodes=10,
-        trained=("pendulum.json", True),
-        v0=0.0,
-    )
+    # test_training_q(_crane,render_mode="plot",reward_limit=1000,episodes=10,trained=("pendulum.json", False),v0=0.0)
     # test_training_q(_crane,render_mode='none', reward_limit=-0.001, episodes=10000, trained=("anti-pendulum.json",False))
     # test_q_analyse(_crane, trained=("anti-pendulum.json",True))
     # test_training_q(_crane,render_mode='plot', reward_limit=-0.0001, episodes=10, trained=("anti-pendulum.json",True))

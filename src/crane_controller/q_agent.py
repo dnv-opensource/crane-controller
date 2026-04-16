@@ -35,7 +35,6 @@ class QLearningAgent(object):
         trained: tuple[str | Path, bool] | None = None,
     ):
         self.env = env
-        self.low_reward = self.env.low_reward()  # type: ignore ## low_reward exists!
         # print("ACTION_SPACE.N", env.action_space.n, defaultdict( lambda: np.zeros(env.action_space.n))['xx'])
         # Q-table: maps (state, action) to expected reward
         # defaultdict automatically creates entries with zeros for new states
@@ -45,7 +44,7 @@ class QLearningAgent(object):
             self.q_values = self.read_dumped(self.filename)
             self.epsilon = final_epsilon  # assume that we are fully learned
         else:  # start from scratch, but save the q_values afterwards
-            self.q_values = defaultdict(lambda: np.array([self.low_reward] * env.action_space.n))  # type: ignore  ## n!
+            self.q_values = defaultdict(lambda: np.array((0.0,) * env.action_space.n, float))  # type: ignore  ## n!
             self.epsilon = initial_epsilon  # start from scratch
 
         self.lr = learning_rate
@@ -101,8 +100,7 @@ class QLearningAgent(object):
             next_obs: the new observed state after 'action' on state 'obs'
             terminated: info whether the agent was terminated after 'action'
         """
-        # What's the best we could do from the next state?
-        # (Zero if episode terminated - no future rewards possible)
+        # What's the best we could do from the next state? Zero if episode terminated.
         future_q_value = (not terminated) * np.max(self.q_values[next_obs])
 
         # What should the Q-value be? (Bellman equation)
@@ -111,8 +109,7 @@ class QLearningAgent(object):
         # How wrong was our current estimate?
         temporal_difference = target - self.q_values[obs][action]
 
-        # Update our estimate in the direction of the error
-        # Learning rate controls how big steps we take
+        # Update our estimate in the direction of the error. Learning rate controls how big steps we take
         self.q_values[obs][action] = (1 - self.lr) * self.q_values[obs][action] + self.lr * temporal_difference
 
         # Track learning progress (useful for debugging)
@@ -176,7 +173,7 @@ class QLearningAgent(object):
         """Read a q_values dict (saved as json) from file."""
         with open(filename, "r") as _f:
             from_dump = json.load(_f)
-        q_values = defaultdict(lambda: np.array([self.low_reward] * self.env.action_space.n))  # type: ignore # n exists
+        q_values = defaultdict(lambda: np.array((0.0,) * self.env.action_space.n, float))  # type: ignore # n exists
         for k, v in from_dump.items():
             q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
         return q_values
