@@ -317,6 +317,7 @@ def test_q_analyse(crane, trained: tuple[str, bool] = ("anti-pendulum.json", Fal
 
 
 def test_training_ppo(
+    crane: Crane,
     n_envs: int = 4,
     nsteps: int = 100000,
     render_mode: str = "data",
@@ -338,7 +339,8 @@ def test_training_ppo(
     logger.info(f"Training done. Resets:{agent.env.nresets}, Successes:{agent.env.nsuccess}")
 
 
-def test_act(
+def test_act_ppo(
+    crane:Crane,
     render_mode: str = "play_back",
     trained: tuple[str, bool] = ("ppo_AntiPendulumEnv.zip", False),
     episodes: int = 1,
@@ -367,16 +369,7 @@ if __name__ == "__main__":
     # test_environment(_crane)
     # test_training_q(_crane,render_mode='reward-tracking', max_steps=1000, reward_limit=1.0, episodes=10, trained=("pendulum.json",False), v0=0.0)
     # test_q_analyse(_crane, trained=("pendulum.json",True))
-    test_training_q(
-        _crane,
-        render_mode="plot",
-        max_steps=1000,
-        reward_limit=1.0,
-        episodes=10,
-        trained=("pendulum.json", True),
-        v0=0.0,
-    )
-
+    #test_training_q(_crane,render_mode="plot",max_steps=1000,reward_limit=1.0,episodes=10,trained=("pendulum.json", True),v0=0.0)
     # test_algorithm_strategies(_crane, render_mode="none", start_speed=0.0) # all combinations in start mode
     # test_algorithm_strategies(_crane, render_mode="none", start_speed=1.0) # all combinations in stop mode
     # test_algorithm(_crane, render_mode='plot') # test algorithmic with a few strategies
@@ -390,10 +383,10 @@ if __name__ == "__main__":
     # test_training_q(_crane,render_mode='plot', reward_limit=-0.0001, episodes=10, trained=("anti-pendulum.json",True))
     ## test_pendulum_crane(crane, show=True)
     # test_init(crane, show=True)
-    # test_training_ppo(n_envs=1, nsteps=20000, render_mode='plot', trained=("antipendulum.zip",False))
-    # test_training_ppo(n_envs=1, nsteps=500000, render_mode='data', trained=("antipendulum.zip",True))
-    # test_training_ppo(n_envs=4, nsteps=100000, render_mode='data')
-    # test_act(render_mode="reward-tracking", trained=("antipendulum.zip",False))
-    # test_act(render_mode="plot", trained=("antipendulum.zip",False), episodes=1)
-    # test_act(render_mode="plot", trained=("ppo_AntiPendulumEnv.zip",False), episodes=1)
-    # test_monitor(crane)
+    # test_training_ppo(_crane, n_envs=1, nsteps=20000, render_mode='plot', trained=("antipendulum.zip",False))
+    # test_training_ppo(_crane, n_envs=1, nsteps=500000, render_mode='data', trained=("antipendulum.zip",True))
+    #test_training_ppo(_crane, n_envs=4, nsteps=100000, render_mode='data')
+    test_act_ppo(_crane, render_mode="reward-tracking", trained=("antipendulum.zip",False))
+    # test_act_ppo(_crane, render_mode="plot", trained=("antipendulum.zip",False), episodes=1)
+    # test_act_ppo(_crane, render_mode="plot", trained=("ppo_AntiPendulumEnv.zip",False), episodes=1)
+    # test_monitor(_crane)
