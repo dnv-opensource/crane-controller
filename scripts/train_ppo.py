@@ -3,6 +3,7 @@
 Example:
     uv run python scripts/train_ppo.py
     uv run python scripts/train_ppo.py --steps 500000 --n-envs 8 --save-path models/ppo.zip
+    uv run python scripts/train_ppo.py --dry-run
 """
 
 import argparse
@@ -46,22 +47,39 @@ def main():
         default="models/ppo_AntiPendulumEnv.zip",
         help="Where to save the trained model",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run 1000 steps with live reward-tracking plot, without saving the model.",
+    )
     args = parser.parse_args()
 
-    Path(args.save_path).parent.mkdir(parents=True, exist_ok=True)
-
-    agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type]
-        n_envs=args.n_envs,
-        env_kwargs={
-            "crane": _build_crane,
-            "start_speed": 1.0,
-            "render_mode": args.render_mode,
-        },
-        trained=(args.save_path, True),
-    )
-    agent.do_training(args.steps)
-    print(f"Model saved to {args.save_path}")
+    if args.dry_run:
+        agent = ProximalPolicyOptimizationAgent(
+            AntiPendulumEnv,  # type: ignore[arg-type]
+            n_envs=1,
+            env_kwargs={
+                "crane": _build_crane,
+                "start_speed": -1.0,
+                "render_mode": "reward-tracking",
+            },
+            trained=None,
+        )
+        agent.do_training(1000, progress_bar=False)
+    else:
+        Path(args.save_path).parent.mkdir(parents=True, exist_ok=True)
+        agent = ProximalPolicyOptimizationAgent(
+            AntiPendulumEnv,  # type: ignore[arg-type]
+            n_envs=args.n_envs,
+            env_kwargs={
+                "crane": _build_crane,
+                "start_speed": 1.0,
+                "render_mode": args.render_mode,
+            },
+            trained=(args.save_path, True),
+        )
+        agent.do_training(args.steps)
+        print(f"Model saved to {args.save_path}")
 
 
 if __name__ == "__main__":

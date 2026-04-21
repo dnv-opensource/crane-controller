@@ -83,6 +83,23 @@ Test files are organised by algorithm:
 
 Tests are suitable for CI/CD — no plot windows are produced.
 
+Training
+--------
+
+Train a PPO agent from the command line:
+
+.. code-block:: shell
+
+   uv run python scripts/train_ppo.py
+
+Key options:
+
+- ``--steps N`` — total training timesteps (default: 100 000)
+- ``--n-envs N`` — number of parallel environments (default: 4)
+- ``--save-path PATH`` — where to write the trained model (default: ``models/ppo_AntiPendulumEnv.zip``)
+- ``--dry-run`` — run 1 000 steps with a live reward-tracking plot and no model saved;
+  useful for a quick visual sanity check before committing to a full training run
+
 Contributing
 ------------
 
