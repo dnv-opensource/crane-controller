@@ -81,12 +81,7 @@ Test files are organised by algorithm:
 - ``tests/test_crane_pendulum.py`` — environment, Q-learning, and algorithm tests
 - ``tests/test_ppo.py`` — PPO pipeline smoke test (``test_monitor``)
 
-Some tests produce plots or animations. These are suppressed by default (suitable for CI/CD).
-To enable visual output locally, pass ``--show True``:
-
-.. code-block:: shell
-
-   uv run pytest tests/test_crane_pendulum.py::test_init -v --show
+Tests are suitable for CI/CD — no plot windows are produced.
 
 Contributing
 ------------
