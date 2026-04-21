@@ -86,7 +86,7 @@ To enable visual output locally, pass ``--show True``:
 
 .. code-block:: shell
 
-   uv run pytest tests/test_crane_pendulum.py::test_init -v --show True
+   uv run pytest tests/test_crane_pendulum.py::test_init -v --show
 
 Contributing
 ------------

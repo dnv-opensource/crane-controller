@@ -101,9 +101,9 @@ def crane():
 
 
 def pytest_addoption(parser: Any):
-    parser.addoption("--show", action="store", default=False)
+    parser.addoption("--show", action="store_true", default=False)
 
 
 @pytest.fixture(scope="session")
 def show(request: Any):
-    return request.config.getoption("--show") == "True"
+    return request.config.getoption("--show")

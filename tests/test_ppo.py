@@ -16,7 +16,7 @@ def test_monitor(crane: Crane):
             "crane": crane,
             "seed": 2,
             "start_speed": 1.0,
-            "render_mode": "reward-tracking",
+            "render_mode": "none",
         },
     )
     agent.do_training(1000)
