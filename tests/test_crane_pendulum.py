@@ -13,7 +13,6 @@ from crane_controller.algorithm import AlgorithmAgent
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 
 # from py_crane.animation import AnimateCrane
-from crane_controller.ppo_agent import ProximalPolicyOptimizationAgent
 from crane_controller.q_agent import QLearningAgent
 
 np.set_printoptions(formatter={"float_kind": "{:.4f}".format})
@@ -44,40 +43,6 @@ def show_figure(
     plt.title(title)
     plt.show()
 
-
-@pytest.fixture
-def crane(scope: str = "session", autouse: bool = True):
-    return _crane()
-
-
-def _crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0):
-    """Very simple mobile crane - actually only a pole and a wire for testing of anti-pendulum control.
-    The crane has a pedestal and a wire of equal length.
-    The size and weight of the various parts can be configured.
-
-    Args:
-        length (float) = 1.0 : height (fixed) of the pedestal and the wire
-        mass (float) = 1.0 : mass of the load
-        q_factor (float) = 50: The Q-factor (the pendulum damping)
-    """
-
-    crane = Crane()
-    _ = crane.add_boom(
-        "pedestal",
-        description="A simple pole with same length as the wire",
-        mass=100.0,
-        boom=(length, 0.0, 0.0),
-    )
-    _ = crane.add_boom(
-        "wire",
-        description="The wire fixed to the pole. Flexible connection",
-        mass=mass,
-        mass_center=1.0,
-        boom=(length, np.pi, 0.0),
-        q_factor=q_factor,
-    )
-    crane.calc_statics_dynamics(None)  # make sure that _comSub is calculated for all booms
-    return crane
 
 
 def test_environment(crane: Callable, v0: float = 1.0, render_mode="plot", reward_limit=0.0):
@@ -170,19 +135,6 @@ def test_init(crane: Crane, show: bool = False):
         show_figure(times=np.linspace(0, 100, 100), traces={"rewards": rewards})
     env.reset()
 
-
-def test_monitor(crane: Crane):
-    agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type] ## should be correct
-        n_envs=1,
-        env_kwargs={
-            "crane": crane,
-            "seed": 2,
-            "start_speed": 1.0,
-            "render_mode": "reward-tracking",
-        },
-    )
-    agent.do_training(1000)
 
 
 def test_algorithm_strategies(
@@ -315,52 +267,6 @@ def test_q_analyse(crane, trained: tuple[str, bool] = ("anti-pendulum.json", Fal
                 acc.append(np.average(col))
             print(acc)
 
-
-def test_training_ppo(
-    crane: Crane,
-    n_envs: int = 4,
-    nsteps: int = 100000,
-    render_mode: str = "data",
-    trained: tuple[str, bool] | None = None,
-):
-    agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type] ## should be correct
-        n_envs=n_envs,
-        env_kwargs={
-            "crane": crane,
-            "start_speed": -1.0,
-            "size": 20,
-            "render_mode": render_mode,
-        },
-        trained=trained,
-    )
-    logger.info(f"Agent {agent.env} initialized. Start training...")
-    agent.do_training(total_timesteps=nsteps, progress_bar=False)
-    logger.info(f"Training done. Resets:{agent.env.nresets}, Successes:{agent.env.nsuccess}")
-
-
-def test_act_ppo(
-    crane:Crane,
-    render_mode: str = "play_back",
-    trained: tuple[str, bool] = ("ppo_AntiPendulumEnv.zip", False),
-    episodes: int = 1,
-):
-    agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type] ## should be correct
-        n_envs=-1,
-        env_kwargs={
-            "crane": crane,
-            "seed": 2,
-            "start_speed": 1.0,
-            "render_mode": render_mode,
-        },
-        trained=trained,
-    )
-    logger.info(f"Agent {type(agent.env).__name__} initialized. Start action...")
-    for e in range(episodes):
-        agent.do_one_episode(seed=e + 1)
-        agent.env.reset()
-    logger.info("Action done")
 
 
 if __name__ == "__main__":

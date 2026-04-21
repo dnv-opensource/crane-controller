@@ -70,14 +70,23 @@ Installation
 Running
 -------
 
-Training and evaluation are driven through the test suite (run with ``pytest``) or by executing
-the test files directly as scripts. The main test file is ``tests/test_crane_pendulum.py``.
+Install dependencies and run the test suite with ``uv``:
 
 .. code-block:: shell
 
-   pytest tests/test_crane_pendulum.py -v
+   uv run pytest tests/ -v
 
-Saved models (PPO ``.zip``) and Q-tables (``.json``) are stored in the ``tests/`` directory.
+Test files are organised by algorithm:
+
+- ``tests/test_crane_pendulum.py`` — environment, Q-learning, and algorithm tests
+- ``tests/test_ppo.py`` — PPO pipeline smoke test (``test_monitor``)
+
+Some tests produce plots or animations. These are suppressed by default (suitable for CI/CD).
+To enable visual output locally, pass ``--show True``:
+
+.. code-block:: shell
+
+   uv run pytest tests/test_crane_pendulum.py::test_init -v --show True
 
 Contributing
 ------------
