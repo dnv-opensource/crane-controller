@@ -86,7 +86,7 @@ Tests are suitable for CI/CD — no plot windows are produced.
 Training
 --------
 
-Train a PPO agent from the command line:
+**PPO:**
 
 .. code-block:: shell
 
@@ -97,8 +97,46 @@ Key options:
 - ``--steps N`` — total training timesteps (default: 100 000)
 - ``--n-envs N`` — number of parallel environments (default: 4)
 - ``--save-path PATH`` — where to write the trained model (default: ``models/ppo_AntiPendulumEnv.zip``)
-- ``--dry-run`` — run 1 000 steps with a live reward-tracking plot and no model saved;
-  useful for a quick visual sanity check before committing to a full training run
+- ``--dry-run`` — run 1 000 steps with a live reward-tracking plot and no model saved
+
+**Q-learning:**
+
+.. code-block:: shell
+
+   uv run python scripts/train_q.py
+
+Key options:
+
+- ``--episodes N`` — total training episodes (default: 10 000)
+- ``--v0 F`` — initial crane speed; negative = stop mode, positive = start mode (default: ``-1.0``)
+- ``--reward-limit F`` — per-episode termination threshold (default: ``-0.05``)
+- ``--save-path PATH`` — where to write the Q-table (default: ``models/q_AntiPendulumEnv.json``)
+- ``--trained PATH`` — continue training from an existing Q-table JSON
+- ``--intervals N`` — run interval training: N rounds of 10 episodes each
+- ``--dry-run`` — run 50 episodes with a reward plot and no model saved
+
+Playing
+-------
+
+Run a trained agent visually. Both scripts accept ``--render-mode`` with the following options:
+
+- ``plot`` — 4-panel figure per episode (load angle, crane position/speed, rewards)
+- ``play-back`` — animated crane trajectory after each episode
+- ``reward-tracking`` — live reward line plot updating every step
+
+**PPO** (default render-mode: ``play-back``):
+
+.. code-block:: shell
+
+   uv run python scripts/play_ppo.py --model-path models/ppo_AntiPendulumEnv.zip
+   uv run python scripts/play_ppo.py --model-path models/ppo_AntiPendulumEnv.zip --render-mode plot --episodes 3
+
+**Q-learning** (default render-mode: ``plot``):
+
+.. code-block:: shell
+
+   uv run python scripts/play_q.py --model-path models/q_AntiPendulumEnv.json
+   uv run python scripts/play_q.py --model-path tests/anti-pendulum.json --render-mode play-back --episodes 3
 
 Contributing
 ------------
