@@ -71,9 +71,8 @@ def main():
     )
     args = parser.parse_args()
 
-    crane = _build_crane()
     env = AntiPendulumEnv(
-        crane,
+        _build_crane,
         start_speed=args.v0,
         render_mode="plot" if args.dry_run else "none",
         reward_limit=args.reward_limit,
