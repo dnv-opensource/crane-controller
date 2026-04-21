@@ -20,10 +20,3 @@ def test_monitor(crane: Crane):
         },
     )
     agent.do_training(1000)
-
-
-# TODO: move to scripts/train_ppo.py — not a unit test (no assertions, too slow for CI)
-# def test_training_ppo(crane, n_envs=4, nsteps=100000, render_mode="data", trained=None): ...
-
-# TODO: move to scripts/run_ppo.py — not a unit test (no assertions, requires external model file)
-# def test_act_ppo(crane, render_mode="play_back", trained=("ppo_AntiPendulumEnv.zip", False), episodes=1): ...
