@@ -138,6 +138,24 @@ Run a trained agent visually. Both scripts accept ``--render-mode`` with the fol
    uv run python scripts/play_q.py --model-path models/q_AntiPendulumEnv.json
    uv run python scripts/play_q.py --model-path tests/anti-pendulum.json --render-mode play-back --episodes 3
 
+Analysing
+---------
+
+Inspect a trained Q-table without running the environment:
+
+.. code-block:: shell
+
+   uv run python scripts/analyse_q.py --model-path tests/anti-pendulum.json
+
+Prints per-pos/speed average Q-values for a quick sanity check. To drill into
+specific states, use ``--obs`` with 5 integers (use ``-1`` as a wildcard):
+
+.. code-block:: shell
+
+   uv run python scripts/analyse_q.py --model-path tests/anti-pendulum.json --obs -1 0 0 -1 -1
+
+The five observation dimensions are: ``[energy, pos, speed, distance, sector]``.
+
 Contributing
 ------------
 
