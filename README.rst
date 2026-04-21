@@ -1,1 +1,87 @@
-Gymnasium Examples------------------Some simple examples of Gymnasium environments and wrappers.For some explanations of these examples, see the `Gymnasium documentation <https://gymnasium.farama.org>`_.Environments------------This repository hosts the examples that are shown `on the environment creation documentation <https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/>`_* `GridWorldEnv`: Simplistic implementation of gridworld environmentWrappers--------This repository hosts the examples that are shown `on wrapper documentation <https://gymnasium.farama.org/api/wrappers/>`_.* `ClipReward`: A `RewardWrapper` that clips immediate rewards to a valid range* `DiscreteActions`: An `ActionWrapper` that restricts the action space to a finite subset* `RelativePosition`: An `ObservationWrapper` that computes the relative position between an agent and a target* `ReacherRewardWrapper`: Allow us to weight the reward terms for the reacher environmentContributing------------If you would like to contribute, follow these steps:* Fork this repository* Clone your fork* Set up pre-commit via `pre-commit install`* PRs may require accompanying PRs in `the documentation repo <https://github.com/Farama-Foundation/Gymnasium/tree/main/docs>`_.Installation------------To install your new environment, run the following commands:.. code-block:: python   shell   cd crane_controller   pip install -e .
+Crane Controller
+================
+
+AI-based control of crane systems using reinforcement learning, developed at DNV AS.
+
+The primary goal is to solve the **anti-pendulum problem**: training an agent to dampen (or start)
+the swing of a load hanging from a mobile crane, using only horizontal crane acceleration as the control input.
+
+Environments
+------------
+
+``AntiPendulumEnv``
+    The main environment. A mobile crane with a swinging load modelled via real crane physics
+    (``py-crane`` library). The agent controls horizontal crane acceleration and must either
+    start or stop the pendulum motion.
+
+    - **Observation**: crane x-position, crane x-velocity, load polar angle, load x-velocity
+    - **Actions**: Discrete(3) — accelerate left / coast / accelerate right
+    - **Modes**: *start* (build pendulum energy) or *stop* (dampen swing)
+
+``ControlledCraneEnv``
+    A more general mobile crane environment for future work.
+
+Algorithms
+----------
+
+Three RL algorithms are implemented, each as a self-contained agent class:
+
+- **PPO** (``ppo_agent.py``) — Proximal Policy Optimization via ``stable-baselines3``. Supports
+  vectorized environments for faster training. Models saved as ``.zip`` files.
+
+- **Q-Learning** (``q_agent.py``) — Tabular Q-learning with epsilon-greedy exploration.
+  Uses a discretized observation space. Q-tables saved/loaded as JSON for incremental training.
+
+- **REINFORCE** (``reinforce_agent.py``) — Policy gradient with a PyTorch neural network policy.
+  Two-layer network (16 → 32 units, Tanh) outputting a Normal distribution over actions.
+
+- **AlgorithmAgent** (``algorithm.py``) — Brute-force search over all 81 handcoded strategies
+  (3\ :sup:`4` combinations). Useful as a baseline.
+
+Wrappers
+--------
+
+Generic Gymnasium wrappers (from the Farama Foundation examples) are included for reference:
+
+- ``ClipReward`` — clips immediate rewards to a valid range
+- ``DiscreteActions`` — restricts the action space to a finite subset
+- ``RelativePosition`` — computes relative position between agent and target
+- ``ReacherRewardWrapper`` — weights multiple reward terms
+
+Learning Examples
+-----------------
+
+Two classic Gymnasium environments were used as stepping stones when developing this project:
+
+- **GridWorldEnv** — minimal grid navigation, ideal for learning the Gymnasium API.
+  See the `environment creation tutorial <https://gymnasium.farama.org/tutorials/gymnasium_basics/environment_creation/>`_
+  and the `Gymnasium examples repo <https://github.com/Farama-Foundation/gymnasium-env-template>`_.
+- **CartPoleEnv** — cart-pole balancing, useful for verifying RL algorithms before applying them
+  to the crane. Available via ``gymnasium.make("CartPole-v1")``.
+
+Installation
+------------
+
+.. code-block:: shell
+
+   cd crane-controller
+   pip install -e .
+
+Running
+-------
+
+Training and evaluation are driven through the test suite (run with ``pytest``) or by executing
+the test files directly as scripts. The main test file is ``tests/test_crane_pendulum.py``.
+
+.. code-block:: shell
+
+   pytest tests/test_crane_pendulum.py -v
+
+Saved models (PPO ``.zip``) and Q-tables (``.json``) are stored in the ``tests/`` directory.
+
+Contributing
+------------
+
+- Fork this repository
+- Clone your fork
+- Set up pre-commit hooks: ``pre-commit install``
