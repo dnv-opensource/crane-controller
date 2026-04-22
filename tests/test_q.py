@@ -32,9 +32,9 @@ def test_q_analyse(crane: Callable, trained: tuple[str, bool] = ("anti-pendulum.
     for pos in (0, 1):
         for speed in (0, 1):
             res = dict((k, v) for k, v in agent.q_values.items() if k[1] == pos and k[2] == speed)
-            print(f"pos:{pos}, speed:{speed}")
+            logger.info(f"pos:{pos}, speed:{speed}")
             acc = []
             for i in range(3):
                 col = [x[i] for x in res.values()]
                 acc.append(np.average(col))
-            print(acc)
+            logger.info(f"averages: {acc}")
