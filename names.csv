@@ -21,6 +21,10 @@ Maintainer1LinkedIn,https://www.linkedin.com/in/claasrostock/?locale=en_US
 Maintainer2Name,
 Maintainer2Email,
 Maintainer2LinkedIn,
-Keyword1,control
-Keyword2,crane
-Keyword3,anti-pendulum
+Keyword1,simulation
+Keyword2,model
+Keyword3,FMI
+Keyword4,OSP
+Keyword5,control algorithm
+Keyword6,crane
+Keyword7,anti-pendulum
