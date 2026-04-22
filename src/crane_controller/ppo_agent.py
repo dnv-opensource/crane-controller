@@ -1,14 +1,22 @@
 from __future__ import annotations
 
-from typing import Any
+import logging
+from typing import TYPE_CHECKING, Any
 
-import gymnasium as gym
 import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    import gymnasium as gym
+
 plt.rcParams["figure.figsize"] = (10, 5)
+
+logger = logging.getLogger(__name__)
 
 
 class ProximalPolicyOptimizationAgent:
@@ -28,18 +36,18 @@ class ProximalPolicyOptimizationAgent:
 
     def __init__(
         self,
-        env: gym.Env,
+        env: Callable[..., gym.Env[object, object]],
         n_envs: int = 4,
         env_kwargs: dict[str, Any] | None = None,
-        trained: tuple[str, bool] | None = None,
-    ):
+        trained: tuple[str | Path, bool] | None = None,
+    ) -> None:
         self.trained = trained
         if env_kwargs is None:
-            self.env = env()  # type: ignore[operator]  ## the object is callable! (__init__())
+            self.env = env()
         else:
-            self.env = env(**env_kwargs)  # type: ignore[operator]  ## the object is callable! (__init__())
+            self.env = env(**env_kwargs)
         _n_envs = n_envs = 1 if n_envs <= 0 else n_envs
-        self.vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)  # type: ignore ## should be correct
+        self.vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)
         if n_envs <= 0:
             assert self.trained is not None, "When no training is specified a saved model should be provided"
             self.model = PPO.load(self.trained[0])
@@ -50,35 +58,24 @@ class ProximalPolicyOptimizationAgent:
         else:
             self.model = PPO("MlpPolicy", self.vec_env)
             self.trained = (
-                trained[0] if trained is not None else f"ppo_{env.__name__}",  # type: ignore ## has name
+                trained[0] if trained is not None else f"ppo_{env.__name__}",
                 False if trained is None else trained[1],
             )
 
-    def do_training(self, total_timesteps: int = 25000, progress_bar: bool = True):
-        self.model.learn(total_timesteps, progress_bar=progress_bar)
-        if self.trained is not None and self.trained[1] and self.env.render_mode not in ("play-back"):
+    def do_training(self, total_timesteps: int = 25000, *, progress_bar: bool = True) -> None:
+        _ = self.model.learn(total_timesteps, progress_bar=progress_bar)
+        if self.trained is not None and self.trained[1] and self.env.render_mode != "play-back":
             self.model.save(self.trained[0])
 
-    def evaluate(self, n_episodes: int = 10):
+    def evaluate(self, n_episodes: int = 10) -> None:
         mean_reward, std_reward = evaluate_policy(self.model, self.env, n_eval_episodes=n_episodes)
-        print(f"Mean:{mean_reward}, stdev:{std_reward}")
+        logger.info("Mean:%s, stdev:%s", mean_reward, std_reward)
 
-    def do_one_episode(self, seed: int = 1):
+    def do_one_episode(self, seed: int = 1) -> None:
         """Do one episode on the non-vectorized, trained environment."""
-        obs, info = self.env.reset(seed=seed)
+        obs, _ = self.env.reset(seed=seed)
         terminated = truncated = False
         while not terminated and not truncated:
             action, _states = self.model.predict(obs)
-            obs, rewards, terminated, truncated, info = self.env.step(action)
-            # print("Action", obs, rewards, terminated, truncated, info)
+            obs, _rewards, terminated, truncated, _ = self.env.step(action)
         self.env.render()
-
-
-# class TrainingMonitor(BaseCallback):
-#     def __init__(self, verbose:int=0):
-#         super().__init__(verbose)
-#
-#     def _on_step(self):
-#         """Called at every step of the training."""
-#
-#         return True

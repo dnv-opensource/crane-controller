@@ -21,8 +21,9 @@ plt.rcParams["figure.figsize"] = (10, 5)
 class PolicyNetwork(nn.Module):
     """Parametrized Policy Network."""
 
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
-        """Initialize a neural network that estimates the mean and standard deviation
+    def __init__(self, obs_space_dims: int, action_space_dims: int) -> None:
+        """Initialize a neural network that estimates the mean and standard deviation.
+
          of a normal distribution from which an action is sampled from.
 
         Args:
@@ -49,7 +50,8 @@ class PolicyNetwork(nn.Module):
         self.policy_stddev_net = nn.Sequential(nn.Linear(hidden_space2, action_space_dims))
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """Conditioned on the observation, returns the mean and standard deviation
+        """Conditioned on the observation, return the mean and standard deviation.
+
          of a normal distribution from which an action is sampled.
 
         Args:
@@ -73,12 +75,13 @@ class REINFORCE:
 
     def __init__(
         self,
-        env: gym.Env,
+        env: gym.Env[object, object],
         learning_rate: float = 1e-4,
         gamma: float = 0.99,
         eps: float = 1e-6,
-    ):
-        """Initialize an agent that learns a policy via REINFORCE algorithm [1]
+    ) -> None:
+        """Initialize an agent that learns a policy via REINFORCE algorithm [1].
+
         to solve the task at hand (Inverted Pendulum v4).
 
         Args:
@@ -102,14 +105,14 @@ class REINFORCE:
         self.gamma = gamma
         self.eps = eps
 
-    def reset(self):
+    def reset(self) -> None:
         self.probs = []  # Stores probability values of the sampled action
         self.rewards = []  # Stores the corresponding rewards
 
         self.net = PolicyNetwork(self.obs_space_dims, self.action_space_dims)
         self.optimizer = torch.optim.AdamW(self.net.parameters(), lr=self.learning_rate)
 
-    def sample_action(self, state: np.ndarray):
+    def sample_action(self, state: np.ndarray) -> int | np.ndarray:
         """Return an action, conditioned on the policy and observation.
 
         Args:
@@ -119,7 +122,7 @@ class REINFORCE:
         -------
             action: Action to be performed
         """
-        state = torch.from_numpy(state)  # type: ignore ## according to documentation
+        state = torch.from_numpy(state.astype(np.float32, copy=False))
         action_means, action_stddevs = self.net(state)
 
         # create a normal distribution from the predicted
@@ -134,14 +137,14 @@ class REINFORCE:
             return int(action[0])
         return action
 
-    def update(self):
+    def update(self) -> None:
         """Update the policy network's weights."""
         running_g = 0
         gs: list[float] = []
 
         # Discounted return (backwards) - [::-1] will return an array in reverse
-        for R in self.rewards[::-1]:
-            running_g = R + self.gamma * running_g
+        for reward in self.rewards[::-1]:
+            running_g = reward + self.gamma * running_g
             gs.insert(0, running_g)
 
         deltas = torch.tensor(gs)
@@ -161,24 +164,23 @@ class REINFORCE:
         self.probs = []
         self.rewards = []
 
-    def do_training(self, num_episodes: int = 5000):
+    def do_training(self, num_episodes: int = 5000) -> list[list[float]]:
         wrapped_env = gym.wrappers.RecordEpisodeStatistics(self.env, 50)  # Records episode-reward
 
-        rewards_over_seeds = []
+        rewards_over_seeds: list[list[float]] = []
 
         for seed in [1, 2, 3, 5, 8]:  # Fibonacci seeds
             # set seed
             torch.manual_seed(seed)
             random.seed(seed)
-            np.random.seed(seed)
 
             # Reinitialize agent every seed
             self.reset()
-            reward_over_episodes = []
+            reward_over_episodes: list[float] = []
 
             for episode in range(num_episodes):
                 # gymnasium v26 requires users to set seed while resetting the environment
-                obs, info = wrapped_env.reset(seed=seed)
+                obs, _ = wrapped_env.reset(seed=seed)
 
                 done = False
                 while not done:
@@ -188,7 +190,7 @@ class REINFORCE:
                     # These represent the next observation, the reward from the step,
                     # if the episode is terminated, if the episode is truncated and
                     # additional info from the step
-                    obs, reward, terminated, truncated, info = wrapped_env.step(action)
+                    obs, reward, terminated, truncated, _ = wrapped_env.step(action)
                     self.rewards.append(reward)
 
                     # End the episode when either truncated or terminated is true
@@ -202,13 +204,15 @@ class REINFORCE:
 
                 if episode % 1000 == 0:
                     avg_reward = int(np.mean(wrapped_env.return_queue))
-                    print("Episode:", episode, "Average Reward:", avg_reward)
+                    logger.info("Episode: %s Average Reward: %s", episode, avg_reward)
 
             rewards_over_seeds.append(reward_over_episodes)
 
-    def plot_learning_curve(self, rewards_over_seeds: list[float]):
+        return rewards_over_seeds
+
+    def plot_learning_curve(self, rewards_over_seeds: list[list[float]]) -> None:
         df1 = pd.DataFrame(rewards_over_seeds).melt()
-        df1.rename(columns={"variable": "episodes", "value": "reward"}, inplace=True)
+        df1 = df1.rename(columns={"variable": "episodes", "value": "reward"})
         sns.set(style="darkgrid", context="talk", palette="rainbow")
-        sns.lineplot(x="episodes", y="reward", data=df1).set(title=f"REINFORCE for {self.env.__name__}")  # type: ignore
+        sns.lineplot(x="episodes", y="reward", data=df1).set(title=f"REINFORCE for {type(self.env).__name__}")
         plt.show()
