@@ -16,31 +16,14 @@ import argparse
 
 import numpy as np
 
+from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
-
-_DISCRETE = {
-    "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
-    "pos": (0, 1),
-    "speed": (0, 1),
-    "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
-    "sector": (0, 1),
-}
-
-
-def _build_crane():
-    from py_crane.crane import Crane
-
-    crane = Crane()
-    crane.add_boom("pedestal", mass=100.0, boom=(10.0, 0.0, 0.0))
-    crane.add_boom("wire", mass=1.0, mass_center=1.0, boom=(10.0, np.pi, 0.0), q_factor=50.0)
-    crane.calc_statics_dynamics(None)
-    return crane
 
 
 def _build_dummy_env():
     """Minimal env needed to satisfy QLearningAgent constructor (action_space.n)."""
-    return AntiPendulumEnv(_build_crane, discrete=_DISCRETE.copy())
+    return AntiPendulumEnv(build_crane, discrete=QLearningAgent.DEFAULT_DISCRETE.copy())
 
 
 def main():

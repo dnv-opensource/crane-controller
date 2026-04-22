@@ -9,6 +9,7 @@ import pytest  # noqa: F401
 from py_crane.crane import Crane
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.q_agent import QLearningAgent
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +56,7 @@ def test_environment(crane: Callable, v0: float = 1.0, render_mode="plot", rewar
         start_speed=v0,
         render_mode=render_mode,
         reward_limit=reward_limit,
-        discrete={
-            "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
-            "pos": (0, 1),
-            "speed": (0, 1),
-            "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
-            "sector": (0, 1),
-        },
+        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
     assert env.action_space.n == 3  # type: ignore[attr-defined]
     assert env.action_space.start == 0  # type: ignore[attr-defined]

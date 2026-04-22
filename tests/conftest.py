@@ -4,9 +4,8 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Any
 
-import numpy as np
 import pytest
-from py_crane.crane import Crane
+from crane_controller.crane_factory import build_crane
 
 
 @pytest.fixture(scope="package", autouse=True)
@@ -75,29 +74,9 @@ def logger() -> logging.Logger:
     return logging.getLogger()
 
 
-def _crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0) -> Crane:
-    crane = Crane()
-    _ = crane.add_boom(
-        "pedestal",
-        description="A simple pole with same length as the wire",
-        mass=100.0,
-        boom=(length, 0.0, 0.0),
-    )
-    _ = crane.add_boom(
-        "wire",
-        description="The wire fixed to the pole. Flexible connection",
-        mass=mass,
-        mass_center=1.0,
-        boom=(length, np.pi, 0.0),
-        q_factor=q_factor,
-    )
-    crane.calc_statics_dynamics(None)
-    return crane
-
-
 @pytest.fixture
 def crane():
-    return _crane
+    return build_crane
 
 
 def pytest_addoption(parser: Any):

@@ -3,16 +3,9 @@ from typing import Callable
 
 from crane_controller.algorithm import AlgorithmAgent
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.q_agent import QLearningAgent
 
 logger = logging.getLogger(__name__)
-
-_DISCRETE = {
-    "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
-    "pos": (0, 1),
-    "speed": (0, 1),
-    "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
-    "sector": (0, 1),
-}
 
 
 def test_algorithm_strategies(
@@ -26,7 +19,7 @@ def test_algorithm_strategies(
         start_speed=start_speed,
         render_mode=render_mode,
         reward_limit=reward_limit,
-        discrete=_DISCRETE,
+        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
     agent = AlgorithmAgent(env)
     agent.do_strategies()
@@ -38,7 +31,7 @@ def test_algorithm(crane: Callable, render_mode: str = "plot"):
         start_speed=0.0,
         render_mode=render_mode,
         reward_limit=1000.0,
-        discrete=_DISCRETE,
+        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
     agent = AlgorithmAgent(env)
     agent.strategy = (0, 2, 0, 2)

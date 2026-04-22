@@ -7,39 +7,9 @@ Example:
 
 import argparse
 
-import numpy as np
-from py_crane.crane import Crane
-
+from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
-
-_DISCRETE = {
-    "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
-    "pos": (0, 1),
-    "speed": (0, 1),
-    "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
-    "sector": (0, 1),
-}
-
-
-def _build_crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0) -> Crane:
-    crane = Crane()
-    crane.add_boom(
-        "pedestal",
-        description="A simple pole with same length as the wire",
-        mass=100.0,
-        boom=(length, 0.0, 0.0),
-    )
-    crane.add_boom(
-        "wire",
-        description="The wire fixed to the pole. Flexible connection",
-        mass=mass,
-        mass_center=1.0,
-        boom=(length, np.pi, 0.0),
-        q_factor=q_factor,
-    )
-    crane.calc_statics_dynamics(None)
-    return crane
 
 
 def main():
@@ -51,10 +21,10 @@ def main():
     args = parser.parse_args()
 
     env = AntiPendulumEnv(
-        _build_crane,
+        build_crane,
         start_speed=args.v0,
         render_mode=args.render_mode,
-        discrete=_DISCRETE.copy(),
+        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
     agent = QLearningAgent(env, trained=(args.model_path, True))
 
