@@ -25,6 +25,14 @@ class QLearningAgent(object):
            (filename,use-it): (filename,False): perform new training and save, (filename,True) use pre-trained values
     """
 
+    DEFAULT_DISCRETE: dict = {
+        "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
+        "pos": (0, 1),
+        "speed": (0, 1),
+        "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
+        "sector": (0, 1),
+    }
+
     def __init__(
         self,
         env: gym.Env,

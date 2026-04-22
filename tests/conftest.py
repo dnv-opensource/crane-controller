@@ -5,6 +5,7 @@ from shutil import rmtree
 from typing import Any
 
 import pytest
+from crane_controller.crane_factory import build_crane
 
 
 @pytest.fixture(scope="package", autouse=True)
@@ -73,10 +74,15 @@ def logger() -> logging.Logger:
     return logging.getLogger()
 
 
+@pytest.fixture
+def crane():
+    return build_crane
+
+
 def pytest_addoption(parser: Any):
-    parser.addoption("--show", action="store", default=False)
+    parser.addoption("--show", action="store_true", default=False)
 
 
 @pytest.fixture(scope="session")
 def show(request: Any):
-    return request.config.getoption("--show") == "False"
+    return request.config.getoption("--show")
