@@ -7,14 +7,17 @@ Example:
 """
 
 import argparse
+import logging
 from pathlib import Path
 
 from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.ppo_agent import ProximalPolicyOptimizationAgent
 
+LOGGER = logging.getLogger(__name__)
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Train a PPO agent on the crane anti-pendulum task.")
     parser.add_argument("--steps", type=int, default=100_000, help="Total training timesteps")
     parser.add_argument("--n-envs", type=int, default=4, help="Number of parallel environments")
@@ -31,6 +34,8 @@ def main():
         help="Run 1000 steps with live reward-tracking plot, without saving the model.",
     )
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     if args.dry_run:
         agent = ProximalPolicyOptimizationAgent(
@@ -57,7 +62,7 @@ def main():
             trained=(args.save_path, True),
         )
         agent.do_training(args.steps)
-        print(f"Model saved to {args.save_path}")
+        LOGGER.info("Model saved to %s", args.save_path)
 
 
 if __name__ == "__main__":

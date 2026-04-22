@@ -9,7 +9,7 @@ from crane_controller.q_agent import QLearningAgent
 logger = logging.getLogger(__name__)
 
 
-def test_smoke(crane: Callable, show: bool):
+def test_smoke(crane: Callable, *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         start_speed=-1.0,
@@ -21,7 +21,7 @@ def test_smoke(crane: Callable, show: bool):
     agent.do_episodes(n_episodes=5, max_steps=200)
 
 
-def test_q_analyse(crane: Callable, trained: tuple[str, bool] = ("anti-pendulum.json", False)):
+def test_q_analyse(crane: Callable, *, trained: tuple[str, bool]) -> None:
     env = AntiPendulumEnv(
         crane,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
@@ -31,7 +31,7 @@ def test_q_analyse(crane: Callable, trained: tuple[str, bool] = ("anti-pendulum.
         assert len(k) == 5, len(v) == 3
     for pos in (0, 1):
         for speed in (0, 1):
-            res = dict((k, v) for k, v in agent.q_values.items() if k[1] == pos and k[2] == speed)
+            res = {k: v for k, v in agent.q_values.items() if k[1] == pos and k[2] == speed}
             logger.info(f"pos:{pos}, speed:{speed}")
             acc = []
             for i in range(3):

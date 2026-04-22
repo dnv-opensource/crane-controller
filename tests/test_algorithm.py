@@ -10,22 +10,21 @@ logger = logging.getLogger(__name__)
 
 def test_algorithm_strategies(
     crane: Callable,
+    *,
     show: bool,
-    reward_limit: float = 1000.0,
-    start_speed: float = 0.0,
-):
+) -> None:
     env = AntiPendulumEnv(
         crane,
-        start_speed=start_speed,
+        start_speed=0.0,
         render_mode="plot" if show else "none",
-        reward_limit=reward_limit,
+        reward_limit=1000.0,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
     agent = AlgorithmAgent(env)
     agent.do_strategies()
 
 
-def test_algorithm(crane: Callable, show: bool):
+def test_algorithm(crane: Callable, *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         start_speed=0.0,

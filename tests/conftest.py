@@ -105,10 +105,27 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--show",
         action="store_true",
         default=False,
-        help="Command line switch to show plots during tests, and dump additional results to console. By default, False.",
+        help=(
+            "Command line switch to show plots during tests, and dump additional results to console. By default, False."
+        ),
     )
 
 
 @pytest.fixture(scope="session")
 def show(request: pytest.FixtureRequest) -> bool:
     return request.config.getoption("--show")
+
+
+@pytest.fixture
+def v0() -> float:
+    return 1.0
+
+
+@pytest.fixture
+def reward_limit() -> float:
+    return 0.0
+
+
+@pytest.fixture
+def trained() -> tuple[str, bool]:
+    return ("anti-pendulum.json", False)

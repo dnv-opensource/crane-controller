@@ -6,13 +6,16 @@ Example:
 """
 
 import argparse
+import logging
 
 from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
 
+LOGGER = logging.getLogger(__name__)
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Run a trained Q-learning agent on the crane anti-pendulum task.")
     parser.add_argument("--model-path", type=str, required=True, help="Path to a trained Q-table JSON")
     parser.add_argument(
@@ -30,8 +33,9 @@ def main():
     )
     agent = QLearningAgent(env, trained=(args.model_path, True))
 
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     for episode in range(args.episodes):
-        print(f"Episode {episode + 1}/{args.episodes}")
+        LOGGER.info("Episode %s/%s", episode + 1, args.episodes)
         env.reset(seed=episode + 1)
         agent.do_episodes(n_episodes=1)
 

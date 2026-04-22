@@ -8,7 +8,7 @@ from crane_controller.ppo_agent import ProximalPolicyOptimizationAgent
 logger = logging.getLogger(__name__)
 
 
-def test_monitor(crane: Crane, show: bool):
+def test_monitor(crane: Crane, *, show: bool) -> None:
     agent = ProximalPolicyOptimizationAgent(
         AntiPendulumEnv,  # type: ignore[arg-type]
         n_envs=1,
