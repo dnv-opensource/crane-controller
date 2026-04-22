@@ -5,7 +5,14 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 
 ## [Unreleased]
 
-* -/-
+### Changed
+
+* Reduced repository Ruff violations to zero by tightening annotations, logging, and helper script structure.
+* Cleaned agent, wrapper, and environment modules to satisfy stricter linting and formatting requirements.
+
+### Fixed
+
+* Restored deterministic AntiPendulum environment seeding and aligned reset/step behavior with the existing environment tests.
 
 
 ## [0.0.2] - YYYY-MM-DD
