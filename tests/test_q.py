@@ -10,8 +10,8 @@ from crane_controller.q_agent import QLearningAgent
 logger = logging.getLogger(__name__)
 
 
-def test_smoke(crane: Callable):
-    env = AntiPendulumEnv(crane, start_speed=-1.0, render_mode="none", reward_limit=-0.05, discrete=QLearningAgent.DEFAULT_DISCRETE.copy())
+def test_smoke(crane: Callable, show: bool):
+    env = AntiPendulumEnv(crane, start_speed=-1.0, render_mode="plot" if show else "none", reward_limit=-0.05, discrete=QLearningAgent.DEFAULT_DISCRETE.copy())
     agent = QLearningAgent(env, trained=None)
     agent.do_episodes(n_episodes=5, max_steps=200)
 
