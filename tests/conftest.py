@@ -8,6 +8,7 @@ from shutil import rmtree
 import pytest
 import torch
 import torch.cuda
+
 from crane_controller.crane_factory import build_crane
 
 CUDA_AVAILABLE: bool = torch.cuda.is_available()

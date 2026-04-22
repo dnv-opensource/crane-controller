@@ -73,7 +73,7 @@ class AntiPendulumEnv(gym.Env):
         elif render_mode == "plot":
             self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": []}
 
-        self.obeservation_space : spaces.Box | spaces.Discrete
+        self.obeservation_space: spaces.Box | spaces.Discrete
         # Observations is a 4-dim np-array with
         # (crane-x, crane-v_x, load-polar-angle_x, load-v_x)
         self.min_speed = 0.1  # np.sqrt(2*reward_limit) # starting with less does not make sense (goal already reached)
@@ -112,7 +112,7 @@ class AntiPendulumEnv(gym.Env):
            'sector': current sector of the crane position (+/- x)
         """
         # We replace the angles with pendulum energy levels, which are easier to use for observation calculation
-        observation_space = spaces.MultiDiscrete(np.array([len(spec[k]) for k in spec.keys()]))
+        observation_space = spaces.MultiDiscrete(np.array([len(spec[k]) for k in spec]))
         angles = spec.pop("angles")
         energies = [9.81 * self.wire.length * (1.0 - np.cos(np.radians(a))) for a in angles]
         spec.update({"energies": tuple(energies)})
@@ -211,7 +211,7 @@ class AntiPendulumEnv(gym.Env):
                 # if the crane moves towards the origo we do not add 'energy'
         self.reward = reward
 
-        obs : tuple[int,...] | np.ndarray
+        obs: tuple[int, ...] | np.ndarray
         if len(self.discrete):
             obs = (
                 level(1, energy, self.discrete["energies"]),  # energy level
@@ -249,8 +249,7 @@ class AntiPendulumEnv(gym.Env):
     def low_reward(self):
         if self.start_speed == 0.0:
             return 0.0
-        else:
-            return -self.discrete["energies"][-1]
+        return -self.discrete["energies"][-1]
 
     def _get_info(self, reward: float, steps: int):
         return {"steps": steps, "reward": reward}
@@ -268,7 +267,6 @@ class AntiPendulumEnv(gym.Env):
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         """Reset the crane for a new episode."""
-
         self.reset_crane()
 
         if self.nresets <= 0:  # reset during instantiation. Initialize
@@ -307,6 +305,7 @@ class AntiPendulumEnv(gym.Env):
         return obs, info
 
     def step(self, action):
+        """Step in the environment according to the given action."""
         self.crane.d_velocity[0] = self.action_to_acc[int(action)]
         self.steps += 1
         self.crane.do_step(self.steps, self.dt)

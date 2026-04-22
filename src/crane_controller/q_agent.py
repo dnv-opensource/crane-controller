@@ -12,7 +12,7 @@ from tqdm import tqdm  # Progress bar
 logger = logging.getLogger(__name__)
 
 
-class QLearningAgent(object):
+class QLearningAgent:
     """Agent for training the controller (a Gym Environment).
 
     Args:
@@ -83,8 +83,8 @@ class QLearningAgent(object):
         """
         if np.random.random() < self.epsilon:  # With probability epsilon: explore (random action)
             return self.env.action_space.sample()
-        else:  # With probability (1-epsilon): exploit (best known action)
-            return int(np.argmax(self.q_values[obs]))
+        # With probability (1-epsilon): exploit (best known action)
+        return int(np.argmax(self.q_values[obs]))
 
     def update_q(
         self,
@@ -159,7 +159,7 @@ class QLearningAgent(object):
             if self.filename is None:
                 logger.warning("No base file name provided. Aborting dump to file.")
                 return
-            elif self.use_pre_trained:  # do not overwrite pre-trained data
+            if self.use_pre_trained:  # do not overwrite pre-trained data
                 if len(self.filename.stem.split("_")) == 1:
                     _filename = self.filename.parent / f"{self.filename.stem}_1{self.filename.suffix}"
                 else:
@@ -179,7 +179,7 @@ class QLearningAgent(object):
 
     def read_dumped(self, filename: str | Path):
         """Read a q_values dict (saved as json) from file."""
-        with open(filename, "r") as _f:
+        with open(filename) as _f:
             from_dump = json.load(_f)
         q_values = defaultdict(lambda: np.array((0.0,) * self.env.action_space.n, float))  # type: ignore # n exists
         for k, v in from_dump.items():

@@ -111,6 +111,7 @@ class ControlledCraneEnv(gym.Env):
         return observation, info
 
     def step(self, action):
+        """Step in the environment according to the given action."""
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
         # We use `np.clip` to make sure we don't leave the grid

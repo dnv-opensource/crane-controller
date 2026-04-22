@@ -1,11 +1,10 @@
 import logging
 from collections import defaultdict
-from typing import Callable, Generator
+from collections.abc import Callable, Generator
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest  # noqa: F401
-
 from py_crane.crane import Crane
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
@@ -25,12 +24,11 @@ def show_figure(
     for label, trace in traces.items():
         if selection is None:
             _ = ax1.plot(times, trace, label=label)
-        else:
-            if label in selection:
-                if selection[label] == 1:
-                    _ = ax1.plot(times, trace, label=label)
-                elif selection[label] == 2:
-                    _ = ax2.plot(times, trace, label=label)
+        elif label in selection:
+            if selection[label] == 1:
+                _ = ax1.plot(times, trace, label=label)
+            elif selection[label] == 2:
+                _ = ax2.plot(times, trace, label=label)
     _ = ax1.legend()
     _ = ax2.legend()
     plt.title(title)

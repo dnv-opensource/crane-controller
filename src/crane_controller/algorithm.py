@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm  # Progress bar
 
 
-class AlgorithmAgent(object):
+class AlgorithmAgent:
     """Agent for algorithmic control of a (simple) environment.
 
     Args:
@@ -40,17 +40,16 @@ class AlgorithmAgent(object):
         # print("OBS", obs)
         if obs == (0, 0, 0, 0, 0):  # in start mode. Random push to get started.
             return (0, 2)[np.random.randint(0, 2)]  # random 0 or 2
-        else:  # see the reward of all strategies at end of file. 0202 is optimal
-            if obs[1] == 0 and obs[2] == 0:
-                return self.strategy[0]
-            elif obs[1] == 0 and obs[2] == 1:
-                return self.strategy[1]
-            elif obs[1] == 1 and obs[2] == 0:
-                return self.strategy[2]
-            elif obs[1] == 1 and obs[2] == 1:
-                return self.strategy[3]
-            else:
-                raise ValueError("There should not be other choices {obs}") from None
+        # see the reward of all strategies at end of file. 0202 is optimal
+        if obs[1] == 0 and obs[2] == 0:
+            return self.strategy[0]
+        if obs[1] == 0 and obs[2] == 1:
+            return self.strategy[1]
+        if obs[1] == 1 and obs[2] == 0:
+            return self.strategy[2]
+        if obs[1] == 1 and obs[2] == 1:
+            return self.strategy[3]
+        raise ValueError("There should not be other choices {obs}") from None
 
     def do_strategies(self, max_steps: int = 5000):
         """Go through all strategies, where
@@ -59,6 +58,7 @@ class AlgorithmAgent(object):
             pos=+, speed=- => strategy[2]
             pos=+, speed=+ => strategy[3]
             with pos=obs[1], speed=obs[2]
+
         Observations 0, 3 and 4 are ignored.
         """
         res = []

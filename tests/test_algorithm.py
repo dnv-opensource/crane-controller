@@ -1,5 +1,5 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from crane_controller.algorithm import AlgorithmAgent
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
