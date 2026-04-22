@@ -50,11 +50,11 @@ def movement(crane: Crane, dt: float = 0.01, t_end: float = 10.0) -> Generator[t
         yield (time + dt, crane)
 
 
-def test_environment(crane: Callable, v0: float = 1.0, render_mode="plot", reward_limit=0.0):
+def test_environment(crane: Callable, show: bool, v0: float = 1.0, reward_limit=0.0):
     env = AntiPendulumEnv(
         crane,
         start_speed=v0,
-        render_mode=render_mode,
+        render_mode="plot" if show else "none",
         reward_limit=reward_limit,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
