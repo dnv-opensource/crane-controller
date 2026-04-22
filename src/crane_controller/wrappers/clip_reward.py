@@ -1,6 +1,8 @@
 import gymnasium as gym
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
 
 class ClipReward(gym.RewardWrapper):
     def __init__(self, env, min_reward, max_reward):
