@@ -1,0 +1,26 @@
+Variable,Value
+PackageNameDashed,crane-controller
+PackageNameCapitalized,CraneController
+GitHubOrganisation,dnv-opensource
+SubPackage1Name,envs
+Module1Name,controlled_crane_pendulum
+SubPackage2Name,wrappers
+Module2Name,clip_reward
+Author1Name,Siegfried Eisinger
+Author1Email,siegfried.eisinger@dnv.com
+Author1LinkedIn,https://www.linkedin.com/in/siegfried-eisinger-a337638b
+Author2Name,Aleksandar Babic
+Author2Email,aleksandar.babic@dnv.com
+Author2LinkedIn,https://www.linkedin.com/in/aleksandar-babic-no
+Author3Name,
+Author3Email,
+Author3LinkedIn,
+Maintainer1Name,Claas Rostock
+Maintainer1Email,claas.rostock@dnv.com
+Maintainer1LinkedIn,https://www.linkedin.com/in/claasrostock/?locale=en_US
+Maintainer2Name,
+Maintainer2Email,
+Maintainer2LinkedIn,
+Keyword1,control
+Keyword2,crane
+Keyword3,anti-pendulum
