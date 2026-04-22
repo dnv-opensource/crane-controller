@@ -1,19 +1,21 @@
-from typing import Any
+from types import MappingProxyType
 
 import gymnasium as gym
 import numpy as np
+import numpy.typing as npt
 import pygame
 from gymnasium import spaces
 from py_crane.crane import Crane
 
 
 class Actions:
-    def __init__(self, mode: str):
-        pass
+    def __init__(self, mode: str) -> None:
+        self.mode = mode
 
 
 class ControlledCraneEnv(gym.Env):
-    """Environment of the controlled py-crane based mobile crane,
+    """Environment of the controlled py-crane based mobile crane.
+
     using the matplotlib-based animation module from py-crane.
 
     Args:
@@ -24,7 +26,7 @@ class ControlledCraneEnv(gym.Env):
 
     """
 
-    metadata = {"render_modes": ["animation", "data"], "render_fps": 4}
+    metadata = MappingProxyType({"render_modes": ["animation", "data"], "render_fps": 4})
 
     def __init__(
         self,
@@ -32,7 +34,8 @@ class ControlledCraneEnv(gym.Env):
         mov_mode: str = "separate",
         render_mode: str | None = None,
         size: int = 10,
-    ):
+    ) -> None:
+        self.crane = crane
         self.mode: int = 1 if mov_mode == "separate" else 2
         self.size = size
         self.figsize: tuple[int, int] = (15, 15)  # The matplotlib animation window
@@ -80,16 +83,21 @@ class ControlledCraneEnv(gym.Env):
         human-mode. They will remain `None` until human-mode is used for the
         first time.
         """
-        self.window: Any = None
+        self.window: pygame.Surface | None = None
         self.clock: pygame.time.Clock | None = None
 
-    def _get_obs(self):
+    def _get_obs(self) -> dict[str, npt.NDArray[np.int_]]:
         return {"agent": self._agent_location, "target": self._target_location}
 
-    def _get_info(self):
-        return {"distance": np.linalg.norm(self._agent_location - self._target_location, ord=1)}
+    def _get_info(self) -> dict[str, float]:
+        return {"distance": float(np.linalg.norm(self._agent_location - self._target_location, ord=1))}
 
-    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, object] | None = None,
+    ) -> tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]:
         # We need the following line to seed self.np_random
         super().reset(seed=seed, options=options)
 
@@ -110,7 +118,7 @@ class ControlledCraneEnv(gym.Env):
 
         return observation, info
 
-    def step(self, action):
+    def step(self, action: int) -> tuple[dict[str, npt.NDArray[np.int_]], int, bool, bool, dict[str, float]]:
         """Step in the environment according to the given action."""
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
@@ -127,11 +135,12 @@ class ControlledCraneEnv(gym.Env):
 
         return observation, reward, terminated, False, info
 
-    def render(self):
+    def render(self) -> npt.NDArray[np.uint8] | None:
         if self.render_mode == "data":
             return self._render_frame()
+        return None
 
-    def _render_frame(self):
+    def _render_frame(self) -> npt.NDArray[np.uint8] | None:
         if self.window is None and self.render_mode == "animation":
             pygame.init()
             pygame.display.init()
@@ -187,10 +196,15 @@ class ControlledCraneEnv(gym.Env):
             # keep the framerate stable.
             assert self.clock is not None
             self.clock.tick(self.metadata["render_fps"])
-        else:  # rgb_array
+            return None
+
+        # data mode
+        if self.render_mode == "data":
             return np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2))
 
-    def close(self):
+        return None
+
+    def close(self) -> None:
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
