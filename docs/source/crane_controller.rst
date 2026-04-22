@@ -1,15 +1,16 @@
-py-crane package
-==================
+crane-controller package
+========================
 
-.. Subpackages
-.. -----------
+Subpackages
+-----------
 
-.. .. autosummary::
-..    :toctree: _autosummary
-..    :template: custom-module.rst
-..    :recursive:
+.. autosummary::
+   :toctree: _autosummary
+   :template: custom-module.rst
+   :recursive:
 
-..    py_crane.utils
+   crane_controller.envs
+   crane_controller.wrappers
 
 
 Modules
@@ -20,10 +21,8 @@ Modules
    :template: custom-module.rst
    :recursive:
 
-   py_crane.crane
-   py_crane.crane_fmu
-   py_crane.boom
-   py_crane.boom_fmu
-   py_crane.mobile_crane
-   py_crane.enum
-   py_crane.animation
+   crane_controller.algorithm
+   crane_controller.crane_factory
+   crane_controller.ppo_agent
+   crane_controller.q_agent
+   crane_controller.reinforce_agent
