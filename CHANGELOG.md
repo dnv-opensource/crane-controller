@@ -6,45 +6,16 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 ## [Unreleased]
 
 ### Changed
-
-* Reduced repository Ruff violations to zero by tightening annotations, logging, and helper script structure.
-* Cleaned agent, wrapper, and environment modules to satisfy stricter linting and formatting requirements.
-* Added type annotations across all source, test, and script modules — pyright errors reduced from 54 to 0, warnings from 188 to 106.
-* Parameterized `gym.Env` and wrapper base classes with concrete observation and action types.
-* Narrowed `crane` parameter from `Callable[[], object]` to `Callable[..., Crane]` and typed `wire` as `Wire`.
-* Used `TYPE_CHECKING` guarded imports for types only needed at check time.
-* Added type stubs for `torch`, `matplotlib`, and `stable-baselines3` under `stubs/` — pyright warnings reduced from 106 to 77, informations from 15 to 8.
-* Removed 7 stale `# type: ignore` comments that became unnecessary with the new stubs.
-* Eliminated all remaining pyright warnings (77 → 0) and informations (8 → 0):
-  - Removed stale `type: ignore` comments and unnecessary `isinstance` guards.
-  - Assigned unused call results to `_` across scripts, environments, and tests.
-  - Declared uninitialized instance variables (`steps`, `_agent_location`, `_target_location`, `probs`, `rewards`, `net`, `optimizer`).
-  - Added explicit type annotation for `q_values` defaultdict to eliminate `Unknown` member types.
-  - Fixed `ClipReward.reward` override signature to accept `SupportsFloat`.
-  - Suppressed intentional `ObservationWrapper.observation` override in `RelativePosition`.
-  - Removed dead `mode == 0` branch in `ControlledCraneEnv`.
-* Resolved all mypy errors (19 source files, strict untyped-def checking):
-  - Removed `demos` from mypy/pyright `files`/`include` config (directory does not exist).
-  - Dropped `_ =` from void-returning calls (`pygame.display.init`, `pygame.event.pump`, `pygame.display.update`, `plt.pause`).
-  - Corrected `# type: ignore` error codes for mypy+pyright compatibility (`arg-type,list-item`, `arg-type,call-overload`, `attr-defined,type-var`, `var-annotated,attr-defined`).
-  - Removed duplicate `self.steps: int` annotation in `AntiPendulumEnv.reset`.
-  - Added `# type: ignore[override]` to `ControlledCraneEnv.render` for mypy/gymnasium `RenderFrame` TypeVar incompatibility.
-  - Initialized `running_g` as `float` in `PolicyNetwork.train_policy`.
-* Reformatted all existing docstrings to numpy-style (numpydoc convention):
-  - Converted Google-style `Args:` sections to `Parameters` with type annotations.
-  - Added `Returns` and `Raises` sections where applicable.
-  - Expanded one-liner docstrings for non-trivial functions/methods.
-  - Formatted `Examples` sections in script module docstrings.
-* Added missing docstrings across all source and script modules (51 total):
-  - Module-level docstrings for all 11 undocumented modules.
-  - Class docstrings for 5 public classes (`Actions`, wrappers).
-  - `__init__` docstrings for 10 constructors.
-  - Method docstrings for 19 public methods.
-  - Function docstrings for 6 public functions (`build_crane`, script `main` functions).
-  - Reactivated ruff rules D100-D105 and D107 (previously suppressed).
+* Adjusted and partly amended package structure to be in sync with latest changes in python_project_template v0.2.11
+* Typing:
+  * Added type annotations across all source, test, and script modules — pyright errors reduced from 54 to 0, warnings from 188 to 106.
+  * Added type stubs for `torch`, `matplotlib`, and `stable-baselines3`
+* Docstrings:
+  * Reformatted all existing docstrings to numpy-style
+  * Added missing docstrings across all source and script modules
+* Resolved all issues raised by `ruff`, `pyright`, and `mypy`
 
 ### Fixed
-
 * Restored deterministic AntiPendulum environment seeding and aligned reset/step behavior with the existing environment tests.
 
 
