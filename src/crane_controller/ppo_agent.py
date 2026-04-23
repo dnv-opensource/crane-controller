@@ -21,18 +21,26 @@ logger = logging.getLogger(__name__)
 
 
 class ProximalPolicyOptimizationAgent:
-    """Agent which learns a policy via PPO algorithm to solve the task at hand.
+    """Agent that learns a policy via the PPO algorithm.
 
     `PPO algorithm <https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html>`_.
 
-    PPO agents can be saved as zip file and re-loaded to avoid re-training.
+    PPO agents can be saved as a zip file and re-loaded to avoid re-training.
 
-    Args:
-        env (gym.Env): the environment the agent is acting on.
-        n_envs (int) = 4: The number of environments to used during training.
-          n_envs=0 signals that the trained agent should be loaded from file.
-        env_kwargs (dict): Optional possibility to provide additional kwargs for environment
-        trained (str|Path): Optional file name for saving/loading the trained agent. Required for n_envs=0
+    Parameters
+    ----------
+    env : Callable[..., AntiPendulumEnv]
+        Factory callable that creates the environment.
+    n_envs : int, optional
+        Number of parallel environments used during training.
+        ``n_envs=0`` signals that a pre-trained agent should be loaded from
+        file (default 4).
+    env_kwargs : dict[str, Any] or None, optional
+        Additional keyword arguments forwarded to the environment factory
+        (default None).
+    trained : tuple[str | Path, bool] or None, optional
+        File name and save/load flag for the trained agent. Required when
+        ``n_envs=0`` (default None).
     """
 
     def __init__(
@@ -73,7 +81,13 @@ class ProximalPolicyOptimizationAgent:
         logger.info("Mean:%s, stdev:%s", mean_reward, std_reward)
 
     def do_one_episode(self, seed: int = 1) -> None:
-        """Do one episode on the non-vectorized, trained environment."""
+        """Run one episode on the non-vectorised, trained environment.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Random seed for the environment reset (default 1).
+        """
         obs, _ = self.env.reset(seed=seed)
         terminated = truncated = False
         while not terminated and not truncated:
