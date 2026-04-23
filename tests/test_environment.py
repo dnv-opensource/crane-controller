@@ -31,7 +31,7 @@ def show_figure(
                 _ = ax2.plot(times, trace, label=label)
     _ = ax1.legend()
     _ = ax2.legend()
-    plt.title(title)
+    _ = plt.title(title)
     plt.show()
 
 
@@ -44,7 +44,7 @@ def movement(crane: Crane, dt: float = 0.01, t_end: float = 10.0) -> Generator[t
         if abs(time - int(time)) < 1e-6:
             acc = -acc
             crane.d_velocity[0] = acc
-        crane.do_step(time, dt)
+        _ = crane.do_step(time, dt)
         yield (time + dt, crane)
 
 
@@ -96,10 +96,10 @@ def test_init(crane: Callable[..., Crane], *, show: bool) -> None:
     assert obs[1] == -0.1
     assert not terminated
     assert not truncated
-    rewards = []
+    rewards: list[float] = []
     for _ in range(100):
         obs, reward, terminated, truncated, _ = env.step(int(env.np_random.integers(-1, 2)))
         rewards.append(reward)
     if show:
         show_figure(times=np.linspace(0, 100, 100), traces={"rewards": rewards})
-    env.reset()
+    _ = env.reset()

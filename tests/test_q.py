@@ -34,7 +34,7 @@ def test_q_analyse(crane: Callable[..., Crane], *, trained: tuple[str, bool]) ->
         for speed in (0, 1):
             res = {k: v for k, v in agent.q_values.items() if k[1] == pos and k[2] == speed}
             logger.info(f"pos:{pos}, speed:{speed}")
-            acc = []
+            acc: list[np.floating] = []
             for i in range(3):
                 col = [x[i] for x in res.values()]
                 acc.append(np.average(col))
