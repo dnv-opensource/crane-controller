@@ -19,6 +19,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Parse CLI arguments and run a trained Q-learning agent."""
     parser = argparse.ArgumentParser(description="Run a trained Q-learning agent on the crane anti-pendulum task.")
     _ = parser.add_argument("--model-path", type=str, required=True, help="Path to a trained Q-table JSON")
     _ = parser.add_argument(

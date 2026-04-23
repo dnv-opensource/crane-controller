@@ -21,6 +21,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Parse CLI arguments and train a PPO agent."""
     parser = argparse.ArgumentParser(description="Train a PPO agent on the crane anti-pendulum task.")
     _ = parser.add_argument("--steps", type=int, default=100_000, help="Total training timesteps")
     _ = parser.add_argument("--n-envs", type=int, default=4, help="Number of parallel environments")

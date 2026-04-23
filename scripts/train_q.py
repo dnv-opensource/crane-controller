@@ -23,6 +23,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Parse CLI arguments and train a Q-learning agent."""
     parser = argparse.ArgumentParser(description="Train a Q-learning agent on the crane anti-pendulum task.")
     _ = parser.add_argument("--episodes", type=int, default=10_000, help="Total training episodes")
     _ = parser.add_argument("--v0", type=float, default=-1.0, help="Initial crane speed (negative = stop mode)")
