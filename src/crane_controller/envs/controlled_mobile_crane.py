@@ -1,6 +1,6 @@
 """Gymnasium environment for a mobile crane grid-navigation task."""
 
-# mypy: disable-error-code=override  # NDArray is compatible with RenderFrame, but mypy doesn't know that
+# mypy: disable-error-code="override"
 
 from __future__ import annotations
 

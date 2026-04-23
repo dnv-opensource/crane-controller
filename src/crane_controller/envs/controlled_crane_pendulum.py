@@ -1,6 +1,6 @@
 """Gymnasium environment for the crane anti-pendulum task."""
 
-# mypy: disable-error-code=attr-defined
+# mypy: disable-error-code="attr-defined"
 
 from __future__ import annotations
 

@@ -1,2 +1,2 @@
 # Type stubs for torch.distributions
-from . import normal as normal
+from torch import normal as normal

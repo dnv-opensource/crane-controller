@@ -4,7 +4,7 @@
 from collections.abc import Callable, Iterable
 from typing import Any
 
-from .. import Tensor
+from torch import Tensor
 
 class Optimizer:
     def zero_grad(self, set_to_none: bool = True) -> None: ...

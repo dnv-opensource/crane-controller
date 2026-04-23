@@ -1,7 +1,7 @@
 # Type stubs for torch.distributions.normal
 # Covers only the symbols used by this project.
 
-from .. import Tensor
+from torch import Tensor
 
 class Normal:
     loc: Tensor | float

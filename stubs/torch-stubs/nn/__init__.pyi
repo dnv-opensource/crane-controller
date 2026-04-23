@@ -4,7 +4,7 @@
 from collections.abc import Iterator
 from typing import Any
 
-from .. import Tensor
+from torch import Tensor
 
 class Module:
     def __init__(self) -> None: ...

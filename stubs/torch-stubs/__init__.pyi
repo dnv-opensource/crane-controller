@@ -2,14 +2,13 @@
 # Covers only the symbols used by this project.
 
 from collections.abc import Iterable, Sequence
-from typing import Any, overload
+from typing import Any, Self, overload
 
 import numpy as np
-
-from . import cuda as cuda
-from . import distributions as distributions
-from . import nn as nn
-from . import optim as optim
+from torch import cuda as cuda
+from torch import distributions as distributions
+from torch import nn as nn
+from torch import optim as optim
 
 class device:
     def __init__(self, type: str, index: int | None = None) -> None: ...
@@ -17,7 +16,7 @@ class device:
 class Generator: ...
 
 class Size(tuple[int, ...]):
-    def __new__(cls, iterable: Iterable[int] = ...) -> Size: ...
+    def __new__(cls, iterable: Iterable[int] = ...) -> Self: ...
 
 class Tensor:
     # Casting / conversion
