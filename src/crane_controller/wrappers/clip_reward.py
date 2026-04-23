@@ -9,6 +9,17 @@ logger = logging.getLogger(__name__)
 
 class ClipReward(gym.RewardWrapper[object, object]):
     def __init__(self, env: gym.Env[object, object], min_reward: float, max_reward: float) -> None:
+        """Initialize the reward clipper.
+
+        Parameters
+        ----------
+        env : gym.Env[object, object]
+            The environment to wrap.
+        min_reward : float
+            Lower bound for clipped rewards.
+        max_reward : float
+            Upper bound for clipped rewards.
+        """
         super().__init__(env)
         self.min_reward = min_reward
         self.max_reward = max_reward

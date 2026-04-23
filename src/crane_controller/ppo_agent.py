@@ -50,6 +50,10 @@ class ProximalPolicyOptimizationAgent:
         env_kwargs: dict[str, Any] | None = None,
         trained: tuple[str | Path, bool] | None = None,
     ) -> None:
+        """Initialize the PPO agent.
+
+        See the class docstring for parameter descriptions.
+        """
         self.trained = trained
         if env_kwargs is None:
             self.env = env()

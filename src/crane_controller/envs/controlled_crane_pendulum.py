@@ -111,6 +111,10 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         dt: float = 1.0,
         discrete: dict[str, tuple[float | int, ...]] | None = None,
     ) -> None:
+        """Initialize the anti-pendulum environment.
+
+        See the class docstring for parameter descriptions.
+        """
         self.crane_maker = crane
         self.crane: Crane = crane()
         wire = self.crane.boom_by_name("wire")

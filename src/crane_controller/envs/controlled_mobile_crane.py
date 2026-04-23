@@ -17,6 +17,13 @@ CraneObs = dict[str, npt.NDArray[np.int_]]
 
 class Actions:
     def __init__(self, mode: str) -> None:
+        """Initialize the action container.
+
+        Parameters
+        ----------
+        mode : str
+            Movement mode, e.g. ``"separate"`` or ``"combined"``.
+        """
         self.mode = mode
 
 
@@ -47,6 +54,10 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         render_mode: str | None = None,
         size: int = 10,
     ) -> None:
+        """Initialize the mobile crane environment.
+
+        See the class docstring for parameter descriptions.
+        """
         self.crane = crane
         self.mode: int = 1 if mov_mode == "separate" else 2
         self.size = size

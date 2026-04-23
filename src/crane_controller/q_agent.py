@@ -84,6 +84,10 @@ class QLearningAgent:
         discount_factor: float = 0.95,
         trained: tuple[str | Path, bool] | None = None,
     ) -> None:
+        """Initialize the Q-learning agent.
+
+        See the class docstring for parameter descriptions.
+        """
         self.env = env
         _filename, self.use_pre_trained = trained if trained is not None else (None, False)
         self.filename: Path | None = Path(_filename) if _filename is not None else None

@@ -3,6 +3,17 @@ import gymnasium as gym
 
 class ReacherRewardWrapper(gym.Wrapper[object, object, object, object]):
     def __init__(self, env: gym.Env[object, object], reward_dist_weight: float, reward_ctrl_weight: float) -> None:
+        """Initialize the weighted reward wrapper.
+
+        Parameters
+        ----------
+        env : gym.Env[object, object]
+            The environment to wrap.
+        reward_dist_weight : float
+            Weight applied to the distance reward component.
+        reward_ctrl_weight : float
+            Weight applied to the control cost reward component.
+        """
         super().__init__(env)
         self.reward_dist_weight = reward_dist_weight
         self.reward_ctrl_weight = reward_ctrl_weight

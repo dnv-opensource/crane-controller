@@ -62,6 +62,13 @@ class AlgorithmAgent:
         self,
         env: AntiPendulumEnv,
     ) -> None:
+        """Initialize the algorithmic agent.
+
+        Parameters
+        ----------
+        env : AntiPendulumEnv
+            The environment to be controlled.
+        """
         self.env = env
         assert type(self.env).__name__ in AlgorithmAgent.envs, f"Environment {type(self.env).__name__} not listed."
         # Track learning progress
