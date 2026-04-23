@@ -23,7 +23,23 @@ POLAR_Z_TOLERANCE = 0.1
 
 
 def _level(idx: int, val: float, categories: tuple[float, ...]) -> tuple[int, int]:
-    """Determine the bucket index for a value given ordered categories."""
+    """Determine the bucket index for a value given ordered categories.
+
+    Parameters
+    ----------
+    idx : int
+        Fallback index returned when `val` falls below the first category.
+    val : float
+        Value to classify.
+    categories : tuple[float, ...]
+        Ordered category boundaries.
+
+    Returns
+    -------
+    tuple[int, int]
+        ``(bucket_index, error_flag)`` where *error_flag* is `idx` when the
+        value is below the first category and ``0`` otherwise.
+    """
     if val < categories[0]:
         return 0, idx
     for i, category in enumerate(categories):
@@ -37,27 +53,36 @@ AntiPendulumObs = tuple[int, ...] | np.ndarray
 
 
 class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
-    """Environment of the controlled py-crane based mobile crane.
+    """Environment for a py-crane-based anti-pendulum task.
 
-    using the matplotlib-based animation module from py-crane.
-    Simple case of anti-pendulum application.
+    Uses the matplotlib-based animation module from py-crane.
 
-    Args:
-        crane (py_crane): the crane object to use as basis
-        acc (float): the acceleration (-,0,+) used on the crane to perform anti-pendulum actions
-        start_speed (float) = 1.0: Fixed start angle (in degrees) or
-          if <0 random at every episode with [-start_speed ... start_speed]
-        render_modes (str): see metadata dict
-        size (int): The axis length in all directions, but -z
-        seed (int): Optional possibility to use repeatable random numbers. None: not repeatable.
-        reward_limit (float) = 1e-3: reward at which episodes are terminated and anti-pendulum is deemed successful.
-        dt (float) = 1.0: time step for the simulation
-        discrete (dict): either empty dict (continuous mode) or description of discrete ranges:
-           'angles': categories of angles for the amplitude of the load,
-           'pos': current position of the load (+/- x),
-           'speed': current speed of the load (+/- x-direction)
-           'distance': distance categories from origin,
-           'sector': current sector of the crane position (+/- x)
+    Parameters
+    ----------
+    crane : Callable[..., Crane]
+        Factory callable that creates the crane object.
+    acc : float, optional
+        Acceleration magnitude applied to the crane (default 0.1).
+    start_speed : float, optional
+        Fixed start speed in degrees. A negative value causes a random speed
+        in the range ``[-|start_speed|, |start_speed|]`` each episode
+        (default 1.0).
+    render_mode : str, optional
+        One of the modes listed in ``metadata["render_modes"]``
+        (default ``"none"``).
+    size : float, optional
+        Axis length in all directions (default 10.0).
+    seed : int or None, optional
+        Seed for repeatable random numbers (default None).
+    reward_limit : float, optional
+        Reward at which an episode is terminated and the anti-pendulum is
+        deemed successful (default 50.0).
+    dt : float, optional
+        Simulation time step (default 1.0).
+    discrete : dict[str, tuple[float | int, ...]] or None, optional
+        When provided, activates discrete observation mode with the given
+        category boundaries. Expected keys: ``"angles"``, ``"pos"``,
+        ``"speed"``, ``"distance"``, ``"sector"`` (default None).
     """
 
     metadata: ClassVar[dict[str, object]] = {  # type: ignore[assignment]  # Gymnasium metadata typing is loose
@@ -133,14 +158,26 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         self,
         spec: dict[str, tuple[float | int, ...]],
     ) -> tuple[spaces.MultiDiscrete, dict[str, tuple[float | int, ...]]]:
-        """Translate the spec of the observation space to a useful MultiDiscrete Space object.
+        """Translate the observation-space spec into a MultiDiscrete space.
 
-        The following keys are expected
-           'angles': categories of angles for the amplitude of the load,
-           'pos': current position of the load (+/- x)
-           'speed': current speed of the load (+/- x-direction),
-           'distance': distance categories from origin,
-           'sector': current sector of the crane position (+/- x)
+        Expected keys in `spec`::
+
+            'angles'   - amplitude categories (converted to energy levels)
+            'pos'      - load position (+/- x)
+            'speed'    - load speed (+/- x)
+            'distance' - distance categories from origin
+            'sector'   - crane position sector (+/- x)
+
+        Parameters
+        ----------
+        spec : dict[str, tuple[float | int, ...]]
+            Mapping of observation dimension names to category boundaries.
+
+        Returns
+        -------
+        tuple[spaces.MultiDiscrete, dict[str, tuple[float | int, ...]]]
+            The constructed ``MultiDiscrete`` space and the updated spec
+            (with ``'angles'`` replaced by ``'energies'``).
         """
         # We replace the angles with pendulum energy levels, which are easier to use for observation calculation
         observation_space = spaces.MultiDiscrete(np.array([len(spec[k]) for k in spec]))
@@ -156,7 +193,13 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return point
 
     def _append_playback(self, time: float) -> None:
-        """Append the current state of the crane to ._playback."""
+        """Append the current crane state to the playback buffer.
+
+        Parameters
+        ----------
+        time : float
+            Current simulation time.
+        """
         if not len(self._playback):  # no records there yet
             self._playback.append([time])  # slot 0 for time
             for b in self.crane.booms():
@@ -167,7 +210,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
                 self._playback[i + 1].append(b.end)  # type: ignore[arg-type,list-item]  # TVector is compatible at runtime
 
     def show_animation(self) -> None:
-        """Show the playback animation of the episode (the current recording of ._playback."""
+        """Show the playback animation of the current episode recording."""
         if len(self._playback[0]) < MIN_PLAYBACK_FRAMES and not AntiPendulumEnv.metadata["show-len-1"]:
             return
         data = [np.array(col, float) for col in self._playback]
@@ -181,7 +224,13 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         ani.do_animation()
 
     def show_plot(self, episode: int) -> None:
-        """Plot the report_mode='plot' figure."""
+        """Plot detailed traces for a single episode.
+
+        Parameters
+        ----------
+        episode : int
+            Episode number used in the plot title.
+        """
         _, ((ax1, ax2), (ax3, _)) = plt.subplots(2, 2)
         times = np.arange(len(self.traces["c_x"]))
         damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
@@ -202,7 +251,15 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         self.rewards = []
 
     def _get_continuous_obs(self) -> tuple[np.ndarray, int]:
-        """Return continuous observations and any out-of-bounds error flag."""
+        """Return continuous observations and an out-of-bounds error flag.
+
+        Returns
+        -------
+        tuple[np.ndarray, int]
+            ``(observation, error_flag)`` where *error_flag* is ``0`` when all
+            values are within bounds, or the 1-based index of the first
+            out-of-bounds dimension.
+        """
         err = 0
         obs = np.array(
             (
@@ -221,7 +278,19 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return obs, err
 
     def _get_discrete_obs(self, energy: float) -> tuple[int, ...]:
-        """Return the discrete observation tuple derived from the current crane state."""
+        """Return the discrete observation tuple from the current crane state.
+
+        Parameters
+        ----------
+        energy : float
+            Current pendulum energy.
+
+        Returns
+        -------
+        tuple[int, ...]
+            Discretised observation ``(energy_level, side, speed_sign,
+            distance_level, sector)``.
+        """
         energy_level, _ = _level(1, energy, self.discrete["energies"])
         distance_level, _ = _level(3, abs(self.crane.position[0]), self.discrete["distance"])
         return (
@@ -233,13 +302,19 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         )
 
     def _get_obs(self) -> tuple[np.ndarray | tuple[int, ...], float, int]:
-        """Translate the current crane state into an observation useable by gym and calculate the related reward.
+        """Compute the current observation and reward from the crane state.
 
-        For discrete mode:
-           'energies': categories of energies of the load,
-           'side': current side of the load (+/- x),
-           'distance': distance categories from origin,
-           'sector': current sector of the crane position (+/- x)
+        In discrete mode the observation keys are::
+
+            'energies' - energy categories of the load
+            'side'     - current side of the load (+/- x)
+            'distance' - distance categories from origin
+            'sector'   - crane position sector (+/- x)
+
+        Returns
+        -------
+        tuple[np.ndarray | tuple[int, ...], float, int]
+            ``(observation, reward, error_flag)``.
         """
         energy = 9.81 * self.wire.end[2] + 0.5 * np.dot(self.wire.cm_v, self.wire.cm_v)  # type: ignore[attr-defined]  # dynamic attr on Wire
         if self.start_speed == 0.0:  # start pendulum mode
@@ -294,7 +369,20 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         seed: int | None = None,
         options: dict[str, object] | None = None,
     ) -> tuple[tuple[int, ...] | np.ndarray, dict[str, float | int]]:
-        """Reset the crane for a new episode."""
+        """Reset the environment for a new episode.
+
+        Parameters
+        ----------
+        seed : int or None, optional
+            Random seed (default None).
+        options : dict[str, object] or None, optional
+            Additional reset options (default None).
+
+        Returns
+        -------
+        tuple[tuple[int, ...] | np.ndarray, dict[str, float | int]]
+            Initial observation and info dict.
+        """
         self.reset_crane()
 
         if self.nresets <= 0:  # reset during instantiation. Initialize
@@ -334,7 +422,18 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return obs, info
 
     def step(self, action: int) -> tuple[tuple[int, ...] | np.ndarray, float, bool, bool, dict[str, float | int]]:
-        """Step in the environment according to the given action."""
+        """Advance the environment by one time step.
+
+        Parameters
+        ----------
+        action : int
+            Action index selecting the crane acceleration.
+
+        Returns
+        -------
+        tuple[tuple[int, ...] | np.ndarray, float, bool, bool, dict[str, float | int]]
+            ``(observation, reward, terminated, truncated, info)``.
+        """
         action_idx = int(action)
         if action_idx not in self.action_to_acc:
             action_idx += 1
@@ -360,6 +459,6 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return obs, self.reward, terminated, (truncated > 0), info
 
     def render(self) -> None:
-        """Render a frame."""
+        """Render the current episode."""
         if self.render_mode == "play-back":  # show the animation
             self.show_animation()
