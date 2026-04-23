@@ -9,6 +9,10 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 
 * Reduced repository Ruff violations to zero by tightening annotations, logging, and helper script structure.
 * Cleaned agent, wrapper, and environment modules to satisfy stricter linting and formatting requirements.
+* Added type annotations across all source, test, and script modules — pyright errors reduced from 54 to 0, warnings from 188 to 106.
+* Parameterized `gym.Env` and wrapper base classes with concrete observation and action types.
+* Narrowed `crane` parameter from `Callable[[], object]` to `Callable[..., Crane]` and typed `wire` as `Wire`.
+* Used `TYPE_CHECKING` guarded imports for types only needed at check time.
 
 ### Fixed
 
