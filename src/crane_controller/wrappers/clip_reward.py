@@ -6,7 +6,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-class ClipReward(gym.RewardWrapper):
+class ClipReward(gym.RewardWrapper[object, object]):  # type: ignore[type-arg]  # gymnasium wrapper generics are invariant
     def __init__(self, env: gym.Env[object, object], min_reward: float, max_reward: float) -> None:
         super().__init__(env)
         self.min_reward = min_reward
