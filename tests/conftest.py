@@ -2,9 +2,9 @@ import logging
 import os
 from pathlib import Path
 from shutil import rmtree
-from typing import Any
 
 import pytest
+
 from crane_controller.crane_factory import build_crane
 
 
@@ -79,10 +79,10 @@ def crane():
     return build_crane
 
 
-def pytest_addoption(parser: Any):
-    parser.addoption("--show", action="store_true", default=False)
+def pytest_addoption(parser: pytest.Parser):
+    parser.addoption("--show", action="store", default=False)
 
 
 @pytest.fixture(scope="session")
-def show(request: Any):
+def show(request: pytest.FixtureRequest):
     return request.config.getoption("--show")

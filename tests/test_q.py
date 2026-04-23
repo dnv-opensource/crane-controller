@@ -2,7 +2,6 @@ import logging
 from typing import Callable
 
 import numpy as np
-from py_crane.crane import Crane
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
@@ -11,7 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 def test_smoke(crane: Callable, show: bool):
-    env = AntiPendulumEnv(crane, start_speed=-1.0, render_mode="plot" if show else "none", reward_limit=-0.05, discrete=QLearningAgent.DEFAULT_DISCRETE.copy())
+    env = AntiPendulumEnv(
+        crane,
+        start_speed=-1.0,
+        render_mode="plot" if show else "none",
+        reward_limit=-0.05,
+        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+    )
     agent = QLearningAgent(env, trained=None)
     agent.do_episodes(n_episodes=5, max_steps=200)
 
@@ -33,3 +38,18 @@ def test_q_analyse(crane: Callable, trained: tuple[str, bool] = ("anti-pendulum.
                 col = [x[i] for x in res.values()]
                 acc.append(np.average(col))
             print(acc)
+
+
+if __name__ == "__main__":
+    import os
+    from pathlib import Path
+
+    import pytest
+
+    from crane_controller.crane_factory import build_crane  # noqa: F401
+
+    retcode = pytest.main(["-rP -s -v", "--show", "False", __file__])
+    assert retcode == 0, f"Return code {retcode}"
+    os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
+    # test_smoke(build_crane, show=True)
+    # test_q_analyse(build_crane)
