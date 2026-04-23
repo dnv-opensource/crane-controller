@@ -64,6 +64,7 @@ class QLearningAgent:
         self.env = env
         _filename, self.use_pre_trained = trained if trained is not None else (None, False)
         self.filename: Path | None = Path(_filename) if _filename is not None else None
+        self.q_values: defaultdict[tuple[int, ...], np.ndarray]
         if self.use_pre_trained and self.filename is not None:
             self.q_values = self.read_dumped(self.filename)
             self.epsilon = final_epsilon  # assume that we are fully learned
@@ -192,7 +193,7 @@ class QLearningAgent:
 
         converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
-            converted.update({str(k): list(v) if isinstance(v, np.ndarray) else v})
+            converted.update({str(k): list(v)})
         with _filename.open("w", encoding="utf-8") as _f:
             json.dump(converted, _f, indent=3)
         logger.info("Updated q_values saved to %s", _filename.resolve())
@@ -202,7 +203,9 @@ class QLearningAgent:
         path = Path(filename)
         with path.open(encoding="utf-8") as _f:
             from_dump = json.load(_f)
-        q_values = defaultdict(lambda: np.array((0.0,) * self.env.action_space.n, float))  # type: ignore[attr-defined]
+        q_values: defaultdict[tuple[int, ...], np.ndarray] = defaultdict(
+            lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined]
+        )
         for k, v in from_dump.items():
             q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
         return q_values

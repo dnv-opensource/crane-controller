@@ -1,4 +1,5 @@
 import logging
+from typing import SupportsFloat
 
 import gymnasium as gym
 import numpy as np
@@ -13,6 +14,6 @@ class ClipReward(gym.RewardWrapper[object, object]):
         self.max_reward = max_reward
         self.reward_range = (min_reward, max_reward)
 
-    def reward(self, reward: float) -> np.ndarray:
-        _reward = np.array([reward], float)
+    def reward(self, reward: SupportsFloat) -> np.ndarray:
+        _reward = np.array([float(reward)], float)
         return np.clip(_reward, self.min_reward, self.max_reward)

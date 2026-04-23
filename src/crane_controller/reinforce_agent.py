@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+from typing import TYPE_CHECKING
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -11,6 +12,9 @@ import seaborn as sns
 import torch
 from torch import nn
 from torch.distributions.normal import Normal
+
+if TYPE_CHECKING:
+    from typing import SupportsFloat
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -105,6 +109,11 @@ class REINFORCE:
         self.gamma = gamma
         self.eps = eps
 
+        self.probs: list[torch.Tensor] = []
+        self.rewards: list[SupportsFloat] = []
+        self.net: PolicyNetwork = PolicyNetwork(self.obs_space_dims, self.action_space_dims)
+        self.optimizer: torch.optim.AdamW = torch.optim.AdamW(self.net.parameters(), lr=self.learning_rate)
+
     def reset(self) -> None:
         self.probs = []  # Stores probability values of the sampled action
         self.rewards = []  # Stores the corresponding rewards
@@ -144,7 +153,7 @@ class REINFORCE:
 
         # Discounted return (backwards) - [::-1] will return an array in reverse
         for reward in self.rewards[::-1]:
-            running_g = reward + self.gamma * running_g
+            running_g = float(reward) + self.gamma * running_g
             gs.insert(0, running_g)
 
         deltas = torch.tensor(gs)
@@ -157,8 +166,8 @@ class REINFORCE:
 
         # Update the policy network
         self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        _ = loss.backward()
+        _ = self.optimizer.step()
 
         # Empty / zero out all episode-centric/related variables
         self.probs = []
@@ -171,7 +180,7 @@ class REINFORCE:
 
         for seed in [1, 2, 3, 5, 8]:  # Fibonacci seeds
             # set seed
-            torch.manual_seed(seed)
+            _ = torch.manual_seed(seed)
             random.seed(seed)
 
             # Reinitialize agent every seed
@@ -214,5 +223,5 @@ class REINFORCE:
         df1 = pd.DataFrame(rewards_over_seeds).melt()
         df1 = df1.rename(columns={"variable": "episodes", "value": "reward"})
         sns.set(style="darkgrid", context="talk", palette="rainbow")
-        sns.lineplot(x="episodes", y="reward", data=df1).set(title=f"REINFORCE for {type(self.env).__name__}")
+        _ = sns.lineplot(x="episodes", y="reward", data=df1).set(title=f"REINFORCE for {type(self.env).__name__}")
         plt.show()
