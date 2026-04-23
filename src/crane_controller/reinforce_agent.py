@@ -114,6 +114,8 @@ class REINFORCE:
         self.obs_space_dims = self.env.observation_space.shape[0]  # Observation-space of environment
         assert self.env.action_space.shape is not None
         logger.error("Check the code for deciding whether an action space is discrete or continuous!")
+        # TODO @aleksandarbabicdnv: The code executed in both branches of the if-else is exact same. Correct?
+        #      ClaasRostock, 2026-04-23
         if len(self.env.action_space.shape) == 1:  # discrete space
             self.action_space_dims = self.env.action_space.shape[0]
         else:  # continuous space

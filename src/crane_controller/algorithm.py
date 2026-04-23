@@ -101,10 +101,11 @@ class AlgorithmAgent:
         if obs == START_MODE_OBSERVATION:  # in start mode. Random push to get started.
             return int(self.env.np_random.choice((0, 2)))
         # see the reward of all strategies at end of file. 0202 is optimal
-        if obs[1] == 0 and obs[2] == 0:
-            return self.strategy[0]
-        if obs[1] == 0 and obs[2] == 1:
-            return self.strategy[1]
+        if obs[1] == 0:
+            if obs[2] == 0:
+                return self.strategy[0]
+            if obs[2] == 1:
+                return self.strategy[1]
         if obs[1] == 1 and obs[2] == 0:
             return self.strategy[2]
         if obs[1] == 1 and obs[2] == 1:
@@ -197,14 +198,14 @@ class AlgorithmAgent:
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = _get_moving_avgs(rewards, int(window / 10), "valid")
+        reward_moving_average = _get_moving_avgs(rewards, window // 10, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
 
         # Episode lengths (how many actions per hand)
         axs[1].set_title("Episode lengths")
-        length_moving_average = _get_moving_avgs(lengths, int(window / 10), "valid")
+        length_moving_average = _get_moving_avgs(lengths, window // 10, "valid")
         axs[1].plot(range(len(length_moving_average)), length_moving_average)
         axs[1].set_ylabel("Average Episode Length")
         axs[1].set_xlabel("Episode")

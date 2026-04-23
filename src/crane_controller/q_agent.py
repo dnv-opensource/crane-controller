@@ -122,11 +122,7 @@ class QLearningAgent:
             Observation filter pattern. Dimensions set to ``-1`` match all.
         """
         for comb, q in self.q_values.items():
-            include = True
-            for c, o in zip(comb, obs, strict=True):
-                if o >= 0 and o != c:
-                    include = False
-                    break
+            include = not any(o >= 0 and o != c for c, o in zip(comb, obs, strict=True))
             if include:
                 logger.info("%s %s %s %s %s", comb, q, int(np.argmax(q)), np.average(q), np.std(q) / np.average(q))
 
@@ -266,7 +262,7 @@ class QLearningAgent:
 
         converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
-            converted.update({str(k): list(v)})
+            converted |= {str(k): list(v)}
         with _filename.open("w", encoding="utf-8") as _f:
             json.dump(converted, _f, indent=3)
         logger.info("Updated q_values saved to %s", _filename.resolve())
@@ -310,14 +306,14 @@ class QLearningAgent:
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = _get_moving_avgs(rewards, int(window / 10), "valid")
+        reward_moving_average = _get_moving_avgs(rewards, window // 10, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
 
         # Episode lengths (how many actions per hand)
         axs[1].set_title("Episode lengths")
-        length_moving_average = _get_moving_avgs(lengths, int(window / 10), "valid")
+        length_moving_average = _get_moving_avgs(lengths, window // 10, "valid")
         axs[1].plot(range(len(length_moving_average)), length_moving_average)
         axs[1].set_ylabel("Average Episode Length")
         axs[1].set_xlabel("Episode")

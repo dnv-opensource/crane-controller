@@ -22,13 +22,10 @@ def show_figure(
     """Plot selected traces."""
     _, (ax1, ax2) = plt.subplots(1, 2)
     for label, trace in traces.items():
-        if selection is None:
+        if (selection is not None and label in selection and selection[label] == 1) or selection is None:
             _ = ax1.plot(times, trace, label=label)
-        elif label in selection:
-            if selection[label] == 1:
-                _ = ax1.plot(times, trace, label=label)
-            elif selection[label] == 2:
-                _ = ax2.plot(times, trace, label=label)
+        elif label in selection and selection[label] == 2:
+            _ = ax2.plot(times, trace, label=label)
     _ = ax1.legend()
     _ = ax2.legend()
     _ = plt.title(title)

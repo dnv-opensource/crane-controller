@@ -1,5 +1,7 @@
 """Gymnasium environment for the crane anti-pendulum task."""
 
+# mypy: disable-error-code=attr-defined
+
 from __future__ import annotations
 
 import logging
@@ -44,10 +46,10 @@ def _level(idx: int, val: float, categories: tuple[float, ...]) -> tuple[int, in
     """
     if val < categories[0]:
         return 0, idx
-    for i, category in enumerate(categories):
-        if val <= category:
-            return i, 0
-    return len(categories) - 1, idx
+    return next(
+        ((i, 0) for i, category in enumerate(categories) if val <= category),
+        (len(categories) - 1, idx),
+    )
 
 
 # Observation is either a discrete tuple or a continuous ndarray
@@ -189,11 +191,11 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         observation_space = spaces.MultiDiscrete(np.array([len(spec[k]) for k in spec]))
         angles = spec.pop("angles")
         energies = [9.81 * self.wire.length * (1.0 - np.cos(np.radians(a))) for a in angles]
-        spec.update({"energies": tuple(energies)})
+        spec["energies"] = tuple(energies)
         return (observation_space, spec)
 
     def _reward_plot_init(self, marker: str = "") -> Line2D:
-        point = plt.plot(0, 0)[0] if not marker else plt.plot(0, 0, marker)[0]
+        point = plt.plot(0, 0, marker)[0] if marker else plt.plot(0, 0)[0]
         plt.ion()
         plt.show()
         return point
@@ -453,7 +455,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         tuple[tuple[int, ...] | np.ndarray, float, bool, bool, dict[str, float | int]]
             ``(observation, reward, terminated, truncated, info)``.
         """
-        action_idx = int(action)
+        action_idx = action
         if action_idx not in self.action_to_acc:
             action_idx += 1
         self.crane.d_velocity[0] = self.action_to_acc[action_idx]

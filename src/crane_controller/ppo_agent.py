@@ -57,10 +57,7 @@ class ProximalPolicyOptimizationAgent:
         See the class docstring for parameter descriptions.
         """
         self.trained = trained
-        if env_kwargs is None:
-            self.env = env()
-        else:
-            self.env = env(**env_kwargs)
+        self.env = env() if env_kwargs is None else env(**env_kwargs)
         _n_envs = n_envs = 1 if n_envs <= 0 else n_envs
         self.vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)
         if n_envs <= 0:
