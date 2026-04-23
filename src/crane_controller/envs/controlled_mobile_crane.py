@@ -141,7 +141,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
 
         return observation, reward, terminated, False, info
 
-    def render(self) -> npt.NDArray[np.uint8] | None:
+    def render(self) -> npt.NDArray[np.uint8] | None:  # type: ignore[override]  # NDArray is compatible with RenderFrame
         if self.render_mode == "data":
             return self._render_frame()
         return None
