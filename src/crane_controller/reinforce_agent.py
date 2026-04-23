@@ -23,16 +23,21 @@ plt.rcParams["figure.figsize"] = (10, 5)
 
 
 class PolicyNetwork(nn.Module):
-    """Parametrized Policy Network."""
+    """Parametrised policy network.
+
+    Estimates the mean and standard deviation of a normal distribution
+    from which an action is sampled.
+    """
 
     def __init__(self, obs_space_dims: int, action_space_dims: int) -> None:
-        """Initialize a neural network that estimates the mean and standard deviation.
+        """Initialise the policy network.
 
-         of a normal distribution from which an action is sampled from.
-
-        Args:
-            obs_space_dims: Dimension of the observation space
-            action_space_dims: Dimension of the action space
+        Parameters
+        ----------
+        obs_space_dims : int
+            Dimension of the observation space.
+        action_space_dims : int
+            Dimension of the action space.
         """
         super().__init__()
 
@@ -54,17 +59,22 @@ class PolicyNetwork(nn.Module):
         self.policy_stddev_net = nn.Sequential(nn.Linear(hidden_space2, action_space_dims))
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """Conditioned on the observation, return the mean and standard deviation.
+        """Return the mean and standard deviation of the action distribution.
 
-         of a normal distribution from which an action is sampled.
+        Conditioned on the observation, produce parameters of a normal
+        distribution from which an action is sampled.
 
-        Args:
-            x: Observation from the environment
+        Parameters
+        ----------
+        x : torch.Tensor
+            Observation from the environment.
 
         Returns
         -------
-            action_means: predicted mean of the normal distribution
-            action_stddevs: predicted standard deviation of the normal distribution
+        action_means : torch.Tensor
+            Predicted mean of the normal distribution.
+        action_stddevs : torch.Tensor
+            Predicted standard deviation of the normal distribution.
         """
         shared_features = self.shared_net(x.float())
 
@@ -75,7 +85,7 @@ class PolicyNetwork(nn.Module):
 
 
 class REINFORCE:
-    """REINFORCE algorithm."""
+    """REINFORCE policy-gradient algorithm."""
 
     def __init__(
         self,
@@ -84,15 +94,18 @@ class REINFORCE:
         gamma: float = 0.99,
         eps: float = 1e-6,
     ) -> None:
-        """Initialize an agent that learns a policy via REINFORCE algorithm [1].
+        """Initialise an agent that learns a policy via REINFORCE.
 
-        to solve the task at hand (Inverted Pendulum v4).
-
-        Args:
-            env (gym.Env): the environment to be trained
-            learning_rate (float) = 1e-4: Learning rate for policy optimization
-            gamma (float) = 0.99: Discount factor
-            eps : float = 1e-6: small number for mathematical stability
+        Parameters
+        ----------
+        env : gym.Env[object, object]
+            The environment to be trained.
+        learning_rate : float, optional
+            Learning rate for policy optimisation (default 1e-4).
+        gamma : float, optional
+            Discount factor (default 0.99).
+        eps : float, optional
+            Small number for numerical stability (default 1e-6).
         """
         self.env = env
         assert self.env.observation_space.shape is not None
@@ -124,12 +137,15 @@ class REINFORCE:
     def sample_action(self, state: np.ndarray) -> int | np.ndarray:
         """Return an action, conditioned on the policy and observation.
 
-        Args:
-            state: Observation from the environment
+        Parameters
+        ----------
+        state : np.ndarray
+            Observation from the environment.
 
         Returns
         -------
-            action: Action to be performed
+        int or np.ndarray
+            Discrete action index or continuous action array.
         """
         state_tensor = torch.from_numpy(state.astype(np.float32, copy=False))
         action_means, action_stddevs = self.net(state_tensor)
@@ -147,7 +163,7 @@ class REINFORCE:
         return action
 
     def update(self) -> None:
-        """Update the policy network's weights."""
+        """Update the policy network weights using collected episode data."""
         running_g: float = 0.0
         gs: list[float] = []
 
