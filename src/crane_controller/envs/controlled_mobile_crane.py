@@ -1,3 +1,5 @@
+"""Gymnasium environment for a mobile crane grid-navigation task."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar

@@ -1,3 +1,5 @@
+"""Gymnasium wrapper for weighted distance and control cost rewards."""
+
 import gymnasium as gym
 
 

@@ -1,3 +1,5 @@
+"""Gymnasium action wrapper mapping discrete indices to continuous arrays."""
+
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Discrete

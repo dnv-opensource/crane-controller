@@ -1,3 +1,5 @@
+"""Gymnasium reward wrapper that clips rewards to a specified range."""
+
 import logging
 from typing import SupportsFloat
 

@@ -1,3 +1,5 @@
+"""Q-learning agent for the anti-pendulum environment."""
+
 from __future__ import annotations
 
 import json

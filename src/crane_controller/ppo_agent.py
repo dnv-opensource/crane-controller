@@ -1,3 +1,5 @@
+"""PPO-based agent for the anti-pendulum environment."""
+
 from __future__ import annotations
 
 import logging

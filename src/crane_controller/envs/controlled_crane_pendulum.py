@@ -1,3 +1,5 @@
+"""Gymnasium environment for the crane anti-pendulum task."""
+
 from __future__ import annotations
 
 import logging

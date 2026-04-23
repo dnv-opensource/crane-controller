@@ -1,3 +1,5 @@
+"""Gymnasium observation wrapper converting positions to relative vectors."""
+
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box

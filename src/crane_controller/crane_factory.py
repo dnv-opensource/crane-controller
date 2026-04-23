@@ -1,3 +1,5 @@
+"""Factory for building a simple py-crane model."""
+
 import numpy as np
 from py_crane.crane import Crane
 

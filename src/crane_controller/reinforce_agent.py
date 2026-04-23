@@ -1,3 +1,5 @@
+"""REINFORCE policy-gradient agent for continuous control."""
+
 from __future__ import annotations
 
 import logging
