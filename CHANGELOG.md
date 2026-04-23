@@ -13,6 +13,8 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 * Parameterized `gym.Env` and wrapper base classes with concrete observation and action types.
 * Narrowed `crane` parameter from `Callable[[], object]` to `Callable[..., Crane]` and typed `wire` as `Wire`.
 * Used `TYPE_CHECKING` guarded imports for types only needed at check time.
+* Added type stubs for `torch`, `matplotlib`, and `stable-baselines3` under `stubs/` — pyright warnings reduced from 106 to 77, informations from 15 to 8.
+* Removed 7 stale `# type: ignore` comments that became unnecessary with the new stubs.
 
 ### Fixed
 
