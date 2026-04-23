@@ -5,6 +5,13 @@
 `mypy` currently raises various errors across the `src/` tree.
 The goal is to reduce the error count to **below 5** (ideally zero) and eliminate as many warnings as practical by fixing the underlying code — not by suppressing rules.
 
+## Baseline
+- Run `uv run mypy` and record the current error count.
+- Categorize errors by error code (e.g. `arg-type`, `assignment`, `override`, `attr-defined`).
+- Run `uv run ruff check src/ scripts/ tests/` and record the current error count.
+- Run `uv run ruff format --check` and confirm formatting is clean.
+- Run `uv run pytest` and record how many tests pass.
+
 ## Approach
 
 Work in phases, ordered from easiest mechanical fixes to the most structural refactors.

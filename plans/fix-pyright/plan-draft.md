@@ -5,6 +5,13 @@
 `pyright` currently raises various errors across the `src/` tree.
 The goal is to reduce the error count to **below 5** (ideally zero) and eliminate as many warnings as practical by fixing the underlying code — not by suppressing rules.
 
+## Baseline
+- Run `uv run pyright` and record the current error, warning, and information counts.
+- Categorize errors by type (e.g. `reportGeneralClassIssues`, `reportAttributeAccessIssue`, `reportArgumentType`).
+- Run `uv run ruff check src/ scripts/ tests/` and record the current error count.
+- Run `uv run ruff format --check` and confirm formatting is clean.
+- Run `uv run pytest` and record how many tests pass.
+
 ## Approach
 
 Work in phases, ordered from easiest mechanical fixes to the most structural refactors.

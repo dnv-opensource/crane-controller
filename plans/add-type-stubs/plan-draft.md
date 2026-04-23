@@ -5,6 +5,13 @@ The code in this project uses multiple third party packages.
 In order to improve typing in our code base, type-stibs for the most relevant third party package(s) shall be created.
 The goal is to have type stubs for those modules and symbols from third party packages which are used in the current code base.
 
+## Baseline
+- Run `uv run pyright` and record the current error/warning/information counts.
+- Run `uv run mypy` and record the current error count.
+- Identify which third-party imports lack type stubs (look for `reportMissingTypeStubs` in pyright output and `import-untyped` in mypy output).
+- Run `uv run ruff check src/ scripts/ tests/` and record the current error count.
+- Run `uv run pytest` and record how many tests pass.
+
 ## Approach
 
 * First, determine which (untyped) third party packages have relevant (negative) impact on typing in our code base. In other words: Which third party packages should we concentrate on to create type-stubs.

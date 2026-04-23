@@ -10,6 +10,12 @@ The goal is to add type annotations where missing to:
 * arguments and return types of private functions, methods, and properties
 * private attributes and variables
 
+## Baseline
+- Run `uv run ruff check src/ scripts/ tests/ --select ANN` and record the current violation count per rule.
+- Run `uv run ruff check src/ scripts/ tests/` and record the current error count.
+- Run `uv run ruff format --check` and confirm formatting is clean.
+- Run `uv run pytest` and record how many tests pass.
+
 ## Approach
 
 Work in phases, ordered from easiest-to-resolve types to hardest-to-resolve types.
