@@ -23,6 +23,13 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
   - Fixed `ClipReward.reward` override signature to accept `SupportsFloat`.
   - Suppressed intentional `ObservationWrapper.observation` override in `RelativePosition`.
   - Removed dead `mode == 0` branch in `ControlledCraneEnv`.
+* Resolved all mypy errors (19 source files, strict untyped-def checking):
+  - Removed `demos` from mypy/pyright `files`/`include` config (directory does not exist).
+  - Dropped `_ =` from void-returning calls (`pygame.display.init`, `pygame.event.pump`, `pygame.display.update`, `plt.pause`).
+  - Corrected `# type: ignore` error codes for mypy+pyright compatibility (`arg-type,list-item`, `arg-type,call-overload`, `attr-defined,type-var`, `var-annotated,attr-defined`).
+  - Removed duplicate `self.steps: int` annotation in `AntiPendulumEnv.reset`.
+  - Added `# type: ignore[override]` to `ControlledCraneEnv.render` for mypy/gymnasium `RenderFrame` TypeVar incompatibility.
+  - Initialized `running_g` as `float` in `PolicyNetwork.train_policy`.
 
 ### Fixed
 
