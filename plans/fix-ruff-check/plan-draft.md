@@ -5,6 +5,12 @@
 `ruff check` currently raises various errors across the `src/` tree.
 The goal is to reduce the error count to **below 10** (ideally zero) by systematically fixing each violation category — not by suppressing rules.
 
+## Baseline
+- Run `uv run ruff check src/ scripts/` and record the current error count and violation categories.
+- Run `uv run ruff check src/ scripts/ --statistics` to get a per-rule summary.
+- Run `uv run ruff format --check` and confirm formatting is clean.
+- Run `uv run pytest` and record how many tests pass.
+
 ## Approach
 
 Work in phases, ordered from easiest mechanical fixes to the most structural refactors.

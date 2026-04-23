@@ -4,6 +4,13 @@
 In the current code base, existing docstrings are formatted in various, non-uniform styles.
 Goal is to reformat all existing docstrings to be numpy-style compliant.
 
+## Baseline
+- Run `uv run ruff check src/ scripts/` and record the current error count (should be 0 with D10x rules ignored).
+- Run `uv run ruff check src/ scripts/ --select D` to identify all existing docstring-style violations.
+- Run `uv run ruff format --check` and confirm formatting is clean.
+- Run `uv run pytest` and record how many tests pass.
+- Inventory all files with existing docstrings and their count per file.
+
 ## Proposed Approach
 - Reformat existing docstrings to be numpy-style compliant.
 - Ensure the `Parameters` section exists and is complete.

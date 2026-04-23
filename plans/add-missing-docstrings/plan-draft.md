@@ -4,6 +4,13 @@
 In the current code base, many public functions, methods, attributes, classes, modules and sub-packages are still missing docstrings.
 Goal is to ensure all public functions, methods, attributes, classes, modules and sub-packages have docstrings.
 
+## Baseline
+- Run `uv run ruff check src/ scripts/` and record the current error count (should be 0 with D10x rules ignored).
+- Run `uv run ruff check src/ scripts/ --select D100,D101,D102,D103,D104,D105,D107` and record the violation count per rule.
+- Run `uv run ruff format --check` and confirm formatting is clean.
+- Run `uv run pytest` and record how many tests pass.
+- Inventory all missing docstrings by file, listing the symbol name and violation rule.
+
 ## Proposed Approach
 Use `uv run ruff check` to identify missing docstrings and monitor your progress.
 In ruff.toml, following ruff rules from the `D10x` family are currently deactivated, i.e. listed as "temporarily ignored":
