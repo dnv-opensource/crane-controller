@@ -1,11 +1,18 @@
-from types import MappingProxyType
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
 
 import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
 import pygame
 from gymnasium import spaces
-from py_crane.crane import Crane
+
+if TYPE_CHECKING:
+    from py_crane.crane import Crane
+
+# Type aliases for observations and actions
+CraneObs = dict[str, npt.NDArray[np.int_]]
 
 
 class Actions:
@@ -13,7 +20,7 @@ class Actions:
         self.mode = mode
 
 
-class ControlledCraneEnv(gym.Env):
+class ControlledCraneEnv(gym.Env[CraneObs, int]):
     """Environment of the controlled py-crane based mobile crane.
 
     using the matplotlib-based animation module from py-crane.
@@ -26,7 +33,7 @@ class ControlledCraneEnv(gym.Env):
 
     """
 
-    metadata = MappingProxyType({"render_modes": ["animation", "data"], "render_fps": 4})
+    metadata: ClassVar[dict[str, object]] = {"render_modes": ["animation", "data"], "render_fps": 4}  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -57,9 +64,9 @@ class ControlledCraneEnv(gym.Env):
         # wire length
         # Coded as integer if 'separate' and MultiDiscrete else.
         if self.mode == 0:
-            self.action_space = spaces.Discrete(5, start=-4, seed=42)
+            self.action_space = spaces.Discrete(5, start=-4, seed=42)  # type: ignore[assignment]  # Discrete is compatible with Space[int]
         else:
-            self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)
+            self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)  # type: ignore[assignment]  # MultiDiscrete is compatible with Space[int]
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -73,7 +80,7 @@ class ControlledCraneEnv(gym.Env):
             3: np.array([0, -1]),  # down
         }
 
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        assert render_mode is None or render_mode in self.metadata["render_modes"]  # type: ignore[operator]  # metadata values are typed as object
         self.render_mode = render_mode
 
         """
@@ -195,7 +202,7 @@ class ControlledCraneEnv(gym.Env):
             # The following line will automatically add a delay to
             # keep the framerate stable.
             assert self.clock is not None
-            self.clock.tick(self.metadata["render_fps"])
+            self.clock.tick(self.metadata["render_fps"])  # type: ignore[arg-type]  # metadata value is float at runtime
             return None
 
         # data mode
