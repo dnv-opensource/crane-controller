@@ -1,12 +1,16 @@
 """Inspect a trained Q-table for the AntiPendulumEnv.
 
-Prints a per-pos/speed average summary by default. Use --obs to drill
+Prints a per-pos/speed average summary by default. Use ``--obs`` to drill
 into specific states; negative values act as wildcards (match any).
 
-The observation tuple has 5 dimensions:
-  [energy, pos, speed, distance, sector]
+The observation tuple has 5 dimensions::
 
-Example:
+    [energy, pos, speed, distance, sector]
+
+Examples
+--------
+.. code-block:: bash
+
     uv run python scripts/analyse_q.py --model-path tests/anti-pendulum.json
     uv run python scripts/analyse_q.py --model-path tests/anti-pendulum.json --obs -1 0 0 -1 -1
     uv run python scripts/analyse_q.py --model-path tests/anti-pendulum.json --obs -1 1 1 -1 -1
@@ -25,7 +29,13 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _build_dummy_env() -> AntiPendulumEnv:
-    """Minimal env needed to satisfy QLearningAgent constructor (action_space.n)."""
+    """Build a minimal env to satisfy the ``QLearningAgent`` constructor.
+
+    Returns
+    -------
+    AntiPendulumEnv
+        Environment with discrete observation space.
+    """
     return AntiPendulumEnv(build_crane, discrete=QLearningAgent.DEFAULT_DISCRETE.copy())
 
 

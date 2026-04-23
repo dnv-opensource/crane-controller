@@ -1,6 +1,9 @@
 """Run a trained PPO agent on the AntiPendulumEnv.
 
-Example:
+Examples
+--------
+.. code-block:: bash
+
     uv run python scripts/play_ppo.py --model-path models/ppo_AntiPendulumEnv.zip
     uv run python scripts/play_ppo.py --model-path models/ppo.zip --render-mode plot --episodes 3
 """

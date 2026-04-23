@@ -1,6 +1,9 @@
 """Run a trained Q-learning agent on the AntiPendulumEnv.
 
-Example:
+Examples
+--------
+.. code-block:: bash
+
     uv run python scripts/play_q.py --model-path models/q_AntiPendulumEnv.json
     uv run python scripts/play_q.py --model-path tests/anti-pendulum.json --render-mode plot --episodes 3
 """

@@ -1,6 +1,9 @@
 """Train a PPO agent on the AntiPendulumEnv.
 
-Example:
+Examples
+--------
+.. code-block:: bash
+
     uv run python scripts/train_ppo.py
     uv run python scripts/train_ppo.py --steps 500000 --n-envs 8 --save-path models/ppo.zip
     uv run python scripts/train_ppo.py --dry-run
