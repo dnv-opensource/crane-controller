@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 
-class ReacherRewardWrapper(gym.Wrapper[object, object, object, object]):  # type: ignore[type-arg]  # gymnasium wrapper generics are invariant
+class ReacherRewardWrapper(gym.Wrapper[object, object, object, object]):
     def __init__(self, env: gym.Env[object, object], reward_dist_weight: float, reward_ctrl_weight: float) -> None:
         super().__init__(env)
         self.reward_dist_weight = reward_dist_weight

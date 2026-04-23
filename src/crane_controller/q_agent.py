@@ -97,7 +97,7 @@ class QLearningAgent:
         -------
             action: 0 (stand) or 1 (hit)
         """
-        if self.env.np_random.random() < self.epsilon:  # type: ignore[attr-defined]
+        if self.env.np_random.random() < self.epsilon:
             return int(self.env.action_space.sample())
         # With probability (1-epsilon): exploit (best known action)
         return int(np.argmax(self.q_values[obs]))

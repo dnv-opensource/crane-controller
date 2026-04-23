@@ -64,7 +64,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         # wire length
         # Coded as integer if 'separate' and MultiDiscrete else.
         if self.mode == 0:
-            self.action_space = spaces.Discrete(5, start=-4, seed=42)  # type: ignore[assignment]  # Discrete is compatible with Space[int]
+            self.action_space = spaces.Discrete(5, start=-4, seed=42)
         else:
             self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)  # type: ignore[assignment]  # MultiDiscrete is compatible with Space[int]
 

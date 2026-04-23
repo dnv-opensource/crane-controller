@@ -183,7 +183,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         """Plot the report_mode='plot' figure."""
         _, ((ax1, ax2), (ax3, _)) = plt.subplots(2, 2)
         times = np.arange(len(self.traces["c_x"]))
-        damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)  # type: ignore[attr-defined]  # dynamic attr on Wire
+        damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
         ax1y2 = ax1.twinx()
         ax1y2.plot(times, self.traces["l_v"], label="load speed", color="red")
