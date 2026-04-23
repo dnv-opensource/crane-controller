@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 
 from py_crane.crane import Crane
 
@@ -8,9 +9,9 @@ from crane_controller.ppo_agent import ProximalPolicyOptimizationAgent
 logger = logging.getLogger(__name__)
 
 
-def test_monitor(crane: Crane, *, show: bool) -> None:
+def test_monitor(crane: Callable[..., Crane], *, show: bool) -> None:
     agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type]
+        AntiPendulumEnv,
         n_envs=1,
         env_kwargs={
             "crane": crane,

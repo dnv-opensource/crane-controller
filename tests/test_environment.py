@@ -49,7 +49,7 @@ def movement(crane: Crane, dt: float = 0.01, t_end: float = 10.0) -> Generator[t
 
 
 def test_environment(
-    crane: Callable,
+    crane: Callable[..., Crane],
     *,
     show: bool,
     v0: float,
@@ -80,7 +80,7 @@ def test_environment(
     assert q_values[obs2.tobytes()][2] == -98.1
 
 
-def test_init(crane: Crane, *, show: bool) -> None:
+def test_init(crane: Callable[..., Crane], *, show: bool) -> None:
     """Test the initialization of the environment."""
     env = AntiPendulumEnv(crane, seed=1, start_speed=1.0, render_mode="play-back" if show else "data")
     rnd_u = env.np_random.uniform(2, 8)
@@ -98,7 +98,7 @@ def test_init(crane: Crane, *, show: bool) -> None:
     assert not truncated
     rewards = []
     for _ in range(100):
-        obs, reward, terminated, truncated, _ = env.step(env.np_random.integers(-1, 2))
+        obs, reward, terminated, truncated, _ = env.step(int(env.np_random.integers(-1, 2)))
         rewards.append(reward)
     if show:
         show_figure(times=np.linspace(0, 100, 100), traces={"rewards": rewards})

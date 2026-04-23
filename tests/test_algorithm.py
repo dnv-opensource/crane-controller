@@ -1,6 +1,8 @@
 import logging
 from collections.abc import Callable
 
+from py_crane.crane import Crane
+
 from crane_controller.algorithm import AlgorithmAgent
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
@@ -9,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def test_algorithm_strategies(
-    crane: Callable,
+    crane: Callable[..., Crane],
     *,
     show: bool,
 ) -> None:
@@ -24,7 +26,7 @@ def test_algorithm_strategies(
     agent.do_strategies()
 
 
-def test_algorithm(crane: Callable, *, show: bool) -> None:
+def test_algorithm(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         start_speed=0.0,

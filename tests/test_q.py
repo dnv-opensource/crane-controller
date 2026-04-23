@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable
 
 import numpy as np
+from py_crane.crane import Crane
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
@@ -9,7 +10,7 @@ from crane_controller.q_agent import QLearningAgent
 logger = logging.getLogger(__name__)
 
 
-def test_smoke(crane: Callable, *, show: bool) -> None:
+def test_smoke(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         start_speed=-1.0,
@@ -21,7 +22,7 @@ def test_smoke(crane: Callable, *, show: bool) -> None:
     agent.do_episodes(n_episodes=5, max_steps=200)
 
 
-def test_q_analyse(crane: Callable, *, trained: tuple[str, bool]) -> None:
+def test_q_analyse(crane: Callable[..., Crane], *, trained: tuple[str, bool]) -> None:
     env = AntiPendulumEnv(
         crane,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),

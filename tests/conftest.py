@@ -2,12 +2,14 @@
 
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
 from shutil import rmtree
 
 import pytest
 import torch
 import torch.cuda
+from py_crane.crane import Crane
 
 from crane_controller.crane_factory import build_crane
 
@@ -96,7 +98,7 @@ def logger() -> logging.Logger:
 
 
 @pytest.fixture
-def crane():
+def crane() -> Callable[..., Crane]:
     return build_crane
 
 
