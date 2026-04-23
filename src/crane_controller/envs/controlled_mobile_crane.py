@@ -30,7 +30,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
     crane : Crane
         The crane object to control.
     mov_mode : str, optional
-        Movement mode — ``"separate"`` or ``"combined"`` (default ``"separate"``).
+        Movement mode - ``"separate"`` or ``"combined"`` (default ``"separate"``).
     render_mode : str or None, optional
         ``"animation"`` for direct animation or ``"data"`` to return boom-end
         arrays (default None).

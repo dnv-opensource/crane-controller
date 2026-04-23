@@ -191,7 +191,7 @@ class QLearningAgent:
         max_steps : int, optional
             Maximum steps per episode before truncation (default 5000).
         show : int, optional
-            Visualization mode — 0 for none, 1 for training summary, 2 for
+            Visualization mode - 0 for none, 1 for training summary, 2 for
             per-episode analysis (default 0).
         """
         if self.use_pre_trained:

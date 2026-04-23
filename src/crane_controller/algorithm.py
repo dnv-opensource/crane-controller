@@ -145,7 +145,7 @@ class AlgorithmAgent:
         n_episodes : int, optional
             Number of episodes to run (default 1000).
         show : int, optional
-            Visualization mode — 0 for none, 1 for training summary, 2 for
+            Visualization mode - 0 for none, 1 for training summary, 2 for
             per-episode analysis (default 0).
         max_steps : int, optional
             Maximum steps per episode before truncation (default 1000).
