@@ -15,6 +15,14 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 * Used `TYPE_CHECKING` guarded imports for types only needed at check time.
 * Added type stubs for `torch`, `matplotlib`, and `stable-baselines3` under `stubs/` — pyright warnings reduced from 106 to 77, informations from 15 to 8.
 * Removed 7 stale `# type: ignore` comments that became unnecessary with the new stubs.
+* Eliminated all remaining pyright warnings (77 → 0) and informations (8 → 0):
+  - Removed stale `type: ignore` comments and unnecessary `isinstance` guards.
+  - Assigned unused call results to `_` across scripts, environments, and tests.
+  - Declared uninitialized instance variables (`steps`, `_agent_location`, `_target_location`, `probs`, `rewards`, `net`, `optimizer`).
+  - Added explicit type annotation for `q_values` defaultdict to eliminate `Unknown` member types.
+  - Fixed `ClipReward.reward` override signature to accept `SupportsFloat`.
+  - Suppressed intentional `ObservationWrapper.observation` override in `RelativePosition`.
+  - Removed dead `mode == 0` branch in `ControlledCraneEnv`.
 
 ### Fixed
 
