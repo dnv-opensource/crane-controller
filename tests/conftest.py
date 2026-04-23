@@ -115,7 +115,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 @pytest.fixture(scope="session")
 def show(request: pytest.FixtureRequest) -> bool:
-    return request.config.getoption("--show")
+    return bool(request.config.getoption("--show"))
 
 
 @pytest.fixture
