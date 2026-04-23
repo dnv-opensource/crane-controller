@@ -1,5 +1,7 @@
 """Gymnasium environment for a mobile crane grid-navigation task."""
 
+# mypy: disable-error-code=override  # NDArray is compatible with RenderFrame, but mypy doesn't know that
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
@@ -186,7 +188,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
 
         return observation, reward, terminated, False, info
 
-    def render(self) -> npt.NDArray[np.uint8] | None:  # type: ignore[override]  # NDArray is compatible with RenderFrame
+    def render(self) -> npt.NDArray[np.uint8] | None:  # NDArray is compatible with RenderFrame
         """Render the current environment state.
 
         Returns
@@ -194,9 +196,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         npt.NDArray[np.uint8] or None
             Pixel array in ``"data"`` mode, ``None`` otherwise.
         """
-        if self.render_mode == "data":
-            return self._render_frame()
-        return None
+        return self._render_frame() if self.render_mode == "data" else None
 
     def _render_frame(self) -> npt.NDArray[np.uint8] | None:
         if self.window is None and self.render_mode == "animation":
