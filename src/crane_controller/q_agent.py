@@ -27,21 +27,44 @@ def _get_moving_avgs(
     window: int,
     convolution_mode: Literal["valid", "same"],
 ) -> np.ndarray:
-    """Compute moving averages to smooth noisy data."""
+    """Compute moving averages to smooth noisy data.
+
+    Parameters
+    ----------
+    values : Sequence[float] | np.ndarray
+        Raw data series to smooth.
+    window : int
+        Number of elements in the averaging window.
+    convolution_mode : {"valid", "same"}
+        Convolution mode passed to `numpy.convolve`.
+
+    Returns
+    -------
+    np.ndarray
+        Smoothed data series.
+    """
     return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
 
 
 class QLearningAgent:
-    """Agent for training the controller (a Gym Environment).
+    """Agent for training a controller via Q-learning.
 
-    Args:
-        env (gym.Env): The Environment (class) to be trained. Need .reset() and .step() functions.
-        learning_rate (float): How quickly to update Q-values (0-1)
-        initial_epsilon (float): Starting exploration rate (usually 1.0)
-        final_epsilon (float): Minimum exploration rate (usually 0.1)
-        discount_factor (float): How much to value future rewards (0-1)
-        trained (tuple[str,bool]): Optional possibility to save q_values after training / read pre-trained q_values:
-           (filename,use-it): (filename,False): perform new training and save, (filename,True) use pre-trained values
+    Parameters
+    ----------
+    env : AntiPendulumEnv
+        The environment to be trained. Must provide `.reset()` and `.step()` methods.
+    learning_rate : float, optional
+        How quickly to update Q-values, in the range (0, 1] (default 0.1).
+    initial_epsilon : float, optional
+        Starting exploration rate (default 1.0).
+    final_epsilon : float, optional
+        Minimum exploration rate (default 0.1).
+    discount_factor : float, optional
+        How much to value future rewards, in the range [0, 1] (default 0.95).
+    trained : tuple[str | Path, bool] or None, optional
+        Optional path and flag for pre-trained Q-values.
+        ``(filename, False)`` trains from scratch and saves;
+        ``(filename, True)`` loads pre-trained values (default None).
     """
 
     DEFAULT_DISCRETE: ClassVar[dict[str, tuple[float | int, ...]]] = {
@@ -94,9 +117,15 @@ class QLearningAgent:
     def get_action(self, obs: tuple[int, ...]) -> int:
         """Choose an action using epsilon-greedy strategy.
 
+        Parameters
+        ----------
+        obs : tuple[int, ...]
+            Current discretised observation.
+
         Returns
         -------
-            action: 0 (stand) or 1 (hit)
+        int
+            Selected action index.
         """
         if self.env.np_random.random() < self.epsilon:
             return int(self.env.action_space.sample())
@@ -114,18 +143,25 @@ class QLearningAgent:
     ) -> None:
         """Update Q-value based on experience.
 
-        self.update(obs, action, reward, terminated, next_obs) # learn from this experience.
+        This is the heart of Q-learning: learn from
+        (state, action, reward, next_state).
 
-        This is the heart of Q-learning: learn from (state, action, reward, next_state).
+        See Also
+        --------
+        `Q-learning <https://en.wikipedia.org/wiki/Q-learning>`_
 
-        See also `Q-learning <https://en.wikipedia.org/wiki/Q-learning>`_
-
-        Args:
-            obs: previous observed state
-            action: action performed on the state 'obs'
-            reward: the reward from 'action'
-            next_obs: the new observed state after 'action' on state 'obs'
-            terminated: info whether the agent was terminated after 'action'
+        Parameters
+        ----------
+        obs : tuple[int, ...]
+            Previous observed state.
+        action : int
+            Action performed in state `obs`.
+        reward : float
+            Reward received after taking `action`.
+        terminated : bool
+            Whether the episode ended after `action`.
+        next_obs : tuple[int, ...]
+            New observed state after `action`.
         """
         # What's the best we could do from the next state? Zero if episode terminated.
         future_q_value = (not terminated) * np.max(self.q_values[next_obs])
@@ -143,7 +179,21 @@ class QLearningAgent:
         self.training_error.append(temporal_difference)
 
     def do_episodes(self, n_episodes: int = 1000, max_steps: int = 5000, show: int = 0) -> None:
-        """Do n_episodes, using pre-trained q_values or starting a new training sequence."""
+        """Run training or evaluation episodes.
+
+        Uses pre-trained Q-values when available, otherwise starts a new
+        training sequence.
+
+        Parameters
+        ----------
+        n_episodes : int, optional
+            Number of episodes to run (default 1000).
+        max_steps : int, optional
+            Maximum steps per episode before truncation (default 5000).
+        show : int, optional
+            Visualization mode — 0 for none, 1 for training summary, 2 for
+            per-episode analysis (default 0).
+        """
         if self.use_pre_trained:
             logger.info("Starting %s episodes, using pre-trained values from %s", n_episodes, self.filename)
         else:
@@ -175,7 +225,14 @@ class QLearningAgent:
             self.dump_results()
 
     def dump_results(self, filename: str | Path = "") -> None:
-        """Dump the q_values to a json file."""
+        """Dump the Q-values to a JSON file.
+
+        Parameters
+        ----------
+        filename : str or Path, optional
+            Target file path. When empty, the filename provided at
+            construction time is used (default "").
+        """
         if not filename:  # automatic file name
             if self.filename is None:
                 logger.warning("No base file name provided. Aborting dump to file.")
@@ -199,7 +256,18 @@ class QLearningAgent:
         logger.info("Updated q_values saved to %s", _filename.resolve())
 
     def read_dumped(self, filename: str | Path) -> defaultdict[tuple[int, ...], np.ndarray]:
-        """Read a q_values dict (saved as json) from file."""
+        """Read a Q-values dict from a JSON file.
+
+        Parameters
+        ----------
+        filename : str or Path
+            Path to the JSON file containing saved Q-values.
+
+        Returns
+        -------
+        defaultdict[tuple[int, ...], np.ndarray]
+            Loaded Q-values mapping observation tuples to action-value arrays.
+        """
         path = Path(filename)
         with path.open(encoding="utf-8") as _f:
             from_dump = json.load(_f)
