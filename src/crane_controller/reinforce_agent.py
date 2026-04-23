@@ -148,7 +148,7 @@ class REINFORCE:
 
     def update(self) -> None:
         """Update the policy network's weights."""
-        running_g = 0
+        running_g: float = 0.0
         gs: list[float] = []
 
         # Discounted return (backwards) - [::-1] will return an array in reverse
