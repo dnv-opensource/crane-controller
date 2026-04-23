@@ -21,16 +21,21 @@ class Actions:
 
 
 class ControlledCraneEnv(gym.Env[CraneObs, int]):
-    """Environment of the controlled py-crane based mobile crane.
+    """Environment for a py-crane-based mobile crane.
 
-    using the matplotlib-based animation module from py-crane.
+    Uses the matplotlib-based animation module from py-crane.
 
-    Args:
-        crane (py_crane): the crane object to use as basis
-        render_modes (str): 'animation' (use direct animation) or 'data' (return boom.end for all booms)
-        size (int): The axis length in all directions, but -z
-
-
+    Parameters
+    ----------
+    crane : Crane
+        The crane object to control.
+    mov_mode : str, optional
+        Movement mode — ``"separate"`` or ``"combined"`` (default ``"separate"``).
+    render_mode : str or None, optional
+        ``"animation"`` for direct animation or ``"data"`` to return boom-end
+        arrays (default None).
+    size : int, optional
+        Grid axis length in all directions (default 10).
     """
 
     metadata: ClassVar[dict[str, object]] = {"render_modes": ["animation", "data"], "render_fps": 4}  # type: ignore[assignment]
@@ -125,7 +130,18 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         return observation, info
 
     def step(self, action: int) -> tuple[dict[str, npt.NDArray[np.int_]], int, bool, bool, dict[str, float]]:
-        """Step in the environment according to the given action."""
+        """Advance the environment by one step.
+
+        Parameters
+        ----------
+        action : int
+            Action index from ``{0, 1, 2, 3}`` selecting a movement direction.
+
+        Returns
+        -------
+        tuple[dict[str, npt.NDArray[np.int_]], int, bool, bool, dict[str, float]]
+            ``(observation, reward, terminated, truncated, info)``.
+        """
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
         # We use `np.clip` to make sure we don't leave the grid
