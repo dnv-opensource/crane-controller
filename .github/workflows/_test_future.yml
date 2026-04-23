@@ -38,4 +38,4 @@ jobs:
         run: uv sync -p ${{ matrix.python.uvpy }} -U --no-dev
       - name: Run pytest
         run: >
-          uv run --with pytest --with pytest-cov pytest --cov
+          uv run --with pytest --with pytest-cov pytest --cov -m "not slow"

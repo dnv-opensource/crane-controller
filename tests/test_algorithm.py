@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 
+import pytest
 from py_crane.crane import Crane
 
 from crane_controller.algorithm import AlgorithmAgent
@@ -10,6 +11,7 @@ from crane_controller.q_agent import QLearningAgent
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.slow
 def test_algorithm_strategies(
     crane: Callable[..., Crane],
     *,
