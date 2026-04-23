@@ -61,7 +61,7 @@ class AlgorithmAgent:
             action: an allowed action from the action space
         """
         if obs == START_MODE_OBSERVATION:  # in start mode. Random push to get started.
-            return int(self.env.np_random.choice((0, 2)))  # type: ignore[attr-defined]
+            return int(self.env.np_random.choice((0, 2)))
         # see the reward of all strategies at end of file. 0202 is optimal
         if obs[1] == 0 and obs[2] == 0:
             return self.strategy[0]
@@ -130,8 +130,8 @@ class AlgorithmAgent:
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
-        lengths = [row[0] for row in self.env.reward_stats]  # type: ignore[attr-defined]
-        rewards = [row[1] for row in self.env.reward_stats]  # type: ignore[attr-defined]
+        lengths = [row[0] for row in self.env.reward_stats]
+        rewards = [row[1] for row in self.env.reward_stats]
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
@@ -164,7 +164,7 @@ class AlgorithmAgent:
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = _get_moving_avgs(self.env.rewards, window, "valid")  # type: ignore[attr-defined]
+        reward_moving_average = _get_moving_avgs(self.env.rewards, window, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
