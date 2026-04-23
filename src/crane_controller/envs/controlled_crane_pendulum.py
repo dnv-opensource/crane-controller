@@ -329,7 +329,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         obs, self.reward, _ = self._get_obs()
         if self.render_mode == "play-back":
             self._append_playback(0.0)
-        self.steps: int = 0
+        self.steps = 0
         info = self._get_info(self.reward, self.steps)
         return obs, info
 
