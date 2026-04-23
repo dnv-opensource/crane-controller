@@ -149,7 +149,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
     def _render_frame(self) -> npt.NDArray[np.uint8] | None:
         if self.window is None and self.render_mode == "animation":
             _ = pygame.init()
-            _ = pygame.display.init()
+            pygame.display.init()
             self.window = pygame.display.set_mode((self.size, self.size))
         if self.clock is None and self.render_mode == "animation":
             self.clock = pygame.time.Clock()
@@ -194,8 +194,8 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
             # The following line copies our drawings from `canvas` to the visible window
             assert self.window is not None
             _ = self.window.blit(canvas, canvas.get_rect())
-            _ = pygame.event.pump()
-            _ = pygame.display.update()
+            pygame.event.pump()
+            pygame.display.update()
 
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to

@@ -352,7 +352,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             _ = self._reward_point.set_data(list(range(len(self.rewards))), self.rewards)
             _ = plt.xlim((0, len(self.rewards)))
             _ = plt.ylim((min(self.rewards), max(self.rewards)))
-            _ = plt.pause(1e-10)
+            plt.pause(1e-10)
         terminated = self.reward > self.reward_limit
         if terminated:
             self.nsuccess += 1
