@@ -122,8 +122,8 @@ class REINFORCE:
         -------
             action: Action to be performed
         """
-        state = torch.from_numpy(state.astype(np.float32, copy=False))
-        action_means, action_stddevs = self.net(state)
+        state_tensor = torch.from_numpy(state.astype(np.float32, copy=False))
+        action_means, action_stddevs = self.net(state_tensor)
 
         # create a normal distribution from the predicted
         #   mean and standard deviation and sample an action
@@ -180,17 +180,17 @@ class REINFORCE:
 
             for episode in range(num_episodes):
                 # gymnasium v26 requires users to set seed while resetting the environment
-                obs, _ = wrapped_env.reset(seed=seed)
+                obs_arr, _ = wrapped_env.reset(seed=seed)
 
                 done = False
                 while not done:
-                    action = self.sample_action(obs)
+                    action = self.sample_action(np.asarray(obs_arr))
 
                     # Step return type - `tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]`
                     # These represent the next observation, the reward from the step,
                     # if the episode is terminated, if the episode is truncated and
                     # additional info from the step
-                    obs, reward, terminated, truncated, _ = wrapped_env.step(action)
+                    obs_arr, reward, terminated, truncated, _ = wrapped_env.step(action)
                     self.rewards.append(reward)
 
                     # End the episode when either truncated or terminated is true

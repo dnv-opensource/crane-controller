@@ -1,12 +1,20 @@
-import logging
-from collections.abc import Sequence
-from itertools import product
-from typing import Literal
+from __future__ import annotations
 
-import gymnasium as gym
+import logging
+from itertools import product
+from typing import TYPE_CHECKING, Literal
+
 import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from crane_controller.envs.controlled_crane_pendulum import (
+        AntiPendulumEnv,
+        AntiPendulumObs,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +43,7 @@ class AlgorithmAgent:
 
     def __init__(
         self,
-        env: gym.Env[object, object],
+        env: AntiPendulumEnv,
     ) -> None:
         self.env = env
         assert type(self.env).__name__ in AlgorithmAgent.envs, f"Environment {type(self.env).__name__} not listed."
@@ -43,7 +51,7 @@ class AlgorithmAgent:
         self.training_error: list[float] = []
         self.strategy: tuple[int, int, int, int] = (1, 1, 1, 1)
 
-    def get_action(self, obs: tuple[int, int, int, int, int]) -> int:
+    def get_action(self, obs: AntiPendulumObs) -> int:
         """Choose an action based on load position and speed.
 
         The algorithmic strategy is coded as self.strategy and the observation slots 0,3,4 are ignored.

@@ -1,16 +1,20 @@
+from __future__ import annotations
+
 import json
 import logging
 from ast import literal_eval
 from collections import defaultdict
-from collections.abc import Sequence
 from pathlib import Path
-from types import MappingProxyType
-from typing import ClassVar, Literal
+from typing import TYPE_CHECKING, ClassVar, Literal
 
-import gymnasium as gym
 import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 
 logger = logging.getLogger(__name__)
 
@@ -40,19 +44,17 @@ class QLearningAgent:
            (filename,use-it): (filename,False): perform new training and save, (filename,True) use pre-trained values
     """
 
-    DEFAULT_DISCRETE: ClassVar[dict[str, tuple[float | int, ...]]] = MappingProxyType(
-        {
-            "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
-            "pos": (0, 1),
-            "speed": (0, 1),
-            "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
-            "sector": (0, 1),
-        }
-    )
+    DEFAULT_DISCRETE: ClassVar[dict[str, tuple[float | int, ...]]] = {
+        "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
+        "pos": (0, 1),
+        "speed": (0, 1),
+        "distance": (0.0, 1.0, 2.0, 5.0, 10.0, 20.0),
+        "sector": (0, 1),
+    }
 
     def __init__(
         self,
-        env: gym.Env[object, object],
+        env: AntiPendulumEnv,
         learning_rate: float = 0.1,
         initial_epsilon: float = 1.0,
         final_epsilon: float = 0.1,
@@ -88,7 +90,7 @@ class QLearningAgent:
             if include:
                 logger.info("%s %s %s %s %s", comb, q, int(np.argmax(q)), np.average(q), np.std(q) / np.average(q))
 
-    def get_action(self, obs: tuple[int, int, int, int, int]) -> int:
+    def get_action(self, obs: tuple[int, ...]) -> int:
         """Choose an action using epsilon-greedy strategy.
 
         Returns
@@ -102,12 +104,12 @@ class QLearningAgent:
 
     def update_q(
         self,
-        obs: tuple[int, int, int, int, int],
+        obs: tuple[int, ...],
         action: int,
         reward: float,
         *,
         terminated: bool,
-        next_obs: tuple[int, int, int, int, int],
+        next_obs: tuple[int, ...],
     ) -> None:
         """Update Q-value based on experience.
 
@@ -148,12 +150,14 @@ class QLearningAgent:
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
             obs, _ = self.env.reset()
+            assert isinstance(obs, tuple)
             nsteps = 0
             terminated, truncated = (False, False)
 
             while not terminated and not truncated:
                 action = self.get_action(obs)  # choose action (initially random, gradually more intelligent)
                 next_obs, _reward, terminated, truncated, _ = self.env.step(action)  # take action and observe result
+                assert isinstance(next_obs, tuple)
                 reward = float(_reward)
                 self.update_q(obs, action, reward, terminated=terminated, next_obs=next_obs)
                 # Move to next state
@@ -186,7 +190,7 @@ class QLearningAgent:
         else:
             _filename = Path(filename)
 
-        converted: dict[str, list] = {}
+        converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
             converted.update({str(k): list(v) if isinstance(v, np.ndarray) else v})
         with _filename.open("w", encoding="utf-8") as _f:
@@ -208,8 +212,8 @@ class QLearningAgent:
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
-        lengths = [row[0] for row in self.env.reward_stats]  # type: ignore[attr-defined]
-        rewards = [row[1] for row in self.env.reward_stats]  # type: ignore[attr-defined]
+        lengths = [row[0] for row in self.env.reward_stats]
+        rewards = [row[1] for row in self.env.reward_stats]
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
@@ -242,7 +246,7 @@ class QLearningAgent:
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = _get_moving_avgs(self.env.rewards, window, "valid")  # type: ignore[attr-defined]
+        reward_moving_average = _get_moving_avgs(self.env.rewards, window, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
@@ -267,12 +271,15 @@ class QLearningAgent:
 
         for _ in range(num_episodes):
             obs, _ = self.env.reset()
+            assert isinstance(obs, tuple)
             episode_reward = 0.0
             done = False
 
             while not done:
                 action = self.get_action(obs)
-                obs, reward, terminated, truncated, _ = self.env.step(action)
+                next_obs, reward, terminated, truncated, _ = self.env.step(action)
+                assert isinstance(next_obs, tuple)
+                obs = next_obs
                 episode_reward += float(reward)
                 done = terminated or truncated
 

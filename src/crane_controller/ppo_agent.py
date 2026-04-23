@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
 
-    import gymnasium as gym
+    from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 
 plt.rcParams["figure.figsize"] = (10, 5)
 
@@ -36,7 +37,7 @@ class ProximalPolicyOptimizationAgent:
 
     def __init__(
         self,
-        env: Callable[..., gym.Env[object, object]],
+        env: Callable[..., AntiPendulumEnv],
         n_envs: int = 4,
         env_kwargs: dict[str, Any] | None = None,
         trained: tuple[str | Path, bool] | None = None,
@@ -76,6 +77,6 @@ class ProximalPolicyOptimizationAgent:
         obs, _ = self.env.reset(seed=seed)
         terminated = truncated = False
         while not terminated and not truncated:
-            action, _states = self.model.predict(obs)
-            obs, _rewards, terminated, truncated, _ = self.env.step(action)
+            action, _states = self.model.predict(np.asarray(obs))
+            obs, _rewards, terminated, truncated, _ = self.env.step(int(action))
         self.env.render()
