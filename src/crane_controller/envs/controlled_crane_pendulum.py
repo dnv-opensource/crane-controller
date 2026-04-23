@@ -73,7 +73,7 @@ class AntiPendulumEnv(gym.Env):
         elif render_mode == "plot":
             self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": []}
 
-        self.obeservation_space : spaces.Box | spaces.Discrete
+        self.obeservation_space: spaces.Box | spaces.Discrete
         # Observations is a 4-dim np-array with
         # (crane-x, crane-v_x, load-polar-angle_x, load-v_x)
         self.min_speed = 0.1  # np.sqrt(2*reward_limit) # starting with less does not make sense (goal already reached)
@@ -98,7 +98,8 @@ class AntiPendulumEnv(gym.Env):
         self.dt = dt
 
         # We have 1 acceleration action which can each be min, zero or max, corresponding to acceleration of crane
-        self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.int64)
+        super().reset(seed=seed)  # make sure that the environment seed is set
+        self.action_space = spaces.Discrete(3, start=0, dtype=np.int64)
         self.action_to_acc = {0: -self.acc, 1: 0.0, 2: self.acc}
 
     def _init_discrete(self, spec: dict[str, tuple[float, ...]]):
@@ -211,7 +212,7 @@ class AntiPendulumEnv(gym.Env):
                 # if the crane moves towards the origo we do not add 'energy'
         self.reward = reward
 
-        obs : tuple[int,...] | np.ndarray
+        obs: tuple[int, ...] | np.ndarray
         if len(self.discrete):
             obs = (
                 level(1, energy, self.discrete["energies"]),  # energy level

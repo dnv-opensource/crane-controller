@@ -21,9 +21,6 @@ class AlgorithmAgent(object):
     ):
         self.env = env
         assert type(self.env).__name__ in AlgorithmAgent.envs, f"Environment {type(self.env).__name__} not listed."
-        # print("ACTION_SPACE.N", env.action_space.n, defaultdict( lambda: np.zeros(env.action_space.n))['xx'])
-        # Q-table: maps (state, action) to expected reward
-        # defaultdict automatically creates entries with zeros for new states
 
         # Track learning progress
         self.training_error: list[float] = []
@@ -75,8 +72,9 @@ class AlgorithmAgent(object):
                 if steps > max_steps:
                     truncated = True
             res.append(reward)
-        for i, self.strategy in enumerate(product(range(3), range(3), range(3), range(3))):
-            print(f"{i}. strategy {self.strategy}: {res[i]}")
+        if not self.env.render_mode == 'none':
+            for i, self.strategy in enumerate(product(range(3), range(3), range(3), range(3))):
+                print(f"{i}. strategy {self.strategy}: {res[i]}")
 
     def do_episodes(self, n_episodes: int = 1000, show: int = 0, max_steps: int = 1000):
         """Run episodes."""

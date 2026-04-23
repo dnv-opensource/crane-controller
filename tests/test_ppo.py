@@ -44,3 +44,16 @@ def test_ppo_vecnorm_updates(crane):
     )
     agent.do_training(500, progress_bar=False)
     assert not np.allclose(agent.vec_env.obs_rms.mean, 0.0)
+
+
+if __name__ == "__main__":
+    import os
+
+    import pytest  # noqa: F401
+
+    from crane_controller.crane_factory import build_crane  # noqa: F401
+
+    retcode = pytest.main(["-rP -s -v", "--show", "False", __file__])
+    assert retcode == 0, f"Return code {retcode}"
+    os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
+    # test_monitor(build_crane, show=True)
