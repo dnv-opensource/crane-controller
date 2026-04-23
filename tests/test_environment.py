@@ -71,7 +71,7 @@ def test_environment(
     assert np.allclose(env.observation_space.start, [0, 0, 0, 0, 0])  # type: ignore[attr-defined,unused-ignore]
     assert env.observation_space.dtype == np.int64
     assert isinstance(env.observation_space.seed(), int)
-    q_values = defaultdict(lambda: np.array([env.low_reward()] * env.action_space.n))  # type: ignore[var-annotated]
+    q_values = defaultdict(lambda: np.array([env.low_reward()] * env.action_space.n))  # type: ignore[var-annotated,attr-defined]
     obs1 = np.array((0, 1, 1, 3, 0), int)
     obs2 = np.array((4, 0, 0, 1, 1), int)
     q_values[obs1.tobytes()]

@@ -69,7 +69,7 @@ class QLearningAgent:
             self.q_values = self.read_dumped(self.filename)
             self.epsilon = final_epsilon  # assume that we are fully learned
         else:  # start from scratch, but save the q_values afterwards
-            self.q_values = defaultdict(lambda: np.array((0.0,) * env.action_space.n, float))  # type: ignore[attr-defined]
+            self.q_values = defaultdict(lambda: np.array((0.0,) * env.action_space.n, float))  # type: ignore[attr-defined,type-var]
             self.epsilon = initial_epsilon  # start from scratch
 
         self.lr = learning_rate
@@ -204,7 +204,7 @@ class QLearningAgent:
         with path.open(encoding="utf-8") as _f:
             from_dump = json.load(_f)
         q_values: defaultdict[tuple[int, ...], np.ndarray] = defaultdict(
-            lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined]
+            lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined,type-var]
         )
         for k, v in from_dump.items():
             q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})

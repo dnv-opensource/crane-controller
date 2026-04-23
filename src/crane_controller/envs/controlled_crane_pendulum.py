@@ -160,11 +160,11 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         if not len(self._playback):  # no records there yet
             self._playback.append([time])  # slot 0 for time
             for b in self.crane.booms():
-                self._playback.append([b.end])  # type: ignore[arg-type]  # TVector is compatible at runtime
+                self._playback.append([b.end])  # type: ignore[arg-type,list-item]  # TVector is compatible at runtime
         else:
             self._playback[0].append(time)
             for i, b in enumerate(self.crane.booms()):
-                self._playback[i + 1].append(b.end)  # type: ignore[arg-type]  # TVector is compatible at runtime
+                self._playback[i + 1].append(b.end)  # type: ignore[arg-type,list-item]  # TVector is compatible at runtime
 
     def show_animation(self) -> None:
         """Show the playback animation of the episode (the current recording of ._playback."""
@@ -175,7 +175,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             data=data,
             lw=(5, 1),
             figsize=(10, 10),
-            interval=int(AntiPendulumEnv.metadata["interval"]),  # type: ignore[arg-type]  # metadata value is int at runtime
+            interval=int(AntiPendulumEnv.metadata["interval"]),  # type: ignore[arg-type,call-overload]  # metadata value is int at runtime
             title="Anti-Pendulum episode",
         )
         ani.do_animation()
