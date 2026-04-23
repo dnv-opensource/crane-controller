@@ -16,15 +16,18 @@ Goal is to reformat all existing docstrings to be numpy-style compliant.
 - Relevant modules: all (`src/**`, `scripts/**`)
 - Related tests: None
 - Constraints:
+  - Do **not** use ambiguous characters in docstrings (em-dash `—`, en-dash `–`, etc.). Use ASCII equivalents (e.g. hyphen `-`). Exemptions: characters listed in `allowed-confusables` in `ruff.toml`.
   - Run `uv run ruff format` after every phase
   - Run `uv run ruff check` to monitor progress and ensure there is no regression in other ruff checks.
 
 ## Validation Strategy
 - Run `uv run ruff check` to ensure there is no regression in ruff checks.
 - Run `uv run ruff format --check` to ensure formatting is not broken.
+- Run `uv run pytest` to ensure there is no regression in tests.
 
 ## Definition of Done
 - [ ] All existing docstrings reformated to be numpy-style compliant.
 - [ ] `uv run ruff format --check`
 - [ ] `uv run ruff check` passes
+- [ ] `uv run pytest` — all tests pass
 - [ ] Documentation updated (if needed)

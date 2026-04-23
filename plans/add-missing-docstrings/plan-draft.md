@@ -36,10 +36,12 @@ In each phase:
 ## Validation Strategy
 - Run `uv run ruff check` to ensure there is no regression in ruff checks.
 - Run `uv run ruff format --check` to ensure formatting is not broken.
+- Run `uv run pytest` to ensure there is no regression in tests.
 
 ## Definition of Done
 - [ ] In ruff.toml, all temporarily ignored `D10x` rules are activated again, i.e. commented out again.
 - [ ] All missing docstrings are added.
 - [ ] `uv run ruff format --check`
 - [ ] `uv run ruff check` passes
+- [ ] `uv run pytest` — all tests pass
 - [ ] Documentation updated (if needed)
