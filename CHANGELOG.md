@@ -35,6 +35,13 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
   - Added `Returns` and `Raises` sections where applicable.
   - Expanded one-liner docstrings for non-trivial functions/methods.
   - Formatted `Examples` sections in script module docstrings.
+* Added missing docstrings across all source and script modules (51 total):
+  - Module-level docstrings for all 11 undocumented modules.
+  - Class docstrings for 5 public classes (`Actions`, wrappers).
+  - `__init__` docstrings for 10 constructors.
+  - Method docstrings for 19 public methods.
+  - Function docstrings for 6 public functions (`build_crane`, script `main` functions).
+  - Reactivated ruff rules D100-D105 and D107 (previously suppressed).
 
 ### Fixed
 
