@@ -126,7 +126,8 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         # We have 1 acceleration action which can each be min, zero or max, corresponding to acceleration of crane
         self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.int64)
         self.action_to_acc = {0: -self.acc, 1: 0.0, 2: self.acc}
-        super().reset(seed=seed)
+        self.steps: int = 0
+        _ = super().reset(seed=seed)
 
     def _init_discrete(
         self,
@@ -192,9 +193,9 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         ax2y2 = ax2.twinx()
         ax2y2.plot(times, self.traces["c_v"], label="crane speed", color="red")
         ax3.plot(list(range(len(self.rewards))), self.rewards, label="rewards")
-        ax1.legend()
-        ax2.legend()
-        plt.title(f"Detailed plot of episode {episode}, reward:{self.reward}")
+        _ = ax1.legend()
+        _ = ax2.legend()
+        _ = plt.title(f"Detailed plot of episode {episode}, reward:{self.reward}")
         plt.show()
         for key in self.traces:
             self.traces[key] = []
@@ -311,7 +312,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             elif self.render_mode == "plot":
                 self.show_plot(self.nresets)
 
-        super().reset(seed=seed, options=options)
+        _ = super().reset(seed=seed, options=options)
 
         self.nresets += 1
         if self.start_speed == 0.0:  # run in 'start' mode, learning how to start the pendulum action
@@ -339,7 +340,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             action_idx += 1
         self.crane.d_velocity[0] = self.action_to_acc[action_idx]
         self.steps += 1
-        self.crane.do_step(self.steps, self.dt)
+        _ = self.crane.do_step(self.steps, self.dt)
 
         obs, self.reward, truncated = self._get_obs()
         if self.render_mode != "none":
@@ -348,10 +349,10 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         if self.render_mode == "play-back":
             self._append_playback(self.steps)
         elif self.render_mode == "reward-tracking":
-            self._reward_point.set_data(list(range(len(self.rewards))), self.rewards)
-            plt.xlim((0, len(self.rewards)))
-            plt.ylim((min(self.rewards), max(self.rewards)))
-            plt.pause(1e-10)
+            _ = self._reward_point.set_data(list(range(len(self.rewards))), self.rewards)
+            _ = plt.xlim((0, len(self.rewards)))
+            _ = plt.ylim((min(self.rewards), max(self.rewards)))
+            _ = plt.pause(1e-10)
         terminated = self.reward > self.reward_limit
         if terminated:
             self.nsuccess += 1

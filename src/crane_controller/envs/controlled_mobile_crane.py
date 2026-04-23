@@ -63,10 +63,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         # boom length
         # wire length
         # Coded as integer if 'separate' and MultiDiscrete else.
-        if self.mode == 0:
-            self.action_space = spaces.Discrete(5, start=-4, seed=42)
-        else:
-            self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)  # type: ignore[assignment]  # MultiDiscrete is compatible with Space[int]
+        self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)  # type: ignore[assignment]  # MultiDiscrete is compatible with Space[int]
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -92,6 +89,8 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         """
         self.window: pygame.Surface | None = None
         self.clock: pygame.time.Clock | None = None
+        self._agent_location: npt.NDArray[np.int_] = np.zeros(2, dtype=int)
+        self._target_location: npt.NDArray[np.int_] = np.zeros(2, dtype=int)
 
     def _get_obs(self) -> dict[str, npt.NDArray[np.int_]]:
         return {"agent": self._agent_location, "target": self._target_location}
@@ -106,7 +105,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         options: dict[str, object] | None = None,
     ) -> tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]:
         # We need the following line to seed self.np_random
-        super().reset(seed=seed, options=options)
+        _ = super().reset(seed=seed, options=options)
 
         # Choose the agent's location uniformly at random
         self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
@@ -121,7 +120,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         info = self._get_info()
 
         if self.render_mode == "animation":
-            self._render_frame()
+            _ = self._render_frame()
 
         return observation, info
 
@@ -138,7 +137,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         info = self._get_info()
 
         if self.render_mode == "animation":
-            self._render_frame()
+            _ = self._render_frame()
 
         return observation, reward, terminated, False, info
 
@@ -149,25 +148,25 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
 
     def _render_frame(self) -> npt.NDArray[np.uint8] | None:
         if self.window is None and self.render_mode == "animation":
-            pygame.init()
-            pygame.display.init()
+            _ = pygame.init()
+            _ = pygame.display.init()
             self.window = pygame.display.set_mode((self.size, self.size))
         if self.clock is None and self.render_mode == "animation":
             self.clock = pygame.time.Clock()
 
         canvas = pygame.Surface((self.size, self.size))
-        canvas.fill((255, 255, 255))
+        _ = canvas.fill((255, 255, 255))
         pix_square_size = self.size / self.size  # The size of a single grid square in pixels
 
         # First we draw the target
         _x, _y = pix_square_size * self._target_location
-        pygame.draw.rect(
+        _ = pygame.draw.rect(
             canvas,
             (255, 0, 0),
             pygame.Rect(_x, _y, pix_square_size, pix_square_size),
         )
         # Now we draw the agent
-        pygame.draw.circle(
+        _ = pygame.draw.circle(
             canvas,
             (0, 0, 255),
             tuple((self._agent_location + 0.5) * pix_square_size),
@@ -176,14 +175,14 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
 
         # Finally, add some gridlines
         for x in range(self.size + 1):
-            pygame.draw.line(
+            _ = pygame.draw.line(
                 canvas,
                 0,
                 (0, pix_square_size * x),
                 (self.size, pix_square_size * x),
                 width=3,
             )
-            pygame.draw.line(
+            _ = pygame.draw.line(
                 canvas,
                 0,
                 (pix_square_size * x, 0),
@@ -194,9 +193,9 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         if self.render_mode == "animation":
             # The following line copies our drawings from `canvas` to the visible window
             assert self.window is not None
-            self.window.blit(canvas, canvas.get_rect())
-            pygame.event.pump()
-            pygame.display.update()
+            _ = self.window.blit(canvas, canvas.get_rect())
+            _ = pygame.event.pump()
+            _ = pygame.display.update()
 
             # We need to ensure that human-rendering occurs at the predefined framerate.
             # The following line will automatically add a delay to
