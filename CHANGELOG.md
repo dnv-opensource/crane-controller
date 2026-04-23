@@ -30,6 +30,11 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
   - Removed duplicate `self.steps: int` annotation in `AntiPendulumEnv.reset`.
   - Added `# type: ignore[override]` to `ControlledCraneEnv.render` for mypy/gymnasium `RenderFrame` TypeVar incompatibility.
   - Initialized `running_g` as `float` in `PolicyNetwork.train_policy`.
+* Reformatted all existing docstrings to numpy-style (numpydoc convention):
+  - Converted Google-style `Args:` sections to `Parameters` with type annotations.
+  - Added `Returns` and `Raises` sections where applicable.
+  - Expanded one-liner docstrings for non-trivial functions/methods.
+  - Formatted `Examples` sections in script module docstrings.
 
 ### Fixed
 
