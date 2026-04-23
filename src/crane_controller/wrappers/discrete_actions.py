@@ -4,6 +4,8 @@ from gymnasium.spaces import Discrete
 
 
 class DiscreteActions(gym.ActionWrapper[object, int, np.ndarray]):
+    """Gymnasium action wrapper mapping discrete indices to continuous arrays."""
+
     def __init__(self, env: gym.Env[object, object], disc_to_cont: list[np.ndarray]) -> None:
         """Initialize the discrete-to-continuous action wrapper.
 

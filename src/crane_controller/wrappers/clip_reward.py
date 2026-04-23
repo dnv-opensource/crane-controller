@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClipReward(gym.RewardWrapper[object, object]):
+    """Gymnasium reward wrapper that clips rewards to a fixed range."""
+
     def __init__(self, env: gym.Env[object, object], min_reward: float, max_reward: float) -> None:
         """Initialize the reward clipper.
 

@@ -16,6 +16,8 @@ CraneObs = dict[str, npt.NDArray[np.int_]]
 
 
 class Actions:
+    """Container for the movement mode of a crane environment."""
+
     def __init__(self, mode: str) -> None:
         """Initialize the action container.
 

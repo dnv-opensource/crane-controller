@@ -4,6 +4,8 @@ from gymnasium.spaces import Box
 
 
 class RelativePosition(gym.ObservationWrapper[dict[str, np.ndarray], object, np.ndarray]):
+    """Gymnasium observation wrapper converting positions to relative vectors."""
+
     def __init__(self, env: gym.Env[object, object]) -> None:
         """Initialize the relative position observation wrapper.
 
