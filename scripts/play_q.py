@@ -17,12 +17,12 @@ LOGGER = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a trained Q-learning agent on the crane anti-pendulum task.")
-    parser.add_argument("--model-path", type=str, required=True, help="Path to a trained Q-table JSON")
-    parser.add_argument(
+    _ = parser.add_argument("--model-path", type=str, required=True, help="Path to a trained Q-table JSON")
+    _ = parser.add_argument(
         "--render-mode", type=str, default="plot", help="Render mode (plot, play-back, reward-tracking)"
     )
-    parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
-    parser.add_argument("--v0", type=float, default=-1.0, help="Initial crane speed (negative = stop mode)")
+    _ = parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
+    _ = parser.add_argument("--v0", type=float, default=-1.0, help="Initial crane speed (negative = stop mode)")
     args = parser.parse_args()
 
     env = AntiPendulumEnv(
@@ -36,7 +36,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     for episode in range(args.episodes):
         LOGGER.info("Episode %s/%s", episode + 1, args.episodes)
-        env.reset(seed=episode + 1)
+        _ = env.reset(seed=episode + 1)
         agent.do_episodes(n_episodes=1)
 
 

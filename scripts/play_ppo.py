@@ -17,13 +17,13 @@ LOGGER = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a trained PPO agent on the crane anti-pendulum task.")
-    parser.add_argument("--model-path", type=str, required=True, help="Path to a trained .zip model")
-    parser.add_argument("--render-mode", type=str, default="play-back", help="Render mode for playback")
-    parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
+    _ = parser.add_argument("--model-path", type=str, required=True, help="Path to a trained .zip model")
+    _ = parser.add_argument("--render-mode", type=str, default="play-back", help="Render mode for playback")
+    _ = parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
     args = parser.parse_args()
 
     agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type]
+        AntiPendulumEnv,
         n_envs=0,  # load-from-file mode
         env_kwargs={
             "crane": build_crane,

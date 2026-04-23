@@ -31,8 +31,8 @@ def _build_dummy_env() -> AntiPendulumEnv:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect a trained Q-table for the crane anti-pendulum task.")
-    parser.add_argument("--model-path", type=str, required=True, help="Path to a trained Q-table JSON")
-    parser.add_argument(
+    _ = parser.add_argument("--model-path", type=str, required=True, help="Path to a trained Q-table JSON")
+    _ = parser.add_argument(
         "--obs",
         type=int,
         nargs=5,

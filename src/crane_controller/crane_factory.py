@@ -4,13 +4,13 @@ from py_crane.crane import Crane
 
 def build_crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0) -> Crane:
     crane = Crane()
-    crane.add_boom(
+    _ = crane.add_boom(
         "pedestal",
         description="A simple pole with same length as the wire",
         mass=100.0,
         boom=(length, 0.0, 0.0),
     )
-    crane.add_boom(
+    _ = crane.add_boom(
         "wire",
         description="The wire fixed to the pole. Flexible connection",
         mass=mass,
