@@ -5,7 +5,6 @@ from typing import Callable, Generator
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest  # noqa: F401
-
 from py_crane.crane import Crane
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
@@ -78,24 +77,39 @@ def test_environment(crane: Callable, show: bool, v0: float = 1.0, reward_limit=
 
 def test_init(crane: Crane, show: bool = False):
     """Test the initialization of the environment."""
-    env = AntiPendulumEnv(crane, seed=1, start_speed=1.0, render_mode="play-back" if show else "data")
+    env = AntiPendulumEnv(crane, seed=1, start_speed=-1.0, render_mode="play-back" if show else "data")
     rnd_u = env.np_random.uniform(2, 8)
     rnd_r = env.np_random.random()
     assert rnd_u == 5.07092974820154, f"Returns pseudo-random numbers when seed is given. Got {rnd_u} for seed 1"
     assert rnd_r == 0.9504636963259353, f"Returns pseudo-random numbers when seed is given. Got {rnd_r} for seed 1"
-    obs, inf = env.reset(seed=1)
-    assert np.allclose(obs, [0.0, 0.0, np.pi, 0.017453292519943295]), f"Found {obs[3]}"
+    obs, inf = env.reset()
+    assert np.allclose(obs, [0.0, 0.0, 0.0, -0.7405126971046593]), f"Found {obs}"
     assert inf["steps"] == 0
-    assert abs(inf["reward"] + 0.5 * 0.017453292519943295**2) < 1e-9, f"Found initial reward {inf['reward']}"
-    obs, reward, terminated, truncated, info = env.step(-1)
-    assert obs[0] == -0.1
-    assert obs[1] == -0.1
+    assert abs(inf["reward"] + 0.5 * (-0.7405126971046593) ** 2) < 1e-9, f"Found initial reward {inf['reward']}"
+    obs, reward, terminated, truncated, info = env.step(0)
+    assert obs[0] == -1e-5, f"Found {obs[0]}"
+    assert obs[1] == -0.001, f"Found {obs[1]}"
     assert not terminated
     assert not truncated
     rewards = []
     for _ in range(100):
-        obs, reward, terminated, truncated, info = env.step(env.np_random.integers(-1, 2))
+        obs, reward, terminated, truncated, info = env.step(env.np_random.integers(0, 3))
         rewards.append(reward)
     if show:
         show_figure(times=np.linspace(0, 100, 100), traces={"rewards": rewards})
     env.reset()
+
+
+if __name__ == "__main__":
+    import os
+    from pathlib import Path
+
+    import pytest  # noqa: F401
+
+    from crane_controller.crane_factory import build_crane  # noqa: F401
+
+    retcode = pytest.main(["-rP -s -v", "--show", "False", __file__])
+    assert retcode == 0, f"Return code {retcode}"
+    os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
+    # test_init(build_crane, show=True)
+    # test_environment(build_crane, show=True)
