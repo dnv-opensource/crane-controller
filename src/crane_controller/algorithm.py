@@ -28,15 +28,32 @@ def _get_moving_avgs(
     window: int,
     convolution_mode: Literal["valid", "same"],
 ) -> np.ndarray:
-    """Compute moving averages to smooth noisy data."""
+    """Compute moving averages to smooth noisy data.
+
+    Parameters
+    ----------
+    values : Sequence[float] | np.ndarray
+        Raw data series to smooth.
+    window : int
+        Number of elements in the averaging window.
+    convolution_mode : {"valid", "same"}
+        Convolution mode passed to `numpy.convolve`.
+
+    Returns
+    -------
+    np.ndarray
+        Smoothed data series.
+    """
     return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
 
 
 class AlgorithmAgent:
-    """Agent for algorithmic control of a (simple) environment.
+    """Agent for algorithmic control of a simple environment.
 
-    Args:
-        env (gym.Env): The Environment (class) to be controlled. Need .reset() and .step() functions.
+    Parameters
+    ----------
+    env : AntiPendulumEnv
+        The environment to be controlled. Must provide `.reset()` and `.step()` methods.
     """
 
     envs = ("AntiPendulumEnv",)
@@ -54,11 +71,23 @@ class AlgorithmAgent:
     def get_action(self, obs: AntiPendulumObs) -> int:
         """Choose an action based on load position and speed.
 
-        The algorithmic strategy is coded as self.strategy and the observation slots 0,3,4 are ignored.
+        The algorithmic strategy is coded as ``self.strategy`` and the
+        observation slots 0, 3, 4 are ignored.
+
+        Parameters
+        ----------
+        obs : AntiPendulumObs
+            Current observation from the environment.
 
         Returns
         -------
-            action: an allowed action from the action space
+        int
+            An allowed action from the action space.
+
+        Raises
+        ------
+        ValueError
+            If `obs` contains an unexpected combination of position and speed.
         """
         if obs == START_MODE_OBSERVATION:  # in start mode. Random push to get started.
             return int(self.env.np_random.choice((0, 2)))
@@ -74,15 +103,22 @@ class AlgorithmAgent:
         raise ValueError("There should not be other choices {obs}") from None
 
     def do_strategies(self, max_steps: int = 5000) -> None:
-        """Go through all strategies.
+        """Evaluate all strategy permutations.
+
+        Each strategy maps (position, speed) pairs to actions::
 
             pos=-, speed=- => strategy[0]
             pos=-, speed=+ => strategy[1]
             pos=+, speed=- => strategy[2]
             pos=+, speed=+ => strategy[3]
-            with pos=obs[1], speed=obs[2]
 
+        where ``pos = obs[1]`` and ``speed = obs[2]``.
         Observations 0, 3 and 4 are ignored.
+
+        Parameters
+        ----------
+        max_steps : int, optional
+            Maximum number of steps per episode before truncation (default 5000).
         """
         rewards: list[float] = []
         for self.strategy in product(range(3), range(3), range(3), range(3)):
@@ -102,7 +138,18 @@ class AlgorithmAgent:
             logger.info("%s. strategy %s: %s", i, self.strategy, rewards[i])
 
     def do_episodes(self, n_episodes: int = 1000, show: int = 0, max_steps: int = 1000) -> None:
-        """Run episodes."""
+        """Run training episodes.
+
+        Parameters
+        ----------
+        n_episodes : int, optional
+            Number of episodes to run (default 1000).
+        show : int, optional
+            Visualization mode — 0 for none, 1 for training summary, 2 for
+            per-episode analysis (default 0).
+        max_steps : int, optional
+            Maximum steps per episode before truncation (default 1000).
+        """
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
             obs, _ = self.env.reset()
@@ -180,7 +227,18 @@ class AlgorithmAgent:
         plt.show()
 
     def test_agent(self, num_episodes: int = 1000) -> str:
-        """Test agent performance without learning or exploration."""
+        """Test agent performance without learning or exploration.
+
+        Parameters
+        ----------
+        num_episodes : int, optional
+            Number of evaluation episodes (default 1000).
+
+        Returns
+        -------
+        str
+            Formatted summary of win rate, average reward, and standard deviation.
+        """
         total_rewards: list[float] = []
 
         for _ in range(num_episodes):
