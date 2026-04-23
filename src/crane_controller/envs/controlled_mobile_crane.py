@@ -120,6 +120,20 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         seed: int | None = None,
         options: dict[str, object] | None = None,
     ) -> tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]:
+        """Reset the environment for a new episode.
+
+        Parameters
+        ----------
+        seed : int or None, optional
+            Random seed for reproducibility (default None).
+        options : dict[str, object] or None, optional
+            Additional reset options (default None).
+
+        Returns
+        -------
+        tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]
+            ``(observation, info)`` with agent/target locations and distance.
+        """
         # We need the following line to seed self.np_random
         _ = super().reset(seed=seed, options=options)
 
@@ -169,6 +183,13 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         return observation, reward, terminated, False, info
 
     def render(self) -> npt.NDArray[np.uint8] | None:  # type: ignore[override]  # NDArray is compatible with RenderFrame
+        """Render the current environment state.
+
+        Returns
+        -------
+        npt.NDArray[np.uint8] or None
+            Pixel array in ``"data"`` mode, ``None`` otherwise.
+        """
         if self.render_mode == "data":
             return self._render_frame()
         return None
@@ -238,6 +259,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         return None
 
     def close(self) -> None:
+        """Clean up Pygame resources."""
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()

@@ -180,7 +180,13 @@ class AlgorithmAgent:
             self.analyse_training()
 
     def analyse_training(self, window: int = 500) -> None:
+        """Plot moving averages of episode rewards, lengths, and training error.
 
+        Parameters
+        ----------
+        window : int, optional
+            Number of episodes used for the smoothing window (default 500).
+        """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
@@ -212,7 +218,13 @@ class AlgorithmAgent:
         plt.show()
 
     def analyse_episode(self, window: int = 100) -> None:
+        """Plot moving averages of rewards and training error for one episode.
 
+        Parameters
+        ----------
+        window : int, optional
+            Number of steps used for the smoothing window (default 100).
+        """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=2, figsize=(12, 5))
 

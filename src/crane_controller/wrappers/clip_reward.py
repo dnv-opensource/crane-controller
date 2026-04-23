@@ -26,5 +26,17 @@ class ClipReward(gym.RewardWrapper[object, object]):
         self.reward_range = (min_reward, max_reward)
 
     def reward(self, reward: SupportsFloat) -> np.ndarray:
+        """Clip the reward to the configured range.
+
+        Parameters
+        ----------
+        reward : SupportsFloat
+            Raw reward from the wrapped environment.
+
+        Returns
+        -------
+        np.ndarray
+            Single-element array with the clipped reward.
+        """
         _reward = np.array([float(reward)], float)
         return np.clip(_reward, self.min_reward, self.max_reward)

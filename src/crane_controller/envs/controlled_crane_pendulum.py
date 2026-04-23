@@ -349,6 +349,14 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return (obs, reward, err)
 
     def low_reward(self) -> float:
+        """Return the lowest possible reward for the current mode.
+
+        Returns
+        -------
+        float
+            Zero in start-pendulum mode, or the negative maximum pendulum
+            energy in stop-pendulum mode.
+        """
         if self.start_speed == 0.0:
             return 0.0
         return -float(self.discrete["energies"][-1])
@@ -357,6 +365,11 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return {"steps": steps, "reward": reward}
 
     def reset_crane(self) -> None:
+        """Reset the crane to its initial physical state.
+
+        Sets position, velocity, torque, and force to zero, recalculates
+        statics and dynamics, and relaxes the pendulum wire.
+        """
         self.crane.position = np.array((0.0, 0.0, 0.0), dtype=np.float64)
         self.crane.velocity = np.array((0.0, 0.0, 0.0), dtype=np.float64)
         self.crane.d_velocity = np.array((0.0, 0.0, 0.0), dtype=np.float64)

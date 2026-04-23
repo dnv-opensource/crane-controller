@@ -76,11 +76,27 @@ class ProximalPolicyOptimizationAgent:
             )
 
     def do_training(self, total_timesteps: int = 25000, *, progress_bar: bool = True) -> None:
+        """Train the PPO model.
+
+        Parameters
+        ----------
+        total_timesteps : int, optional
+            Number of training timesteps (default 25000).
+        progress_bar : bool, optional
+            Whether to display a progress bar during training (default True).
+        """
         _ = self.model.learn(total_timesteps, progress_bar=progress_bar)
         if self.trained is not None and self.trained[1] and self.env.render_mode != "play-back":
             self.model.save(self.trained[0])
 
     def evaluate(self, n_episodes: int = 10) -> None:
+        """Evaluate the trained policy and log results.
+
+        Parameters
+        ----------
+        n_episodes : int, optional
+            Number of evaluation episodes (default 10).
+        """
         mean_reward, std_reward = evaluate_policy(self.model, self.env, n_eval_episodes=n_episodes)
         logger.info("Mean:%s, stdev:%s", mean_reward, std_reward)
 

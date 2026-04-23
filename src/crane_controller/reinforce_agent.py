@@ -128,6 +128,7 @@ class REINFORCE:
         self.optimizer: torch.optim.AdamW = torch.optim.AdamW(self.net.parameters(), lr=self.learning_rate)
 
     def reset(self) -> None:
+        """Reset episode state and reinitialize the policy network."""
         self.probs = []  # Stores probability values of the sampled action
         self.rewards = []  # Stores the corresponding rewards
 
@@ -190,6 +191,20 @@ class REINFORCE:
         self.rewards = []
 
     def do_training(self, num_episodes: int = 5000) -> list[list[float]]:
+        """Train the policy over multiple random seeds.
+
+        Runs training for each of the Fibonacci seeds ``(1, 2, 3, 5, 8)``.
+
+        Parameters
+        ----------
+        num_episodes : int, optional
+            Number of episodes per seed (default 5000).
+
+        Returns
+        -------
+        list[list[float]]
+            Reward history per episode for each seed.
+        """
         wrapped_env = gym.wrappers.RecordEpisodeStatistics(self.env, 50)  # Records episode-reward
 
         rewards_over_seeds: list[list[float]] = []
@@ -236,6 +251,14 @@ class REINFORCE:
         return rewards_over_seeds
 
     def plot_learning_curve(self, rewards_over_seeds: list[list[float]]) -> None:
+        """Plot the learning curve across all training seeds.
+
+        Parameters
+        ----------
+        rewards_over_seeds : list[list[float]]
+            Reward history per episode for each seed, as returned by
+            :meth:`do_training`.
+        """
         df1 = pd.DataFrame(rewards_over_seeds).melt()
         df1 = df1.rename(columns={"variable": "episodes", "value": "reward"})
         sns.set(style="darkgrid", context="talk", palette="rainbow")

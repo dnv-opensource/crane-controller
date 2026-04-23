@@ -19,4 +19,16 @@ class DiscreteActions(gym.ActionWrapper[object, int, np.ndarray]):
         self.action_space = Discrete(len(disc_to_cont))
 
     def action(self, action: int) -> np.ndarray:
+        """Map a discrete action index to a continuous action array.
+
+        Parameters
+        ----------
+        action : int
+            Discrete action index.
+
+        Returns
+        -------
+        np.ndarray
+            Corresponding continuous action from the lookup table.
+        """
         return self.disc_to_cont[action]

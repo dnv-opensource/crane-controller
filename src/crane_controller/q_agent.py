@@ -109,6 +109,16 @@ class QLearningAgent:
         self.training_error: list[float] = []
 
     def analyse_q(self, obs: tuple[int, ...]) -> None:
+        """Log Q-table entries matching an observation pattern.
+
+        Uses ``-1`` as a wildcard in the observation tuple to match any value
+        in that dimension.
+
+        Parameters
+        ----------
+        obs : tuple[int, ...]
+            Observation filter pattern. Dimensions set to ``-1`` match all.
+        """
         for comb, q in self.q_values.items():
             include = True
             for c, o in zip(comb, obs, strict=True):
@@ -283,7 +293,13 @@ class QLearningAgent:
         return q_values
 
     def analyse_training(self, window: int = 500) -> None:
+        """Plot moving averages of episode rewards, lengths, and training error.
 
+        Parameters
+        ----------
+        window : int, optional
+            Number of episodes used for the smoothing window (default 500).
+        """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
@@ -315,7 +331,13 @@ class QLearningAgent:
         plt.show()
 
     def analyse_episode(self, window: int = 100) -> None:
+        """Plot moving averages of rewards and training error for one episode.
 
+        Parameters
+        ----------
+        window : int, optional
+            Number of steps used for the smoothing window (default 100).
+        """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=2, figsize=(12, 5))
 
