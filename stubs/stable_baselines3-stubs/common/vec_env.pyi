@@ -1,0 +1,3 @@
+# Type stubs for stable_baselines3.common.vec_env
+
+class VecEnv: ...
