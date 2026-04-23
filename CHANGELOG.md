@@ -8,7 +8,7 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 ### Changed
 * Adjusted and partly amended package structure to be in sync with latest changes in python_project_template v0.2.11
 * Typing:
-  * Added type annotations across all source, test, and script modules — pyright errors reduced from 54 to 0, warnings from 188 to 106.
+  * Added type annotations across all source, test, and script modules
   * Added type stubs for `torch`, `matplotlib`, and `stable-baselines3`
 * Docstrings:
   * Reformatted all existing docstrings to numpy-style
