@@ -62,7 +62,7 @@ class ProximalPolicyOptimizationAgent:
         inference_only = n_envs <= 0
         _n_envs = 1 if inference_only else n_envs
 
-        raw_vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)  # type: ignore[arg-type]
+        raw_vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)
 
         if inference_only:
             assert self.trained is not None, "When no training is specified a saved model should be provided"
@@ -81,13 +81,13 @@ class ProximalPolicyOptimizationAgent:
             else:
                 self.model = PPO("MlpPolicy", self.vec_env)
             self.trained = (
-                trained[0] if trained is not None else f"ppo_{env.__name__}",  # type: ignore[attr-defined]
+                trained[0] if trained is not None else f"ppo_{env.__name__}",
                 False if trained is None else trained[1],
             )
 
         # Single unwrapped env for do_one_episode/evaluate without reconstructing a new crane.
         # Assumes VecNormalize wraps a DummyVecEnv (stable-baselines3 default), which exposes .venv.envs.
-        self.env = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
+        self.env: AntiPendulumEnv = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
 
     @staticmethod
     def _stats_path(model_path: str) -> Path:
@@ -147,7 +147,7 @@ class ProximalPolicyOptimizationAgent:
         obs, _ = self.env.reset(seed=seed)
         terminated = truncated = False
         while not terminated and not truncated:
-            norm_obs = self.vec_env.normalize_obs(obs)
+            norm_obs = self.vec_env.normalize_obs(np.asarray(obs))
             action, _states = self.model.predict(np.asarray(norm_obs), deterministic=True)
             obs, _rewards, terminated, truncated, _ = self.env.step(int(action))
         self.env.render()

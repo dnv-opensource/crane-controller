@@ -11,10 +11,12 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 * Typing:
   * Added type annotations across all source, test, and script modules
   * Added type stubs for `torch`, `matplotlib`, and `stable-baselines3`
+  * Extended `stable-baselines3` stubs with `VecNormalize`, `VecEnvWrapper`, `DummyVecEnv`, and `RunningMeanStd` to cover VecNormalize integration
 * Docstrings:
   * Reformatted all existing docstrings to numpy-style
   * Added missing docstrings across all source and script modules
 * Resolved all issues raised by `ruff`, `pyright`, and `mypy`
+* `ppo_agent.py`: removed unnecessary `# type: ignore` comments; added explicit `AntiPendulumEnv` type annotation for `self.env`; pass `np.asarray(obs)` to `normalize_obs` for type correctness
 
 ### Fixed
 * Restored deterministic AntiPendulum environment seeding and aligned reset/step behavior with the existing environment tests.
