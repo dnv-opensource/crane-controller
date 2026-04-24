@@ -25,4 +25,3 @@ Modules
    crane_controller.crane_factory
    crane_controller.ppo_agent
    crane_controller.q_agent
-   crane_controller.reinforce_agent
