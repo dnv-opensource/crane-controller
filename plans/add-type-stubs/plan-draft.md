@@ -16,7 +16,8 @@ The goal is to have type stubs for those modules and symbols from third party pa
 
 * First, determine which (untyped) third party packages have relevant (negative) impact on typing in our code base. In other words: Which third party packages should we concentrate on to create type-stubs.
 * Work in phases, ordered from easiest-to-infer types to hardest-to-infer types.
-* A good example of how a type-stub structure for a third party package can look like is contained in the following project: `C:/Dev/sim-orchestrator`. Therein, in sub-folder `/stubs`, you will find an example of type-stubs (in that case created for the third party package `FMPy`). Follow a similar approach when creating type-stubs in the current code base.
+* A good example of how a type-stub structure for a third party package can look like already exists in this repo's own `stubs/` directory. Study the existing stub packages there as a model for style, depth, and registration in `pyproject.toml` / `pyrightconfig.json`. Follow a similar approach when creating type-stubs for additional packages.
+* For each 3rd-party class you stub, trace all attribute access chains used in the codebase (e.g. `.venv.envs[0]`). Stub every intermediate class and attribute that appears in such a chain, not only the directly imported symbols.
 
 ## Context
 
@@ -31,6 +32,7 @@ The goal is to have type stubs for those modules and symbols from third party pa
 - Run `uv run ruff format --check` to ensure formatting is not broken.
 - Run `uv run ruff check` to ensure no regressions in ruff checks.
 - Run `uv run ruff --select ANN`, `uv run pyright`, and `uv run mypy` to monitor, and validate that number of missing type hints in the code is decreasing.
+- After adding stubs, scan all source files for `# type: ignore` comments that have become unnecessary. Use pyright's `reportUnnecessaryTypeIgnoreComment` (surfaces as "information" level) and `uv run mypy --warn-unused-ignores` to detect them. Remove stale suppressions.
 
 ## Definition of Done
 

@@ -30,6 +30,7 @@ After each phase: run `uv run ruff format`, `uv run mypy`, and `uv run pytest`.
 ## Validation Strategy
 
 - Run `uv run mypy` and confirm error count is below 5 (ideally zero).
+- Run `uv run mypy --warn-unused-ignores` to detect `# type: ignore` comments that have become unnecessary (e.g. after fixing stubs or annotations). Remove stale suppressions.
 - Run `uv run pytest` and confirm all tests pass.
 - Run `uv run ruff format --check` to ensure formatting is not broken.
 
@@ -37,6 +38,7 @@ After each phase: run `uv run ruff format`, `uv run mypy`, and `uv run pytest`.
 
 - [ ] Code implemented (all phases complete)
 - [ ] `uv run mypy` reports fewer than 5 errors (target: 0)
+- [ ] `uv run mypy --warn-unused-ignores` reports no unused ignore comments
 - [ ] `uv run pytest` — all tests pass
 - [ ] `uv run ruff format --check` — no format violations
 - [ ] No rules added to the `ignore` list in `pyproject.toml` without documented justification
