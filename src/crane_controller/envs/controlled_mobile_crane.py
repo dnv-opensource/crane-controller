@@ -51,7 +51,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         Grid axis length in all directions (default 10).
     """
 
-    metadata: ClassVar[dict[str, object]] = {"render_modes": ["animation", "data"], "render_fps": 4}  # type: ignore[assignment]
+    metadata: ClassVar[dict[str, object]] = {"render_modes": ["animation", "data"], "render_fps": 4}  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,

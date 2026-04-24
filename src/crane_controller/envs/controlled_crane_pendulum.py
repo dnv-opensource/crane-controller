@@ -89,7 +89,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         ``"speed"``, ``"distance"``, ``"sector"`` (default None).
     """
 
-    metadata: ClassVar[dict[str, object]] = {  # type: ignore[assignment]  # Gymnasium metadata typing is loose
+    metadata: ClassVar[dict[str, object]] = {  # pyright: ignore[reportIncompatibleVariableOverride]  # Gymnasium metadata typing is loose
         "render_modes": (
             "none",
             "play-back",
@@ -134,7 +134,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         elif render_mode == "plot":
             self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": []}
 
-        self.obeservation_space: spaces.Box | spaces.Discrete  # type: ignore[type-arg]  # Discrete type arg not needed here
+        self.obeservation_space: spaces.Box | spaces.Discrete  # pyright: ignore[reportMissingTypeArgument]  # Discrete type arg not needed here
         # Continuous observations are crane position, crane velocity, wire polar angle, and load x-velocity.
         self.min_speed = 0.1  # np.sqrt(2*reward_limit) # starting with less does not make sense (goal already reached)
         max_speed = np.sqrt(9.81 * self.wire.length)  # speed for pendulum at +/- 90 deg. Polar as deflection from -z
@@ -211,11 +211,11 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         if not len(self._playback):  # no records there yet
             self._playback.append([time])  # slot 0 for time
             for b in self.crane.booms():
-                self._playback.append([b.end])  # type: ignore[arg-type,list-item]  # TVector is compatible at runtime
+                self._playback.append([b.end])  # type: ignore[list-item]  # TVector is compatible at runtime
         else:
             self._playback[0].append(time)
             for i, b in enumerate(self.crane.booms()):
-                self._playback[i + 1].append(b.end)  # type: ignore[arg-type,list-item]  # TVector is compatible at runtime
+                self._playback[i + 1].append(b.end)  # type: ignore[arg-type]  # TVector is compatible at runtime
 
     def show_animation(self) -> None:
         """Show the playback animation of the current episode recording."""
@@ -226,7 +226,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             data=data,
             lw=(5, 1),
             figsize=(10, 10),
-            interval=int(AntiPendulumEnv.metadata["interval"]),  # type: ignore[arg-type,call-overload]  # metadata value is int at runtime
+            interval=int(AntiPendulumEnv.metadata["interval"]),  # type: ignore[call-overload]  # metadata value is int at runtime
             title="Anti-Pendulum episode",
         )
         ani.do_animation()
@@ -274,7 +274,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
                 self.crane.position[0],
                 self.crane.velocity[0],
                 self.wire.boom[1],
-                self.wire.cm_v[0],  # type: ignore[attr-defined]  # dynamic attr on Wire
+                self.wire.cm_v[0],  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
             ),
             float,
         )
@@ -304,7 +304,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         return (
             energy_level,
             int(self.wire.end[0] - self.wire.origin[0] < 0.0),
-            int(self.wire.cm_v[0] < 0.0),  # type: ignore[attr-defined]  # dynamic attr on Wire
+            int(self.wire.cm_v[0] < 0.0),  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
             distance_level,
             int(self.crane.position[0] < 0.0),
         )
@@ -324,7 +324,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         tuple[np.ndarray | tuple[int, ...], float, int]
             ``(observation, reward, error_flag)``.
         """
-        energy = 9.81 * self.wire.end[2] + 0.5 * np.dot(self.wire.cm_v, self.wire.cm_v)  # type: ignore[attr-defined]  # dynamic attr on Wire
+        energy = 9.81 * self.wire.end[2] + 0.5 * np.dot(self.wire.cm_v, self.wire.cm_v)  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         if self.start_speed == 0.0:  # start pendulum mode
             reward = energy
         else:  # stop pendulum mode
@@ -348,7 +348,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             self.traces["c_x"].append(self.crane.position[0])
             self.traces["c_v"].append(self.crane.velocity[0])
             self.traces["l_x"].append(self.wire.c_m[0])
-            self.traces["l_v"].append(self.wire.cm_v[0])  # type: ignore[attr-defined]  # dynamic attr on Wire
+            self.traces["l_v"].append(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
 
         return (obs, reward, err)
 
@@ -425,16 +425,16 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
 
         self.nresets += 1
         if self.start_speed == 0.0:  # run in 'start' mode, learning how to start the pendulum action
-            assert self.wire.cm_v[0] == 0.0, f"Load speed expected zero. Found {self.wire.cm_v[0]}"  # type: ignore[attr-defined]  # dynamic attr on Wire
+            assert self.wire.cm_v[0] == 0.0, f"Load speed expected zero. Found {self.wire.cm_v[0]}"  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         elif self.start_speed < 0.0:  # random speed in 'stop' mode [-,+] range
             speed = self.np_random.uniform(
                 -(-self.start_speed - self.min_speed),
                 (-self.start_speed - self.min_speed),
             )
             speed = speed + self.min_speed if speed >= 0 else speed - self.min_speed
-            self.wire.cm_v[0] = np.radians(speed)  # type: ignore[attr-defined]  # dynamic attr on Wire
+            self.wire.cm_v[0] = np.radians(speed)  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         else:  # fixed speed in 'stop' mode (more control)
-            self.wire.cm_v[0] = np.radians(self.start_speed)  # type: ignore[attr-defined]  # dynamic attr on Wire
+            self.wire.cm_v[0] = np.radians(self.start_speed)  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         obs, self.reward, _ = self._get_obs()
         if self.render_mode == "play-back":
             self._append_playback(0.0)
