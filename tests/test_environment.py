@@ -113,5 +113,6 @@ def test_observations_are_float(crane: Callable[..., Crane]) -> None:
     env = AntiPendulumEnv(crane)
     _ = env.reset()
     obs, _, _, _, _ = env.step(1)  # one physics step produces fractional values
+    assert isinstance(obs, np.ndarray)
     assert obs.dtype == np.float64
     assert not np.all(obs == obs.astype(int))  # sub-integer precision is preserved

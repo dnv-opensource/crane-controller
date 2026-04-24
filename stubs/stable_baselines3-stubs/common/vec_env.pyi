@@ -6,7 +6,6 @@ from typing import Any
 import numpy as np
 from gymnasium import Env
 
-
 class VecEnv:
     num_envs: int
 
@@ -16,22 +15,18 @@ class VecEnv:
     def close(self) -> None: ...
     def seed(self, seed: int | None = None) -> list[int | None]: ...
 
-
 class DummyVecEnv(VecEnv):
     envs: list[Env[Any, Any]]
-
 
 class VecEnvWrapper(VecEnv):
     venv: VecEnv
 
     def __init__(self, venv: VecEnv, **kwargs: Any) -> None: ...
 
-
 class RunningMeanStd:
     mean: np.ndarray
     var: np.ndarray
     count: float
-
 
 class VecNormalize(VecEnvWrapper):
     training: bool
