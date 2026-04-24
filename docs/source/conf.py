@@ -15,18 +15,17 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path("../../src").absolute()))
-sys.path.insert(0, str(Path("../_ext").absolute()))
 
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "py-crane"
-copyright = "2025, DNV AS. All rights reserved."
-author = "Siegfried Eisinger, Jorge Luis Mendez"
+project = "crane-controller"
+copyright = "2026, DNV AS. All rights reserved."
+author = "Siegfried Eisinger, Aleksandar Babic"
 
 # The full version, including alpha/beta/rc tags
-release = "0.3.0"
+release = "0.0.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -40,17 +39,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.todo",
     "sphinxcontrib.mermaid",
-    "get_from_code",
-    "spec",
-    "sphinx.ext.graphviz",
-    "sphinx.ext.inheritance_diagram",
-    "sphinx.ext.intersphinx",
-    # "sphinx.ext.autosectionlabel",
 ]
-
-intersphinx_mapping = {
-    #    "component-model": ("https://github.com/dnv-opensource/component-model/", None),
-}
 
 # Extenstion for myst_parser
 myst_enable_extensions = [
@@ -76,10 +65,10 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_title = f"py-crane {release}"
+html_title = f"crane-controller {release}"
 html_theme = "furo"
 html_static_path = ["_static"]
-# html_logo = "_static/py_crane.svg"
+html_logo = "_static/crane-controller.svg"
 autodoc_default_options = {
     "member-order": "groupwise",
     "undoc-members": True,
@@ -89,8 +78,7 @@ autodoc_preserve_defaults = True
 
 myst_heading_anchors = 3
 
-todo_include_todos = True
-spec_include_specs = True
+todo_include_todos = False
 
 # add markdown mermaid support
 myst_fence_as_directive = ["mermaid"]

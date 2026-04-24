@@ -1,31 +1,75 @@
+"""Q-learning agent for the anti-pendulum environment."""
+
+from __future__ import annotations
+
 import json
 import logging
 from ast import literal_eval
 from collections import defaultdict
 from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, Literal
 
-import gymnasium as gym
 import numpy as np
 from matplotlib import pyplot as plt
-from tqdm import tqdm  # Progress bar
+from tqdm import tqdm
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 
 logger = logging.getLogger(__name__)
 
+SHOW_TRAINING_SUMMARY = 1
+SHOW_EPISODE_ANALYSIS = 2
 
-class QLearningAgent(object):
-    """Agent for training the controller (a Gym Environment).
 
-    Args:
-        env (gym.Env): The Environment (class) to be trained. Need .reset() and .step() functions.
-        learning_rate (float): How quickly to update Q-values (0-1)
-        initial_epsilon (float): Starting exploration rate (usually 1.0)
-        final_epsilon (float): Minimum exploration rate (usually 0.1)
-        discount_factor (float): How much to value future rewards (0-1)
-        trained (tuple[str,bool]): Optional possibility to save q_values after training / read pre-trained q_values:
-           (filename,use-it): (filename,False): perform new training and save, (filename,True) use pre-trained values
+def _get_moving_avgs(
+    values: Sequence[float] | np.ndarray,
+    window: int,
+    convolution_mode: Literal["valid", "same"],
+) -> np.ndarray:
+    """Compute moving averages to smooth noisy data.
+
+    Parameters
+    ----------
+    values : Sequence[float] | np.ndarray
+        Raw data series to smooth.
+    window : int
+        Number of elements in the averaging window.
+    convolution_mode : {"valid", "same"}
+        Convolution mode passed to `numpy.convolve`.
+
+    Returns
+    -------
+    np.ndarray
+        Smoothed data series.
+    """
+    return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
+
+
+class QLearningAgent:
+    """Agent for training a controller via Q-learning.
+
+    Parameters
+    ----------
+    env : AntiPendulumEnv
+        The environment to be trained. Must provide `.reset()` and `.step()` methods.
+    learning_rate : float, optional
+        How quickly to update Q-values, in the range (0, 1] (default 0.1).
+    initial_epsilon : float, optional
+        Starting exploration rate (default 1.0).
+    final_epsilon : float, optional
+        Minimum exploration rate (default 0.1).
+    discount_factor : float, optional
+        How much to value future rewards, in the range [0, 1] (default 0.95).
+    trained : tuple[str | Path, bool] or None, optional
+        Optional path and flag for pre-trained Q-values.
+        ``(filename, False)`` trains from scratch and saves;
+        ``(filename, True)`` loads pre-trained values (default None).
     """
 
-    DEFAULT_DISCRETE: dict = {
+    DEFAULT_DISCRETE: ClassVar[dict[str, tuple[float | int, ...]]] = {
         "angles": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
         "pos": (0, 1),
         "speed": (0, 1),
@@ -35,24 +79,26 @@ class QLearningAgent(object):
 
     def __init__(
         self,
-        env: gym.Env,
+        env: AntiPendulumEnv,
         learning_rate: float = 0.1,
         initial_epsilon: float = 1.0,
         final_epsilon: float = 0.1,
         discount_factor: float = 0.95,
         trained: tuple[str | Path, bool] | None = None,
-    ):
+    ) -> None:
+        """Initialize the Q-learning agent.
+
+        See the class docstring for parameter descriptions.
+        """
         self.env = env
-        # print("ACTION_SPACE.N", env.action_space.n, defaultdict( lambda: np.zeros(env.action_space.n))['xx'])
-        # Q-table: maps (state, action) to expected reward
-        # defaultdict automatically creates entries with zeros for new states
         _filename, self.use_pre_trained = trained if trained is not None else (None, False)
         self.filename: Path | None = Path(_filename) if _filename is not None else None
+        self.q_values: defaultdict[tuple[int, ...], np.ndarray]
         if self.use_pre_trained and self.filename is not None:
             self.q_values = self.read_dumped(self.filename)
             self.epsilon = final_epsilon  # assume that we are fully learned
         else:  # start from scratch, but save the q_values afterwards
-            self.q_values = defaultdict(lambda: np.array((0.0,) * env.action_space.n, float))  # type: ignore  ## n!
+            self.q_values = defaultdict(lambda: np.array((0.0,) * env.action_space.n, float))  # type: ignore[attr-defined,type-var]
             self.epsilon = initial_epsilon  # start from scratch
 
         self.lr = learning_rate
@@ -64,49 +110,70 @@ class QLearningAgent(object):
         # Track learning progress
         self.training_error: list[float] = []
 
-    def analyse_q(self, obs: tuple[int, ...]):
-        for comb, q in self.q_values.items():
-            include = True
-            for c, o in zip(comb, obs, strict=True):
-                if o >= 0 and o != c:
-                    include = False
-                    break
-            if include:
-                print(comb, q, int(np.argmax(q)), np.average(q), np.std(q) / np.average(q))
+    def analyse_q(self, obs: tuple[int, ...]) -> None:
+        """Log Q-table entries matching an observation pattern.
 
-    def get_action(self, obs: tuple[int, int, bool]) -> int:
+        Uses ``-1`` as a wildcard in the observation tuple to match any value
+        in that dimension.
+
+        Parameters
+        ----------
+        obs : tuple[int, ...]
+            Observation filter pattern. Dimensions set to ``-1`` match all.
+        """
+        for comb, q in self.q_values.items():
+            include = not any(o >= 0 and o != c for c, o in zip(comb, obs, strict=True))
+            if include:
+                logger.info("%s %s %s %s %s", comb, q, int(np.argmax(q)), np.average(q), np.std(q) / np.average(q))
+
+    def get_action(self, obs: tuple[int, ...]) -> int:
         """Choose an action using epsilon-greedy strategy.
+
+        Parameters
+        ----------
+        obs : tuple[int, ...]
+            Current discretised observation.
 
         Returns
         -------
-            action: 0 (stand) or 1 (hit)
+        int
+            Selected action index.
         """
-        if np.random.random() < self.epsilon:  # With probability epsilon: explore (random action)
-            return self.env.action_space.sample()
-        else:  # With probability (1-epsilon): exploit (best known action)
-            return int(np.argmax(self.q_values[obs]))
+        if self.env.np_random.random() < self.epsilon:
+            return int(self.env.action_space.sample())
+        # With probability (1-epsilon): exploit (best known action)
+        return int(np.argmax(self.q_values[obs]))
 
     def update_q(
         self,
-        obs: gym.Space,
+        obs: tuple[int, ...],
         action: int,
         reward: float,
+        *,
         terminated: bool,
-        next_obs: gym.Space,
-    ):
+        next_obs: tuple[int, ...],
+    ) -> None:
         """Update Q-value based on experience.
-        self.update(obs, action, reward, terminated, next_obs) # learn from this experience.
 
-        This is the heart of Q-learning: learn from (state, action, reward, next_state).
+        This is the heart of Q-learning: learn from
+        (state, action, reward, next_state).
 
-        See also `Q-learning <https://en.wikipedia.org/wiki/Q-learning>`_
+        See Also
+        --------
+        `Q-learning <https://en.wikipedia.org/wiki/Q-learning>`_
 
-        Args:
-            obs: previous observed state
-            action: action performed on the state 'obs'
-            reward: the reward from 'action'
-            next_obs: the new observed state after 'action' on state 'obs'
-            terminated: info whether the agent was terminated after 'action'
+        Parameters
+        ----------
+        obs : tuple[int, ...]
+            Previous observed state.
+        action : int
+            Action performed in state `obs`.
+        reward : float
+            Reward received after taking `action`.
+        terminated : bool
+            Whether the episode ended after `action`.
+        next_obs : tuple[int, ...]
+            New observed state after `action`.
         """
         # What's the best we could do from the next state? Zero if episode terminated.
         future_q_value = (not terminated) * np.max(self.q_values[next_obs])
@@ -123,43 +190,66 @@ class QLearningAgent(object):
         # Track learning progress (useful for debugging)
         self.training_error.append(temporal_difference)
 
-    def do_episodes(self, n_episodes: int = 1000, max_steps: int = 5000, show: int = 0):
-        """Do n_episodes, using pre-trained q_values or starting a new training sequence."""
+    def do_episodes(self, n_episodes: int = 1000, max_steps: int = 5000, show: int = 0) -> None:
+        """Run training or evaluation episodes.
+
+        Uses pre-trained Q-values when available, otherwise starts a new
+        training sequence.
+
+        Parameters
+        ----------
+        n_episodes : int, optional
+            Number of episodes to run (default 1000).
+        max_steps : int, optional
+            Maximum steps per episode before truncation (default 5000).
+        show : int, optional
+            Visualization mode - 0 for none, 1 for training summary, 2 for
+            per-episode analysis (default 0).
+        """
         if self.use_pre_trained:
-            logger.info(f"Starting {n_episodes} episodes, using pre-trained values from {self.filename}")
+            logger.info("Starting %s episodes, using pre-trained values from %s", n_episodes, self.filename)
         else:
-            logger.info(f"Starting new training with {n_episodes} episodes.")
+            logger.info("Starting new training with %s episodes.", n_episodes)
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
-            obs, info = self.env.reset()
+            obs, _ = self.env.reset()
+            assert isinstance(obs, tuple)
             nsteps = 0
             terminated, truncated = (False, False)
 
             while not terminated and not truncated:
                 action = self.get_action(obs)  # choose action (initially random, gradually more intelligent)
-                next_obs, _reward, terminated, truncated, info = self.env.step(action)  # take action and observe result
+                next_obs, _reward, terminated, truncated, _ = self.env.step(action)  # take action and observe result
+                assert isinstance(next_obs, tuple)
                 reward = float(_reward)
-                self.update_q(obs, action, reward, terminated, next_obs)  # learn from this experience
+                self.update_q(obs, action, reward, terminated=terminated, next_obs=next_obs)
                 # Move to next state
                 obs = next_obs
-                if show == 2:
+                if show == SHOW_EPISODE_ANALYSIS:
                     self.analyse_episode()
                 nsteps += 1
                 truncated |= nsteps > max_steps
             # Reduce exploration rate (agent becomes less random over time):
             self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon / (n_episodes / 2))
-        if show == 1:
+        if show == SHOW_TRAINING_SUMMARY:
             self.analyse_training()
         if self.filename:
             self.dump_results()
 
-    def dump_results(self, filename: str | Path = ""):
-        """Dump the q_values to a json file."""
+    def dump_results(self, filename: str | Path = "") -> None:
+        """Dump the Q-values to a JSON file.
+
+        Parameters
+        ----------
+        filename : str or Path, optional
+            Target file path. When empty, the filename provided at
+            construction time is used (default "").
+        """
         if not filename:  # automatic file name
             if self.filename is None:
                 logger.warning("No base file name provided. Aborting dump to file.")
                 return
-            elif self.use_pre_trained:  # do not overwrite pre-trained data
+            if self.use_pre_trained:  # do not overwrite pre-trained data
                 if len(self.filename.stem.split("_")) == 1:
                     _filename = self.filename.parent / f"{self.filename.stem}_1{self.filename.suffix}"
                 else:
@@ -170,51 +260,67 @@ class QLearningAgent(object):
         else:
             _filename = Path(filename)
 
-        converted: dict[str, list] = {}
+        converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
-            converted.update({str(k): list(v) if isinstance(v, np.ndarray) else v})
-        with open(_filename, "w") as _f:
+            converted |= {str(k): list(v)}
+        with _filename.open("w", encoding="utf-8") as _f:
             json.dump(converted, _f, indent=3)
-        logger.info(f"Updated q_values saved to {_filename.resolve()}")
+        logger.info("Updated q_values saved to %s", _filename.resolve())
 
-    def read_dumped(self, filename: str | Path):
-        """Read a q_values dict (saved as json) from file."""
-        with open(filename, "r") as _f:
+    def read_dumped(self, filename: str | Path) -> defaultdict[tuple[int, ...], np.ndarray]:
+        """Read a Q-values dict from a JSON file.
+
+        Parameters
+        ----------
+        filename : str or Path
+            Path to the JSON file containing saved Q-values.
+
+        Returns
+        -------
+        defaultdict[tuple[int, ...], np.ndarray]
+            Loaded Q-values mapping observation tuples to action-value arrays.
+        """
+        path = Path(filename)
+        with path.open(encoding="utf-8") as _f:
             from_dump = json.load(_f)
-        q_values = defaultdict(lambda: np.array((0.0,) * self.env.action_space.n, float))  # type: ignore # n exists
+        q_values: defaultdict[tuple[int, ...], np.ndarray] = defaultdict(
+            lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined,type-var]
+        )
         for k, v in from_dump.items():
             q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
         return q_values
 
-    def analyse_training(self, window: int = 500):
+    def analyse_training(self, window: int = 500) -> None:
+        """Plot moving averages of episode rewards, lengths, and training error.
 
-        def get_moving_avgs(arr, window, convolution_mode):
-            """Compute moving average to smooth noisy data."""
-            return np.convolve(np.array(arr).flatten(), np.ones(window), mode=convolution_mode) / window
-
+        Parameters
+        ----------
+        window : int, optional
+            Number of episodes used for the smoothing window (default 500).
+        """
         # Smooth over the given episode window
-        fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
+        _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
-        lengths = [row[0] for row in self.env.reward_stats]  # type: ignore  ## reward_stats exist
-        rewards = [row[1] for row in self.env.reward_stats]  # type: ignore  ## reward_stats exist
+        lengths = [row[0] for row in self.env.reward_stats]
+        rewards = [row[1] for row in self.env.reward_stats]
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = get_moving_avgs(rewards, int(window / 10), "valid")
+        reward_moving_average = _get_moving_avgs(rewards, window // 10, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
 
         # Episode lengths (how many actions per hand)
         axs[1].set_title("Episode lengths")
-        length_moving_average = get_moving_avgs(lengths, int(window / 10), "valid")
+        length_moving_average = _get_moving_avgs(lengths, window // 10, "valid")
         axs[1].plot(range(len(length_moving_average)), length_moving_average)
         axs[1].set_ylabel("Average Episode Length")
         axs[1].set_xlabel("Episode")
 
         # Training error (how much we're still learning)
         axs[2].set_title("Training Error")
-        training_error_moving_average = get_moving_avgs(self.training_error, window, "same")
+        training_error_moving_average = _get_moving_avgs(self.training_error, window, "same")
         axs[2].plot(range(len(training_error_moving_average)), training_error_moving_average)
         axs[2].set_ylabel("Temporal Difference Error")
         axs[2].set_xlabel("Step")
@@ -222,25 +328,27 @@ class QLearningAgent(object):
         plt.tight_layout()
         plt.show()
 
-    def analyse_episode(self, window: int = 100):
+    def analyse_episode(self, window: int = 100) -> None:
+        """Plot moving averages of rewards and training error for one episode.
 
-        def get_moving_avgs(arr, window, convolution_mode):
-            """Compute moving average to smooth noisy data."""
-            return np.convolve(np.array(arr).flatten(), np.ones(window), mode=convolution_mode) / window
-
+        Parameters
+        ----------
+        window : int, optional
+            Number of steps used for the smoothing window (default 100).
+        """
         # Smooth over the given episode window
-        fig, axs = plt.subplots(ncols=2, figsize=(12, 5))
+        _, axs = plt.subplots(ncols=2, figsize=(12, 5))
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = get_moving_avgs(self.env.rewards, window, "valid")  # type: ignore  ## rewards exist
+        reward_moving_average = _get_moving_avgs(self.env.rewards, window, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
 
         # Training error (how much we're still learning)
         axs[1].set_title("Training Error")
-        training_error_moving_average = get_moving_avgs(self.training_error, window, "same")
+        training_error_moving_average = _get_moving_avgs(self.training_error, window, "same")
         axs[1].plot(range(len(training_error_moving_average)), training_error_moving_average)
         axs[1].set_ylabel("Temporal Difference Error")
         axs[1].set_xlabel("Step")
@@ -248,22 +356,25 @@ class QLearningAgent(object):
         plt.tight_layout()
         plt.show()
 
-    def test_agent(self, num_episodes=1000):
+    def test_agent(self, num_episodes: int = 1000) -> str:
         """Test agent performance without learning or exploration."""
-        total_rewards = []
+        total_rewards: list[float] = []
 
         # Temporarily disable exploration for testing
         old_epsilon = self.epsilon
         self.epsilon = 0.0  # Pure exploitation
 
         for _ in range(num_episodes):
-            obs, info = self.env.reset()
+            obs, _ = self.env.reset()
+            assert isinstance(obs, tuple)
             episode_reward = 0.0
             done = False
 
             while not done:
                 action = self.get_action(obs)
-                obs, reward, terminated, truncated, info = self.env.step(action)
+                next_obs, reward, terminated, truncated, _ = self.env.step(action)
+                assert isinstance(next_obs, tuple)
+                obs = next_obs
                 episode_reward += float(reward)
                 done = terminated or truncated
 

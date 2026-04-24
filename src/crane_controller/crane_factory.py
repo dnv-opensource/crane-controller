@@ -1,16 +1,34 @@
+"""Factory for building a simple py-crane model."""
+
 import numpy as np
 from py_crane.crane import Crane
 
 
 def build_crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0) -> Crane:
+    """Build a simple crane with a pedestal boom and a flexible wire.
+
+    Parameters
+    ----------
+    length : float, optional
+        Boom and wire length (default 10.0).
+    mass : float, optional
+        Wire mass (default 1.0).
+    q_factor : float, optional
+        Quality factor controlling wire damping (default 50.0).
+
+    Returns
+    -------
+    Crane
+        Configured crane ready for simulation.
+    """
     crane = Crane()
-    crane.add_boom(
+    _ = crane.add_boom(
         "pedestal",
         description="A simple pole with same length as the wire",
         mass=100.0,
         boom=(length, 0.0, 0.0),
     )
-    crane.add_boom(
+    _ = crane.add_boom(
         "wire",
         description="The wire fixed to the pole. Flexible connection",
         mass=mass,

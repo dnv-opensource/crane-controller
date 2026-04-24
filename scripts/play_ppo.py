@@ -1,26 +1,33 @@
 """Run a trained PPO agent on the AntiPendulumEnv.
 
-Example:
+Examples
+--------
+.. code-block:: bash
+
     uv run python scripts/play_ppo.py --model-path models/ppo_AntiPendulumEnv.zip
     uv run python scripts/play_ppo.py --model-path models/ppo.zip --render-mode plot --episodes 3
 """
 
 import argparse
+import logging
 
 from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.ppo_agent import ProximalPolicyOptimizationAgent
 
+LOGGER = logging.getLogger(__name__)
 
-def main():
+
+def main() -> None:
+    """Parse CLI arguments and run a trained PPO agent."""
     parser = argparse.ArgumentParser(description="Run a trained PPO agent on the crane anti-pendulum task.")
-    parser.add_argument("--model-path", type=str, required=True, help="Path to a trained .zip model")
-    parser.add_argument("--render-mode", type=str, default="play-back", help="Render mode for playback")
-    parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
+    _ = parser.add_argument("--model-path", type=str, required=True, help="Path to a trained .zip model")
+    _ = parser.add_argument("--render-mode", type=str, default="play-back", help="Render mode for playback")
+    _ = parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
     args = parser.parse_args()
 
     agent = ProximalPolicyOptimizationAgent(
-        AntiPendulumEnv,  # type: ignore[arg-type]
+        AntiPendulumEnv,
         n_envs=0,  # load-from-file mode
         env_kwargs={
             "crane": build_crane,
@@ -30,8 +37,9 @@ def main():
         trained=(args.model_path, True),
     )
 
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     for episode in range(args.episodes):
-        print(f"Episode {episode + 1}/{args.episodes}")
+        LOGGER.info("Episode %s/%s", episode + 1, args.episodes)
         agent.do_one_episode(seed=episode + 1)
 
 

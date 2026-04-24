@@ -3,11 +3,11 @@ Assurance case notes
 
 Concept
 -------
-* Control the crane within 
+* Control the crane within
    - the stated environmental limits
    - the stated control limits
 * 'crane' refers to simulator or real crane
-   - simulator should be assured with respect to 
+   - simulator should be assured with respect to
      realistically simulate both crane and environment,
      so that
 
@@ -25,7 +25,7 @@ Crane limitations
 
 Environment simulator
    The environmental capabilities shall be specified.
-   
+
    #. crane mounted on fixed structure. External forces directly specified
    #. crane mounted on moveable structure ...
 
