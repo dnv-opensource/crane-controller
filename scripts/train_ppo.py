@@ -66,7 +66,9 @@ def main() -> None:
             trained=(args.save_path, True),
         )
         agent.do_training(args.steps)
+        vecnorm_path = Path(args.save_path).parent / f"{Path(args.save_path).stem}_vecnorm.pkl"
         LOGGER.info("Model saved to %s", args.save_path)
+        LOGGER.info("VecNormalize stats saved to %s", vecnorm_path)
 
 
 if __name__ == "__main__":

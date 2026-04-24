@@ -100,3 +100,18 @@ def test_init(crane: Callable[..., Crane], *, show: bool) -> None:
     if show:
         show_figure(times=np.linspace(0, 100, 100), traces={"rewards": rewards})
     _ = env.reset()
+
+
+def test_observation_space_dtype(crane: Callable[..., Crane]) -> None:
+    """Test that the continuous observation space uses float64 dtype."""
+    env = AntiPendulumEnv(crane)
+    assert env.observation_space.dtype == np.float64
+
+
+def test_observations_are_float(crane: Callable[..., Crane]) -> None:
+    """Test that observations preserve sub-integer precision after a physics step."""
+    env = AntiPendulumEnv(crane)
+    _ = env.reset()
+    obs, _, _, _, _ = env.step(1)  # one physics step produces fractional values
+    assert obs.dtype == np.float64
+    assert not np.all(obs == obs.astype(int))  # sub-integer precision is preserved

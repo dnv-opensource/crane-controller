@@ -25,11 +25,11 @@ def vary_torch_default_device(request: pytest.FixtureRequest):
     torch.set_default_device("cpu")  # reset to default device after test
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="package", autouse=True)
 def chdir():
     """
     Fixture that changes the current working directory to the 'test_working_directory' folder.
-    This fixture is automatically used for the entire session.
+    This fixture is automatically used for the entire package.
     """
     original_cwd = Path.cwd()
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
@@ -39,11 +39,11 @@ def chdir():
         os.chdir(original_cwd)  # reset to original working directory after tests
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="package", autouse=True)
 def test_dir() -> Path:
     """
     Fixture that returns the absolute path of the directory containing the current file.
-    This fixture is automatically used for the entire session.
+    This fixture is automatically used for the entire package.
     """
     return Path(__file__).parent.absolute()
 

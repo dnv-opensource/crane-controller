@@ -144,7 +144,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             self.discrete = {}
             self.spaces_min = np.array((-size, -max_speed, 0.0, -max_speed), float)
             self.spaces_max = np.array((size, max_speed, np.pi, max_speed), float)
-            self.observation_space = spaces.Box(self.spaces_min, self.spaces_max, shape=(4,), dtype=np.int64)
+            self.observation_space = spaces.Box(self.spaces_min, self.spaces_max, shape=(4,), dtype=np.float64)
 
         self.nresets: int = 0
         self.acc = acc
