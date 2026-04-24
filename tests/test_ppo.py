@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from py_crane.crane import Crane
+from stable_baselines3.common.running_mean_std import RunningMeanStd
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.ppo_agent import ProximalPolicyOptimizationAgent
@@ -46,4 +47,5 @@ def test_ppo_vecnorm_updates(crane: Callable[..., Crane]) -> None:
         env_kwargs={"crane": crane, "start_speed": 1.0},
     )
     agent.do_training(500, progress_bar=False)
+    assert isinstance(agent.vec_env.obs_rms, RunningMeanStd)
     assert not np.allclose(agent.vec_env.obs_rms.mean, 0.0)
