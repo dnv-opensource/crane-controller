@@ -75,6 +75,19 @@ def test_environment(crane: Callable, show: bool, v0: float = 1.0, reward_limit=
     assert q_values[obs2.tobytes()][2] == -98.1
 
 
+def test_observation_space_dtype(crane: Callable):
+    env = AntiPendulumEnv(crane)
+    assert env.observation_space.dtype == np.float64
+
+
+def test_observations_are_float(crane: Callable):
+    env = AntiPendulumEnv(crane)
+    env.reset()
+    obs, _, _, _, _ = env.step(1)  # one physics step produces fractional values
+    assert obs.dtype == np.float64
+    assert not np.all(obs == obs.astype(int))  # sub-integer precision is preserved
+
+
 def test_init(crane: Crane, show: bool = False):
     """Test the initialization of the environment."""
     env = AntiPendulumEnv(crane, seed=1, start_speed=-1.0, render_mode="play-back" if show else "data")

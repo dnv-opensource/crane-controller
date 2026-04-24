@@ -57,7 +57,9 @@ def main():
             trained=(args.save_path, True),
         )
         agent.do_training(args.steps)
+        vecnorm_path = Path(args.save_path).parent / f"{Path(args.save_path).stem}_vecnorm.pkl"
         print(f"Model saved to {args.save_path}")
+        print(f"VecNormalize stats saved to {vecnorm_path}")
 
 
 if __name__ == "__main__":
