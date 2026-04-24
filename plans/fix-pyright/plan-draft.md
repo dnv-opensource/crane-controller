@@ -21,6 +21,10 @@ When you see many `reportUnknownMemberType` warnings cascading from a single var
 
 Include a cleanup phase after fixing each category of pyright errors: re-run pyright and remove any `# type: ignore` or `# pyright: ignore` comments that are flagged as `reportUnnecessaryTypeIgnoreComment`.
 
+### pyright / mypy divergence on `# type: ignore`
+
+When removing or modifying `# type: ignore` comments, check that mypy still passes (`uv run mypy`). If mypy still needs the suppression but pyright does not, keep the `# type: ignore` with only the mypy-needed error codes. If pyright needs it but mypy does not, use `# pyright: ignore[rule]` instead.
+
 ## Context
 
 - Relevant modules: all (`src/**`, `tests/**`, `scripts/**`, `stubs/**`)

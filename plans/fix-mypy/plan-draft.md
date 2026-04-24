@@ -7,6 +7,7 @@ The goal is to reduce the error count to **below 5** (ideally zero) and eliminat
 
 ## Baseline
 - Run `uv run mypy` and record the current error count.
+- Run `uv run mypy --warn-unused-ignores` and record stale `# type: ignore` comments. These often represent the bulk of the work.
 - Categorize errors by error code (e.g. `arg-type`, `assignment`, `override`, `attr-defined`).
 - Run `uv run ruff check src/ scripts/ tests/` and record the current error count.
 - Run `uv run ruff format --check` and confirm formatting is clean.
@@ -16,6 +17,10 @@ The goal is to reduce the error count to **below 5** (ideally zero) and eliminat
 
 Work in phases, ordered from easiest mechanical fixes to the most structural refactors.
 After each phase: run `uv run ruff format`, `uv run mypy`, and `uv run pytest`.
+
+### pyright / mypy divergence on `# type: ignore`
+
+`# type: ignore` suppresses diagnostics for **both** mypy and pyright. `# pyright: ignore` suppresses only pyright. When mypy no longer needs a `# type: ignore` but pyright still does, replace it with `# pyright: ignore[rule]`. Always run both `uv run mypy --warn-unused-ignores` and `uv run pyright` after each change to avoid breaking one tool while fixing the other.
 
 ## Context
 

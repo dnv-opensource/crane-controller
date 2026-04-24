@@ -26,6 +26,7 @@ The goal is to have type stubs for those modules and symbols from third party pa
 - Constraints:
   - Run `uv run ruff format` after every phase
   - Existing tests must continue to pass after every phase
+  - **`py.typed` check:** Before creating stubs for a package, check whether it ships a `py.typed` marker. If it does, mypy will use the package's own inline types and ignore custom stubs in `stubs/`. Stubs in that case only benefit pyright (which prefers local stubs). Factor this into prioritization.
 
 ## Validation Strategy
 
