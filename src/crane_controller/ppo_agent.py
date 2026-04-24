@@ -86,6 +86,7 @@ class ProximalPolicyOptimizationAgent:
             )
 
         # Single unwrapped env for do_one_episode/evaluate without reconstructing a new crane.
+        # Assumes VecNormalize wraps a DummyVecEnv (stable-baselines3 default), which exposes .venv.envs.
         self.env = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
 
     @staticmethod
