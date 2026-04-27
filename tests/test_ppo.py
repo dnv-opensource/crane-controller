@@ -110,6 +110,6 @@ def test_ppo_resume_updates_vecnorm(crane: Callable[..., Crane], tmp_path: Path)
         save_path=save_path,
         n_envs=1,
     )
-    mean_before = resumed.vec_env.obs_rms.mean.copy()
+    mean_before = resumed.vec_env.obs_rms.mean.copy()  # type: ignore[attr-defined]
     resumed.do_training(500, progress_bar=False, reset_num_timesteps=False)
-    assert not np.allclose(resumed.vec_env.obs_rms.mean, mean_before)
+    assert not np.allclose(resumed.vec_env.obs_rms.mean, mean_before)  # type: ignore[attr-defined]
