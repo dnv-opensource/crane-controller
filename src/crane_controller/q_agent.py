@@ -250,11 +250,13 @@ class QLearningAgent:
                 logger.warning("No base file name provided. Aborting dump to file.")
                 return
             if self.use_pre_trained:  # do not overwrite pre-trained data
-                if len(self.filename.stem.split("_")) == 1:
+                if not self.filename.stem.split("_")[-1].isnumeric():
                     _filename = self.filename.parent / f"{self.filename.stem}_1{self.filename.suffix}"
                 else:
-                    stem, version = self.filename.stem.split("_")
-                    _filename = self.filename.parent / f"{stem}_{int(version) + 1}{self.filename.suffix}"
+                    stem = "".join( t+"_" for t in self.filename.stem.split("_")[:-1])
+                    version = int(self.filename.stem.split("_")[-1])
+                    print("DUMP", stem, version, self.filename.suffix)
+                    _filename = self.filename.parent / f"{stem}{version + 1}{self.filename.suffix}"
             else:
                 _filename = self.filename
         else:

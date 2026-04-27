@@ -34,6 +34,14 @@ def test_dir() -> Path:
     """
     return Path(__file__).parent.absolute()
 
+@pytest.fixture(scope="package", autouse=True)
+def model_dir() -> Path:
+    """
+    Fixture that returns the absolute path of the directory containing the trained model files.
+    This fixture is automatically used for the entire package.
+    """
+    return Path(__file__).parent.absolute().parent / "models"
+
 
 output_dirs: list[str] = [
     "results",

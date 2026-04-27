@@ -22,7 +22,7 @@ from crane_controller.q_agent import QLearningAgent
 LOGGER = logging.getLogger(__name__)
 
 
-def main() -> None:
+def get_args() -> None:
     """Parse CLI arguments and train a Q-learning agent."""
     parser = argparse.ArgumentParser(description="Train a Q-learning agent on the crane anti-pendulum task.")
     _ = parser.add_argument("--episodes", type=int, default=10_000, help="Total training episodes")
@@ -51,6 +51,9 @@ def main() -> None:
         help="Run 50 episodes with a reward plot and no model saved, for a quick visual sanity check.",
     )
     args = parser.parse_args()
+    return args
+
+def do_main( args: argparse.Namespace):
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -66,16 +69,6 @@ def main() -> None:
         agent = QLearningAgent(env, trained=None)
         agent.do_episodes(n_episodes=50, max_steps=1000)
 
-    elif args.intervals > 0:
-        Path(args.save_path).parent.mkdir(parents=True, exist_ok=True)
-        agent = QLearningAgent(env, trained=(args.save_path, False))
-        for i in range(args.intervals):
-            _ = env.reset(seed=i + 1)
-            agent.do_episodes(n_episodes=10)
-            if i == 0:
-                agent = QLearningAgent(env, trained=(args.save_path, True))
-        LOGGER.info("Model saved to %s", args.save_path)
-
     else:
         Path(args.save_path).parent.mkdir(parents=True, exist_ok=True)
         trained = (args.trained, True) if args.trained else (args.save_path, False)
@@ -85,4 +78,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    #do_main(get_args())
+    default = {'episodes':10,'v0':1.0,'reward_limit':-0.1,'dry_run':False}
+    do_main( argparse.Namespace(**default))
+    
