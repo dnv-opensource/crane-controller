@@ -7,22 +7,9 @@ from pathlib import Path
 from shutil import rmtree
 
 import pytest
-import torch
-import torch.cuda
 from py_crane.crane import Crane
 
 from crane_controller.crane_factory import build_crane
-
-CUDA_AVAILABLE: bool = torch.cuda.is_available()
-
-TORCH_DEVICES: list[str] = ["cuda", "cpu"] if CUDA_AVAILABLE else ["cpu"]
-
-
-@pytest.fixture(scope="class", params=TORCH_DEVICES)
-def vary_torch_default_device(request: pytest.FixtureRequest):
-    torch.set_default_device(request.param)
-    yield
-    torch.set_default_device("cpu")  # reset to default device after test
 
 
 @pytest.fixture(scope="package", autouse=True)

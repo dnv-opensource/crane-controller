@@ -71,18 +71,12 @@ dependencies = [
     "numpy>=2.4",
     "scipy>=1.17.1",
     "pandas>=3.0",
-    "torch==2.10.0",
     "gymnasium>=1.2.3",
     "pygame-ce>=2.5",  # replacement for pygame (transitive dependency of gymnasium)
     "stable-baselines3[extra]>=2.8",  # does not support Python 3.14 (By the time of writing, 2026-04-22)
     "matplotlib>=3.10",
     "seaborn>=0.13.2",
     "tqdm>=4.67",
-]
-
-[project.optional-dependencies]
-cuda = [
-    "torch==2.10.0+cu130",
 ]
 
 [project.urls]
@@ -117,9 +111,6 @@ dev = [
 [tool.uv]
 default-groups = [
     "dev",
-]
-find-links = [
-    "https://download.pytorch.org/whl/torch",
 ]
 native-tls = true
 required-environments = [

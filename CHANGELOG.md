@@ -5,6 +5,9 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 
 ## [Unreleased]
 
+### Removed
+* Removed `reinforce_agent.py` (early prototype superseded by PPO) and dropped `torch` as a direct dependency (still available transitively via `stable-baselines3`). Also removed the associated `torch` type stubs and the CUDA optional dependency.
+
 ### Changed
 * CI: Skip slow `test_algorithm_strategies` test in GitHub workflow runs by adding a `slow` pytest marker and passing `-m "not slow"` in `_test.yml` and `_test_future.yml`
 * Adjusted and partly amended package structure to be in sync with latest changes in python_project_template v0.2.11
