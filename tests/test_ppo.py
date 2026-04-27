@@ -33,7 +33,7 @@ def test_ppo_saves_vecnorm(crane: Callable[..., Crane], tmp_path: Path) -> None:
         AntiPendulumEnv,
         n_envs=1,
         env_kwargs={"crane": crane, "start_speed": 1.0},
-        trained=(save_path, True),
+        save_path=save_path,
     )
     agent.do_training(500, progress_bar=False)
     assert (tmp_path / "model_vecnorm.pkl").exists()
@@ -49,3 +49,23 @@ def test_ppo_vecnorm_updates(crane: Callable[..., Crane]) -> None:
     agent.do_training(500, progress_bar=False)
     assert isinstance(agent.vec_env.obs_rms, RunningMeanStd)
     assert not np.allclose(agent.vec_env.obs_rms.mean, 0.0)
+
+
+def test_ppo_inference_disables_training_mode(crane: Callable[..., Crane], tmp_path: Path) -> None:
+    """Test that load() sets VecNormalize to evaluation mode."""
+    save_path = str(tmp_path / "model.zip")
+    agent = ProximalPolicyOptimizationAgent(
+        AntiPendulumEnv,
+        n_envs=1,
+        env_kwargs={"crane": crane, "start_speed": 1.0},
+        save_path=save_path,
+    )
+    agent.do_training(500, progress_bar=False)
+
+    loaded = ProximalPolicyOptimizationAgent.load(
+        AntiPendulumEnv,
+        model_path=save_path,
+        env_kwargs={"crane": crane, "start_speed": 1.0},
+    )
+    assert not loaded.vec_env.training
+    assert not loaded.vec_env.norm_reward
