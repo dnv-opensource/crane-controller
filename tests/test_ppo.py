@@ -69,3 +69,47 @@ def test_ppo_inference_disables_training_mode(crane: Callable[..., Crane], tmp_p
     )
     assert not loaded.vec_env.training
     assert not loaded.vec_env.norm_reward
+
+
+def test_ppo_resume_keeps_training_mode(crane: Callable[..., Crane], tmp_path: Path) -> None:
+    """Test that resume() keeps VecNormalize in training mode."""
+    save_path = str(tmp_path / "model.zip")
+    agent = ProximalPolicyOptimizationAgent(
+        AntiPendulumEnv,
+        n_envs=1,
+        env_kwargs={"crane": crane, "start_speed": 1.0},
+        save_path=save_path,
+    )
+    agent.do_training(500, progress_bar=False)
+
+    resumed = ProximalPolicyOptimizationAgent.resume(
+        AntiPendulumEnv,
+        model_path=save_path,
+        env_kwargs={"crane": crane, "start_speed": 1.0},
+        n_envs=1,
+    )
+    assert resumed.vec_env.training
+    assert resumed.vec_env.norm_reward
+
+
+def test_ppo_resume_updates_vecnorm(crane: Callable[..., Crane], tmp_path: Path) -> None:
+    """Test that VecNormalize statistics update during resumed training."""
+    save_path = str(tmp_path / "model.zip")
+    agent = ProximalPolicyOptimizationAgent(
+        AntiPendulumEnv,
+        n_envs=1,
+        env_kwargs={"crane": crane, "start_speed": 1.0},
+        save_path=save_path,
+    )
+    agent.do_training(500, progress_bar=False)
+
+    resumed = ProximalPolicyOptimizationAgent.resume(
+        AntiPendulumEnv,
+        model_path=save_path,
+        env_kwargs={"crane": crane, "start_speed": 1.0},
+        save_path=save_path,
+        n_envs=1,
+    )
+    mean_before = resumed.vec_env.obs_rms.mean.copy()
+    resumed.do_training(500, progress_bar=False, reset_num_timesteps=False)
+    assert not np.allclose(resumed.vec_env.obs_rms.mean, mean_before)
