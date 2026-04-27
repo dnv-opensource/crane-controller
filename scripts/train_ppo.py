@@ -50,7 +50,6 @@ def main() -> None:
                 "start_speed": -1.0,
                 "render_mode": "reward-tracking",
             },
-            trained=None,
         )
         agent.do_training(1000, progress_bar=False)
     else:
@@ -63,7 +62,7 @@ def main() -> None:
                 "start_speed": 1.0,
                 "render_mode": args.render_mode,
             },
-            trained=(args.save_path, True),
+            save_path=args.save_path,
         )
         agent.do_training(args.steps)
         vecnorm_path = Path(args.save_path).parent / f"{Path(args.save_path).stem}_vecnorm.pkl"

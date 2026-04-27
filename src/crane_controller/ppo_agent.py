@@ -28,7 +28,7 @@ class ProximalPolicyOptimizationAgent:
 
     `PPO algorithm <https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html>`_.
 
-    PPO agents can be saved as a zip file and re-loaded to avoid re-training.
+    PPO agents can be saved as a zip file and re-loaded via :meth:`load` to avoid re-training.
     VecNormalize statistics are saved alongside the model as ``<name>_vecnorm.pkl``.
 
     Parameters
@@ -36,15 +36,12 @@ class ProximalPolicyOptimizationAgent:
     env : Callable[..., AntiPendulumEnv]
         Factory callable that creates the environment.
     n_envs : int, optional
-        Number of parallel environments used during training.
-        ``n_envs=0`` signals that a pre-trained agent should be loaded from
-        file (default 4).
+        Number of parallel environments used during training (default 4).
     env_kwargs : dict[str, Any] or None, optional
-        Additional keyword arguments forwarded to the environment factory
-        (default None).
-    trained : tuple[str | Path, bool] or None, optional
-        File name and save/load flag for the trained agent. Required when
-        ``n_envs=0`` (default None).
+        Additional keyword arguments forwarded to the environment factory (default None).
+    save_path : str or None, optional
+        File path for saving the trained model and VecNormalize statistics.
+        If None, the model is not saved after training (default None).
     """
 
     def __init__(
@@ -52,42 +49,51 @@ class ProximalPolicyOptimizationAgent:
         env: Callable[..., AntiPendulumEnv],
         n_envs: int = 4,
         env_kwargs: dict[str, Any] | None = None,
-        trained: tuple[str | Path, bool] | None = None,
+        save_path: str | None = None,
     ) -> None:
-        """Initialize the PPO agent.
-
-        See the class docstring for parameter descriptions.
-        """
-        self.trained = trained
-        inference_only = n_envs <= 0
-        _n_envs = 1 if inference_only else n_envs
-
-        raw_vec_env = make_vec_env(env_id=env, n_envs=_n_envs, env_kwargs=env_kwargs)
-
-        if inference_only:
-            assert self.trained is not None, "When no training is specified a saved model should be provided"
-            stats_path = self._stats_path(str(self.trained[0]))
-            if stats_path.exists():
-                self.vec_env = VecNormalize.load(str(stats_path), raw_vec_env)
-            else:
-                self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=False)
-            self.vec_env.training = False
-            self.vec_env.norm_reward = False
-            self.model = PPO.load(str(self.trained[0]), env=self.vec_env)
-        else:
-            self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
-            if _n_envs == 1:
-                self.model = PPO("MlpPolicy", self.vec_env, verbose=1)
-            else:
-                self.model = PPO("MlpPolicy", self.vec_env)
-            self.trained = (
-                trained[0] if trained is not None else f"ppo_{env.__name__}",
-                False if trained is None else trained[1],
-            )
-
-        # Single unwrapped env for do_one_episode/evaluate without reconstructing a new crane.
-        # Assumes VecNormalize wraps a DummyVecEnv (stable-baselines3 default), which exposes .venv.envs.
+        """Set up the agent for training. Use :meth:`load` for inference."""
+        self.save_path = save_path
+        raw_vec_env = make_vec_env(env_id=env, n_envs=n_envs, env_kwargs=env_kwargs)
+        self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
+        self.model = PPO("MlpPolicy", self.vec_env, verbose=1 if n_envs == 1 else 0)
         self.env: AntiPendulumEnv = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
+
+    @classmethod
+    def load(
+        cls,
+        env: Callable[..., AntiPendulumEnv],
+        model_path: str | Path,
+        env_kwargs: dict[str, Any] | None = None,
+    ) -> ProximalPolicyOptimizationAgent:
+        """Load a trained agent for inference.
+
+        Parameters
+        ----------
+        env : Callable[..., AntiPendulumEnv]
+            Factory callable that creates the environment.
+        model_path : str or Path
+            Path to the saved model zip file.
+        env_kwargs : dict[str, Any] or None, optional
+            Additional keyword arguments forwarded to the environment factory (default None).
+
+        Returns
+        -------
+        ProximalPolicyOptimizationAgent
+            Agent configured for inference with VecNormalize in evaluation mode.
+        """
+        instance = object.__new__(cls)
+        raw_vec_env = make_vec_env(env_id=env, n_envs=1, env_kwargs=env_kwargs)
+        stats_path = cls._stats_path(str(model_path))
+        if stats_path.exists():
+            instance.vec_env = VecNormalize.load(str(stats_path), raw_vec_env)
+        else:
+            instance.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=False)
+        instance.vec_env.training = False
+        instance.vec_env.norm_reward = False
+        instance.model = PPO.load(str(model_path), env=instance.vec_env)
+        instance.env = instance.vec_env.venv.envs[0]  # type: ignore[attr-defined]
+        instance.save_path = None
+        return instance
 
     @staticmethod
     def _stats_path(model_path: str) -> Path:
@@ -117,9 +123,9 @@ class ProximalPolicyOptimizationAgent:
             Whether to display a progress bar during training (default True).
         """
         _ = self.model.learn(total_timesteps, progress_bar=progress_bar)
-        if self.trained is not None and self.trained[1] and self.env.render_mode != "play-back":
-            self.model.save(str(self.trained[0]))
-            self.vec_env.save(str(self._stats_path(str(self.trained[0]))))
+        if self.save_path is not None and self.env.render_mode != "play-back":
+            self.model.save(self.save_path)
+            self.vec_env.save(str(self._stats_path(self.save_path)))
 
     def evaluate(self, n_episodes: int = 10) -> None:
         """Evaluate the trained policy and log results.

@@ -83,8 +83,10 @@ Install dependencies and run the test suite with ``uv``:
 
 Test files are organised by algorithm:
 
-- ``tests/test_crane_pendulum.py`` — environment, Q-learning, and algorithm tests
-- ``tests/test_ppo.py`` — PPO pipeline smoke test (``test_monitor``)
+- ``tests/test_environment.py`` -- environment and observation space tests
+- ``tests/test_algorithm.py`` -- brute-force algorithm tests
+- ``tests/test_q.py`` -- Q-learning smoke and analysis tests
+- ``tests/test_ppo.py`` -- PPO training, VecNormalize, and inference tests
 
 Tests are suitable for CI/CD — no plot windows are produced.
 

@@ -5,6 +5,14 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 
 ## [Unreleased]
 
+### Changed
+* Refactored `ProximalPolicyOptimizationAgent` API to separate training and inference concerns:
+  * Constructor (`__init__`) is now training-only; accepts `save_path: str | None` instead of `trained: tuple`.
+  * New `load()` classmethod loads a saved model for inference, mirroring the SB3 `PPO.load()` convention.
+  * Removed the `n_envs=0` magic value that previously signalled inference mode.
+* Added `test_ppo_inference_disables_training_mode` test covering the `load()` path.
+* Updated `README.rst` test file list to reflect actual test module names.
+
 ### Removed
 * Removed `reinforce_agent.py` (early prototype superseded by PPO) and dropped `torch` as a direct dependency (still available transitively via `stable-baselines3`). Also removed the associated `torch` type stubs and the CUDA optional dependency.
 

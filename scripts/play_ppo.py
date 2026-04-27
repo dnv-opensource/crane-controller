@@ -26,15 +26,14 @@ def main() -> None:
     _ = parser.add_argument("--episodes", type=int, default=1, help="Number of episodes to run")
     args = parser.parse_args()
 
-    agent = ProximalPolicyOptimizationAgent(
+    agent = ProximalPolicyOptimizationAgent.load(
         AntiPendulumEnv,
-        n_envs=0,  # load-from-file mode
+        model_path=args.model_path,
         env_kwargs={
             "crane": build_crane,
             "start_speed": 1.0,
             "render_mode": args.render_mode,
         },
-        trained=(args.model_path, True),
     )
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
