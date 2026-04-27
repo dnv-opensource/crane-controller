@@ -1,30 +1,57 @@
-from typing import Any
+"""Gymnasium environment for a mobile crane grid-navigation task."""
+
+# mypy: disable-error-code="override"
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
 
 import gymnasium as gym
 import numpy as np
+import numpy.typing as npt
 import pygame
 from gymnasium import spaces
-from py_crane.crane import Crane
+
+if TYPE_CHECKING:
+    from py_crane.crane import Crane
+
+# Type aliases for observations and actions
+CraneObs = dict[str, npt.NDArray[np.int_]]
 
 
 class Actions:
-    def __init__(self, mode: str):
-        pass
+    """Container for the movement mode of a crane environment."""
+
+    def __init__(self, mode: str) -> None:
+        """Initialize the action container.
+
+        Parameters
+        ----------
+        mode : str
+            Movement mode, e.g. ``"separate"`` or ``"combined"``.
+        """
+        self.mode = mode
 
 
-class ControlledCraneEnv(gym.Env):
-    """Environment of the controlled py-crane based mobile crane,
-    using the matplotlib-based animation module from py-crane.
+class ControlledCraneEnv(gym.Env[CraneObs, int]):
+    """Environment for a py-crane-based mobile crane.
 
-    Args:
-        crane (py_crane): the crane object to use as basis
-        render_modes (str): 'animation' (use direct animation) or 'data' (return boom.end for all booms)
-        size (int): The axis length in all directions, but -z
+    Uses the matplotlib-based animation module from py-crane.
 
-
+    Parameters
+    ----------
+    crane : Crane
+        The crane object to control.
+    mov_mode : str, optional
+        Movement mode - ``"separate"`` or ``"combined"`` (default ``"separate"``).
+    render_mode : str or None, optional
+        ``"animation"`` for direct animation or ``"data"`` to return boom-end
+        arrays (default None).
+    size : int, optional
+        Grid axis length in all directions (default 10).
     """
 
-    metadata = {"render_modes": ["animation", "data"], "render_fps": 4}
+    metadata: ClassVar[dict[str, object]] = {"render_modes": ["animation", "data"], "render_fps": 4}  # pyright: ignore[reportIncompatibleVariableOverride]
 
     def __init__(
         self,
@@ -32,7 +59,12 @@ class ControlledCraneEnv(gym.Env):
         mov_mode: str = "separate",
         render_mode: str | None = None,
         size: int = 10,
-    ):
+    ) -> None:
+        """Initialize the mobile crane environment.
+
+        See the class docstring for parameter descriptions.
+        """
+        self.crane = crane
         self.mode: int = 1 if mov_mode == "separate" else 2
         self.size = size
         self.figsize: tuple[int, int] = (15, 15)  # The matplotlib animation window
@@ -53,10 +85,7 @@ class ControlledCraneEnv(gym.Env):
         # boom length
         # wire length
         # Coded as integer if 'separate' and MultiDiscrete else.
-        if self.mode == 0:
-            self.action_space = spaces.Discrete(5, start=-4, seed=42)
-        else:
-            self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)
+        self.action_space = spaces.MultiDiscrete(np.array((3, 3, 3, 3), int), seed=42)  # type: ignore[assignment]  # MultiDiscrete is compatible with Space[int]
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -70,7 +99,7 @@ class ControlledCraneEnv(gym.Env):
             3: np.array([0, -1]),  # down
         }
 
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        assert render_mode is None or render_mode in self.metadata["render_modes"]  # type: ignore[operator]  # metadata values are typed as object
         self.render_mode = render_mode
 
         """
@@ -80,18 +109,39 @@ class ControlledCraneEnv(gym.Env):
         human-mode. They will remain `None` until human-mode is used for the
         first time.
         """
-        self.window: Any = None
+        self.window: pygame.Surface | None = None
         self.clock: pygame.time.Clock | None = None
+        self._agent_location: npt.NDArray[np.int_] = np.zeros(2, dtype=int)
+        self._target_location: npt.NDArray[np.int_] = np.zeros(2, dtype=int)
 
-    def _get_obs(self):
+    def _get_obs(self) -> dict[str, npt.NDArray[np.int_]]:
         return {"agent": self._agent_location, "target": self._target_location}
 
-    def _get_info(self):
-        return {"distance": np.linalg.norm(self._agent_location - self._target_location, ord=1)}
+    def _get_info(self) -> dict[str, float]:
+        return {"distance": float(np.linalg.norm(self._agent_location - self._target_location, ord=1))}
 
-    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, object] | None = None,
+    ) -> tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]:
+        """Reset the environment for a new episode.
+
+        Parameters
+        ----------
+        seed : int or None, optional
+            Random seed for reproducibility (default None).
+        options : dict[str, object] or None, optional
+            Additional reset options (default None).
+
+        Returns
+        -------
+        tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]
+            ``(observation, info)`` with agent/target locations and distance.
+        """
         # We need the following line to seed self.np_random
-        super().reset(seed=seed, options=options)
+        _ = super().reset(seed=seed, options=options)
 
         # Choose the agent's location uniformly at random
         self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
@@ -106,11 +156,23 @@ class ControlledCraneEnv(gym.Env):
         info = self._get_info()
 
         if self.render_mode == "animation":
-            self._render_frame()
+            _ = self._render_frame()
 
         return observation, info
 
-    def step(self, action):
+    def step(self, action: int) -> tuple[dict[str, npt.NDArray[np.int_]], int, bool, bool, dict[str, float]]:
+        """Advance the environment by one step.
+
+        Parameters
+        ----------
+        action : int
+            Action index from ``{0, 1, 2, 3}`` selecting a movement direction.
+
+        Returns
+        -------
+        tuple[dict[str, npt.NDArray[np.int_]], int, bool, bool, dict[str, float]]
+            ``(observation, reward, terminated, truncated, info)``.
+        """
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = self._action_to_direction[action]
         # We use `np.clip` to make sure we don't leave the grid
@@ -122,35 +184,41 @@ class ControlledCraneEnv(gym.Env):
         info = self._get_info()
 
         if self.render_mode == "animation":
-            self._render_frame()
+            _ = self._render_frame()
 
         return observation, reward, terminated, False, info
 
-    def render(self):
-        if self.render_mode == "data":
-            return self._render_frame()
+    def render(self) -> npt.NDArray[np.uint8] | None:  # NDArray is compatible with RenderFrame
+        """Render the current environment state.
 
-    def _render_frame(self):
+        Returns
+        -------
+        npt.NDArray[np.uint8] or None
+            Pixel array in ``"data"`` mode, ``None`` otherwise.
+        """
+        return self._render_frame() if self.render_mode == "data" else None
+
+    def _render_frame(self) -> npt.NDArray[np.uint8] | None:
         if self.window is None and self.render_mode == "animation":
-            pygame.init()
+            _ = pygame.init()
             pygame.display.init()
             self.window = pygame.display.set_mode((self.size, self.size))
         if self.clock is None and self.render_mode == "animation":
             self.clock = pygame.time.Clock()
 
         canvas = pygame.Surface((self.size, self.size))
-        canvas.fill((255, 255, 255))
+        _ = canvas.fill((255, 255, 255))
         pix_square_size = self.size / self.size  # The size of a single grid square in pixels
 
         # First we draw the target
         _x, _y = pix_square_size * self._target_location
-        pygame.draw.rect(
+        _ = pygame.draw.rect(
             canvas,
             (255, 0, 0),
             pygame.Rect(_x, _y, pix_square_size, pix_square_size),
         )
         # Now we draw the agent
-        pygame.draw.circle(
+        _ = pygame.draw.circle(
             canvas,
             (0, 0, 255),
             tuple((self._agent_location + 0.5) * pix_square_size),
@@ -159,14 +227,14 @@ class ControlledCraneEnv(gym.Env):
 
         # Finally, add some gridlines
         for x in range(self.size + 1):
-            pygame.draw.line(
+            _ = pygame.draw.line(
                 canvas,
                 0,
                 (0, pix_square_size * x),
                 (self.size, pix_square_size * x),
                 width=3,
             )
-            pygame.draw.line(
+            _ = pygame.draw.line(
                 canvas,
                 0,
                 (pix_square_size * x, 0),
@@ -177,7 +245,7 @@ class ControlledCraneEnv(gym.Env):
         if self.render_mode == "animation":
             # The following line copies our drawings from `canvas` to the visible window
             assert self.window is not None
-            self.window.blit(canvas, canvas.get_rect())
+            _ = self.window.blit(canvas, canvas.get_rect())
             pygame.event.pump()
             pygame.display.update()
 
@@ -185,11 +253,17 @@ class ControlledCraneEnv(gym.Env):
             # The following line will automatically add a delay to
             # keep the framerate stable.
             assert self.clock is not None
-            self.clock.tick(self.metadata["render_fps"])
-        else:  # rgb_array
+            self.clock.tick(self.metadata["render_fps"])  # type: ignore[arg-type]  # metadata value is float at runtime
+            return None
+
+        # data mode
+        if self.render_mode == "data":
             return np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2))
 
-    def close(self):
+        return None
+
+    def close(self) -> None:
+        """Clean up Pygame resources."""
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()

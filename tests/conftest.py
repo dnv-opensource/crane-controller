@@ -1,20 +1,42 @@
+"""Test configuration and fixtures."""
+
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
 from shutil import rmtree
 
 import pytest
+import torch
+import torch.cuda
+from py_crane.crane import Crane
 
 from crane_controller.crane_factory import build_crane
 
+CUDA_AVAILABLE: bool = torch.cuda.is_available()
+
+TORCH_DEVICES: list[str] = ["cuda", "cpu"] if CUDA_AVAILABLE else ["cpu"]
+
+
+@pytest.fixture(scope="class", params=TORCH_DEVICES)
+def vary_torch_default_device(request: pytest.FixtureRequest):
+    torch.set_default_device(request.param)
+    yield
+    torch.set_default_device("cpu")  # reset to default device after test
+
 
 @pytest.fixture(scope="package", autouse=True)
-def chdir() -> None:
+def chdir():
     """
     Fixture that changes the current working directory to the 'test_working_directory' folder.
     This fixture is automatically used for the entire package.
     """
+    original_cwd = Path.cwd()
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
+    try:
+        yield
+    finally:
+        os.chdir(original_cwd)  # reset to original working directory after tests
 
 
 @pytest.fixture(scope="package", autouse=True)
@@ -26,11 +48,11 @@ def test_dir() -> Path:
     return Path(__file__).parent.absolute()
 
 
-output_dirs = [
+output_dirs: list[str] = [
     "results",
     "data",
 ]
-output_files = [
+output_files: list[str] = [
     "*test*.pdf",
 ]
 
@@ -55,7 +77,8 @@ def _remove_output_dirs_and_files() -> None:
     for pattern in output_files:
         for file in Path.cwd().glob(pattern):
             _file = Path(file)
-            _file.unlink(missing_ok=True)
+            if _file.is_file():
+                _file.unlink(missing_ok=True)
 
 
 @pytest.fixture(autouse=True)
@@ -75,14 +98,36 @@ def logger() -> logging.Logger:
 
 
 @pytest.fixture
-def crane():
+def crane() -> Callable[..., Crane]:
     return build_crane
 
 
-def pytest_addoption(parser: pytest.Parser):
-    parser.addoption("--show", action="store", default=False)
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--show",
+        action="store_true",
+        default=False,
+        help=(
+            "Command line switch to show plots during tests, and dump additional results to console. By default, False."
+        ),
+    )
 
 
 @pytest.fixture(scope="session")
-def show(request: pytest.FixtureRequest):
-    return request.config.getoption("--show")
+def show(request: pytest.FixtureRequest) -> bool:
+    return bool(request.config.getoption("--show"))
+
+
+@pytest.fixture
+def v0() -> float:
+    return 1.0
+
+
+@pytest.fixture
+def reward_limit() -> float:
+    return 0.0
+
+
+@pytest.fixture
+def trained() -> tuple[str, bool]:
+    return ("anti-pendulum.json", False)

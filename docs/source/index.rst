@@ -1,13 +1,14 @@
-.. py-crane documentation master file
+.. crane-controller documentation master file
 
-py-crane Documentation
-=======================
+crane-controller Documentation
+==============================
 
 .. toctree::
    :maxdepth: 4
    :caption: Contents:
 
    README
+   assurance
    api
    CHANGELOG
    STYLEGUIDE

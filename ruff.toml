@@ -17,34 +17,35 @@ target-version = "py311"
 # Start by including _all_ Ruff lint rules, then ignore selected rules as needed
 # https://docs.astral.sh/ruff/rules/
 select = [
-    "E",
-    "D",
-    "F",
-    "N",
-    "W",
-    "I",
-    "B",
+    "ALL",
+    # "E",
+    # "D",
+    # "F",
+    # "N",
+    # "W",
+    # "I",
+    # "B",
 ]
 ignore = [
-    # Ruff lint rules temporarily ignored to match the ruff configuration used so far in this repo
-    "E501", # Line length too long
-    "D100", # Missing docstring in public module
-    "D101", # Missing docstring in public class
-    "D102", # Missing docstring in public method
-    "D103", # Missing docstring in public function
-    "D104", # Missing docstring in public package
-    "D105", # Missing docstring in magic method
-    "D107", # Missing docstring in __init__
-    "D202", # No blank lines allowed after function docstring
-    "D203", # 1 blank line required before class docstring
-    "D205", # 1 blank line required between summary line and description
-    "D212", # Multi-line docstring summary should start at the first line
-    "D213", # Multi-line docstring summary should start at the second line
-    # "N802",  # Function name should be lowercase  (uncomment if you want to allow Uppercase function names)
-    "N803", # Argument name should be lowercase  (uncommented. Lower-camelCase is accepted for variables related to XML and FMI standard)
-    "N806", # Variable in function should be lowercase  (uncomment if you want to allow Uppercase variable names in functions)
-    # "N815",  # Variable in class scope should not be mixedCase  (uncomment if you want to allow mixedCase variable names in class scope)
-    # "N816",  # Variable in global scope should not be mixedCase  (uncomment if you want to allow mixedCase variable names in global scope)
+    # Ruff lint rules temporarily ignored, but which should be reactivated and resolved in the future.
+    # "E501", # Line length too long
+    # "D100", # Missing docstring in public module
+    # "D101", # Missing docstring in public class
+    # "D102", # Missing docstring in public method
+    # "D103", # Missing docstring in public function
+    # "D104", # Missing docstring in public package
+    # "D105", # Missing docstring in magic method
+    # "D107", # Missing docstring in __init__
+    # "D202", # No blank lines allowed after function docstring
+    # "D203", # 1 blank line required before class docstring
+    # "D205", # 1 blank line required between summary line and description
+    # "D212", # Multi-line docstring summary should start at the first line
+    # "D213", # Multi-line docstring summary should start at the second line
+    # # "N802",  # Function name should be lowercase  (uncomment if you want to allow Uppercase function names)
+    # "N803", # Argument name should be lowercase  (uncommented. Lower-camelCase is accepted for variables related to XML and FMI standard)
+    # "N806", # Variable in function should be lowercase  (uncomment if you want to allow Uppercase variable names in functions)
+    # # "N815",  # Variable in class scope should not be mixedCase  (uncomment if you want to allow mixedCase variable names in class scope)
+    # # "N816",  # Variable in global scope should not be mixedCase  (uncomment if you want to allow mixedCase variable names in global scope)
 
     # Ruff lint rules considered as too strict and hence ignored
     "FIX002",  # Line contains TODO, consider resolving the issue
@@ -179,10 +180,14 @@ raises-require-match-for = [
     "A001",   # Variable {name} is shadowing a Python builtin
     "D100",   # Missing docstring in public module
 ]
-
+# types.py specific ignores
+"**/types.py" = [
+    "A005", # Module `types` shadows a Python standard-library module
+]
 
 [lint.pydocstyle]
 convention = "numpy"
 
 [format]
 docstring-code-format = true
+# preview = true  # uncomment to enable preview features of Ruff formatter (https://docs.astral.sh/ruff/formatter/#preview-features)

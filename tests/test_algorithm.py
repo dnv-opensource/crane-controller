@@ -1,5 +1,8 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
+
+import pytest
+from py_crane.crane import Crane
 
 from crane_controller.algorithm import AlgorithmAgent
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
@@ -8,24 +11,24 @@ from crane_controller.q_agent import QLearningAgent
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.slow
 def test_algorithm_strategies(
-    crane: Callable,
+    crane: Callable[..., Crane],
+    *,
     show: bool,
-    reward_limit: float = 1000.0,
-    start_speed: float = 0.0,
-):
+) -> None:
     env = AntiPendulumEnv(
         crane,
-        start_speed=start_speed,
+        start_speed=0.0,
         render_mode="plot" if show else "none",
-        reward_limit=reward_limit,
+        reward_limit=1000.0,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
     agent = AlgorithmAgent(env)
     agent.do_strategies(max_steps=5000 if show else 10)
 
 
-def test_algorithm(crane: Callable, show: bool):
+def test_algorithm(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         start_speed=0.0,
@@ -54,7 +57,7 @@ if __name__ == "__main__":
     import os
     from pathlib import Path
 
-    import pytest  # noqa: F401
+    import pytest
 
     from crane_controller.crane_factory import build_crane  # noqa: F401
 

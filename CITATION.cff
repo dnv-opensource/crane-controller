@@ -1,0 +1,36 @@
+title: crane-controller
+version: 0.0.1
+abstract: >-
+    AI-based control of a crane system using reinforcement learning.
+type: software
+authors:
+    - name: DNV AS
+      address: 'Veritasveien 1'
+      post-code: '1363'
+      city: Høvik
+      country: NO
+      website: 'https://www.dnv.com/'
+    - given-names: Siegfried
+      family-names: Eisinger
+      affiliation: DNV
+      email: siegfried.eisinger@dnv.com
+      website: 'https://www.linkedin.com/in/siegfried-eisinger-a337638b'
+    - given-names: Aleksandar
+      family-names: Babic
+      affiliation: DNV
+      email: aleksandar.babic@dnv.com
+      website: 'https://www.linkedin.com/in/aleksandar-babic-no'
+keywords:
+    - simulation
+    - model
+    - FMI
+    - OSP
+    - control algorithm
+    - crane
+    - anti-pendulum
+license: MIT
+license-url: 'https://dnv-opensource.github.io/crane-controller/LICENSE.html'
+url: 'https://dnv-opensource.github.io/crane-controller/README.html'
+repository-code: 'https://github.com/dnv-opensource/crane-controller'
+message: 'Please cite this software using these metadata.'
+cff-version: 1.2.0

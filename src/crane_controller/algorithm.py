@@ -1,86 +1,168 @@
-from itertools import product
+"""Algorithmic controller agent for the anti-pendulum environment."""
 
-import gymnasium as gym
+from __future__ import annotations
+
+import logging
+from itertools import product
+from typing import TYPE_CHECKING, Literal
+
 import numpy as np
 from matplotlib import pyplot as plt
-from tqdm import tqdm  # Progress bar
+from tqdm import tqdm
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from crane_controller.envs.controlled_crane_pendulum import (
+        AntiPendulumEnv,
+        AntiPendulumObs,
+    )
+
+logger = logging.getLogger(__name__)
+
+START_MODE_OBSERVATION = (0, 0, 0, 0, 0)
+SHOW_TRAINING_SUMMARY = 1
+SHOW_EPISODE_ANALYSIS = 2
 
 
-class AlgorithmAgent(object):
-    """Agent for algorithmic control of a (simple) environment.
+def _get_moving_avgs(
+    values: Sequence[float] | np.ndarray,
+    window: int,
+    convolution_mode: Literal["valid", "same"],
+) -> np.ndarray:
+    """Compute moving averages to smooth noisy data.
 
-    Args:
-        env (gym.Env): The Environment (class) to be controlled. Need .reset() and .step() functions.
+    Parameters
+    ----------
+    values : Sequence[float] | np.ndarray
+        Raw data series to smooth.
+    window : int
+        Number of elements in the averaging window.
+    convolution_mode : {"valid", "same"}
+        Convolution mode passed to `numpy.convolve`.
+
+    Returns
+    -------
+    np.ndarray
+        Smoothed data series.
+    """
+    return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
+
+
+class AlgorithmAgent:
+    """Agent for algorithmic control of a simple environment.
+
+    Parameters
+    ----------
+    env : AntiPendulumEnv
+        The environment to be controlled. Must provide `.reset()` and `.step()` methods.
     """
 
     envs = ("AntiPendulumEnv",)
 
     def __init__(
         self,
-        env: gym.Env,
-    ):
+        env: AntiPendulumEnv,
+    ) -> None:
+        """Initialize the algorithmic agent.
+
+        Parameters
+        ----------
+        env : AntiPendulumEnv
+            The environment to be controlled.
+        """
         self.env = env
         assert type(self.env).__name__ in AlgorithmAgent.envs, f"Environment {type(self.env).__name__} not listed."
-
         # Track learning progress
         self.training_error: list[float] = []
-        self.combination: tuple[int, ...]
+        self.strategy: tuple[int, int, int, int] = (1, 1, 1, 1)
 
-    def get_action(self, obs: tuple[int, int, bool]) -> int:
-        """Choose an action based on the current observation of load position (obs[1]) and speed (obs(2)).
-        The algorithmic strategy is coded as self.strategy and the observation slots 0,3,4 are ignored.
+    def get_action(self, obs: AntiPendulumObs) -> int:
+        """Choose an action based on load position and speed.
+
+        The algorithmic strategy is coded as ``self.strategy`` and the
+        observation slots 0, 3, 4 are ignored.
+
+        Parameters
+        ----------
+        obs : AntiPendulumObs
+            Current observation from the environment.
 
         Returns
         -------
-            action: an allowed action from the action space
-        """
-        # print("OBS", obs)
-        if obs == (0, 0, 0, 0, 0):  # in start mode. Random push to get started.
-            return (0, 2)[np.random.randint(0, 2)]  # random 0 or 2
-        else:  # see the reward of all strategies at end of file. 0202 is optimal
-            if obs[1] == 0 and obs[2] == 0:
-                return self.strategy[0]
-            elif obs[1] == 0 and obs[2] == 1:
-                return self.strategy[1]
-            elif obs[1] == 1 and obs[2] == 0:
-                return self.strategy[2]
-            elif obs[1] == 1 and obs[2] == 1:
-                return self.strategy[3]
-            else:
-                raise ValueError("There should not be other choices {obs}") from None
+        int
+            An allowed action from the action space.
 
-    def do_strategies(self, max_steps: int = 5000):
-        """Go through all strategies, where
+        Raises
+        ------
+        ValueError
+            If `obs` contains an unexpected combination of position and speed.
+        """
+        if obs == START_MODE_OBSERVATION:  # in start mode. Random push to get started.
+            return int(self.env.np_random.choice((0, 2)))
+        # see the reward of all strategies at end of file. 0202 is optimal
+        if obs[1] == 0:
+            if obs[2] == 0:
+                return self.strategy[0]
+            if obs[2] == 1:
+                return self.strategy[1]
+        if obs[1] == 1 and obs[2] == 0:
+            return self.strategy[2]
+        if obs[1] == 1 and obs[2] == 1:
+            return self.strategy[3]
+        raise ValueError("There should not be other choices {obs}") from None
+
+    def do_strategies(self, max_steps: int = 5000) -> None:
+        """Evaluate all strategy permutations.
+
+        Each strategy maps (position, speed) pairs to actions::
+
             pos=-, speed=- => strategy[0]
             pos=-, speed=+ => strategy[1]
             pos=+, speed=- => strategy[2]
             pos=+, speed=+ => strategy[3]
-            with pos=obs[1], speed=obs[2]
+
+        where ``pos = obs[1]`` and ``speed = obs[2]``.
         Observations 0, 3 and 4 are ignored.
+
+        Parameters
+        ----------
+        max_steps : int, optional
+            Maximum number of steps per episode before truncation (default 5000).
         """
-        res = []
+        rewards: list[float] = []
         for self.strategy in product(range(3), range(3), range(3), range(3)):
-            obs, info = self.env.reset()
+            obs, _ = self.env.reset()
             terminated, truncated = (False, False)
             steps = 0
             reward = 0.0
             while not terminated and not truncated:
                 steps += 1
                 action = self.get_action(obs)  # choose action (initially random, then deterministic)
-                obs, _reward, terminated, truncated, info = self.env.step(action)  # take action and observe result
+                obs, _reward, terminated, truncated, _ = self.env.step(action)  # take action and observe result
                 reward = float(_reward)
                 if steps > max_steps:
                     truncated = True
-            res.append(reward)
-        if not self.env.render_mode == 'none':
-            for i, self.strategy in enumerate(product(range(3), range(3), range(3), range(3))):
-                print(f"{i}. strategy {self.strategy}: {res[i]}")
+            rewards.append(reward)
+        for i, self.strategy in enumerate(product(range(3), range(3), range(3), range(3))):
+            logger.info("%s. strategy %s: %s", i, self.strategy, rewards[i])
 
-    def do_episodes(self, n_episodes: int = 1000, show: int = 0, max_steps: int = 1000):
-        """Run episodes."""
+    def do_episodes(self, n_episodes: int = 1000, show: int = 0, max_steps: int = 1000) -> None:
+        """Run training episodes.
+
+        Parameters
+        ----------
+        n_episodes : int, optional
+            Number of episodes to run (default 1000).
+        show : int, optional
+            Visualization mode - 0 for none, 1 for training summary, 2 for
+            per-episode analysis (default 0).
+        max_steps : int, optional
+            Maximum steps per episode before truncation (default 1000).
+        """
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
-            obs, info = self.env.reset()
+            obs, _ = self.env.reset()
             terminated, truncated = (False, False)
             steps = 0
             reward = 0.0
@@ -88,48 +170,49 @@ class AlgorithmAgent(object):
             while not terminated and not truncated:
                 steps += 1
                 action = self.get_action(obs)  # choose action (initially random, then deterministic)
-                # reward0 = reward
-                obs, _reward, terminated, truncated, info = self.env.step(action)  # take action and observe result
+                obs, _reward, terminated, truncated, _ = self.env.step(action)  # take action and observe result
                 reward = float(_reward)
-                if show == 2:
+                if show == SHOW_EPISODE_ANALYSIS:
                     self.analyse_episode()
                 if steps > max_steps:
                     truncated = True
-            print(f"strategy {self.strategy}: {reward}")
-        self.env.reset()  # reset at end so that rendering is performed properly
+            logger.info("strategy %s: %s", self.strategy, reward)
+        _ = self.env.reset()  # reset at end so that rendering is performed properly
 
-        if show == 1:
+        if show == SHOW_TRAINING_SUMMARY:
             self.analyse_training()
 
-    def analyse_training(self, window: int = 500):
+    def analyse_training(self, window: int = 500) -> None:
+        """Plot moving averages of episode rewards, lengths, and training error.
 
-        def get_moving_avgs(arr, window, convolution_mode):
-            """Compute moving average to smooth noisy data."""
-            return np.convolve(np.array(arr).flatten(), np.ones(window), mode=convolution_mode) / window
-
+        Parameters
+        ----------
+        window : int, optional
+            Number of episodes used for the smoothing window (default 500).
+        """
         # Smooth over the given episode window
-        fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
+        _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
-        lengths = [row[0] for row in self.env.reward_stats]  # type: ignore ## reward_stats exist
-        rewards = [row[1] for row in self.env.reward_stats]  # type: ignore ## reward_stats exist
+        lengths = [row[0] for row in self.env.reward_stats]
+        rewards = [row[1] for row in self.env.reward_stats]
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = get_moving_avgs(rewards, int(window / 10), "valid")
+        reward_moving_average = _get_moving_avgs(rewards, window // 10, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
 
         # Episode lengths (how many actions per hand)
         axs[1].set_title("Episode lengths")
-        length_moving_average = get_moving_avgs(lengths, int(window / 10), "valid")
+        length_moving_average = _get_moving_avgs(lengths, window // 10, "valid")
         axs[1].plot(range(len(length_moving_average)), length_moving_average)
         axs[1].set_ylabel("Average Episode Length")
         axs[1].set_xlabel("Episode")
 
         # Training error (how much we're still learning)
         axs[2].set_title("Training Error")
-        training_error_moving_average = get_moving_avgs(self.training_error, window, "same")
+        training_error_moving_average = _get_moving_avgs(self.training_error, window, "same")
         axs[2].plot(range(len(training_error_moving_average)), training_error_moving_average)
         axs[2].set_ylabel("Temporal Difference Error")
         axs[2].set_xlabel("Step")
@@ -137,25 +220,27 @@ class AlgorithmAgent(object):
         plt.tight_layout()
         plt.show()
 
-    def analyse_episode(self, window: int = 100):
+    def analyse_episode(self, window: int = 100) -> None:
+        """Plot moving averages of rewards and training error for one episode.
 
-        def get_moving_avgs(arr, window, convolution_mode):
-            """Compute moving average to smooth noisy data."""
-            return np.convolve(np.array(arr).flatten(), np.ones(window), mode=convolution_mode) / window
-
+        Parameters
+        ----------
+        window : int, optional
+            Number of steps used for the smoothing window (default 100).
+        """
         # Smooth over the given episode window
-        fig, axs = plt.subplots(ncols=2, figsize=(12, 5))
+        _, axs = plt.subplots(ncols=2, figsize=(12, 5))
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
-        reward_moving_average = get_moving_avgs(self.env.rewards, window, "valid")  # type: ignore ## rewards exist!
+        reward_moving_average = _get_moving_avgs(self.env.rewards, window, "valid")
         axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
         axs[0].set_ylabel("Average Reward")
         axs[0].set_xlabel("Episode")
 
         # Training error (how much we're still learning)
         axs[1].set_title("Training Error")
-        training_error_moving_average = get_moving_avgs(self.training_error, window, "same")
+        training_error_moving_average = _get_moving_avgs(self.training_error, window, "same")
         axs[1].plot(range(len(training_error_moving_average)), training_error_moving_average)
         axs[1].set_ylabel("Temporal Difference Error")
         axs[1].set_xlabel("Step")
@@ -163,18 +248,29 @@ class AlgorithmAgent(object):
         plt.tight_layout()
         plt.show()
 
-    def test_agent(self, num_episodes=1000):
-        """Test agent performance without learning or exploration."""
-        total_rewards = []
+    def test_agent(self, num_episodes: int = 1000) -> str:
+        """Test agent performance without learning or exploration.
+
+        Parameters
+        ----------
+        num_episodes : int, optional
+            Number of evaluation episodes (default 1000).
+
+        Returns
+        -------
+        str
+            Formatted summary of win rate, average reward, and standard deviation.
+        """
+        total_rewards: list[float] = []
 
         for _ in range(num_episodes):
-            obs, info = self.env.reset()
+            obs, _ = self.env.reset()
             episode_reward: float = 0.0
             done = False
 
             while not done:
                 action = self.get_action(obs)
-                obs, reward, terminated, truncated, info = self.env.step(action)
+                obs, reward, terminated, truncated, _ = self.env.step(action)
                 episode_reward += float(reward)
                 done = terminated or truncated
 
