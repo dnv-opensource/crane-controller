@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+from gymnasium.wrappers import TimeLimit
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -43,6 +44,10 @@ class ProximalPolicyOptimizationAgent:
     save_path : str or None, optional
         File path for saving the trained model and VecNormalize statistics.
         If None, the model is not saved after training (default None).
+    max_episode_steps : int, optional
+        Maximum steps per episode enforced via a TimeLimit wrapper (default 3000).
+        Ensures episodes always end, even when a plateau agent never triggers the
+        environment's own termination condition.
     """
 
     def __init__(
@@ -51,10 +56,17 @@ class ProximalPolicyOptimizationAgent:
         n_envs: int = 4,
         env_kwargs: dict[str, Any] | None = None,
         save_path: str | None = None,
+        max_episode_steps: int = 3000,
     ) -> None:
         """Set up the agent for training. Use :meth:`load` for inference."""
         self.save_path = save_path
-        raw_vec_env = make_vec_env(env_id=env, n_envs=n_envs, env_kwargs=env_kwargs)
+        raw_vec_env = make_vec_env(
+            env_id=env,
+            n_envs=n_envs,
+            env_kwargs=env_kwargs,
+            wrapper_class=TimeLimit,  # type: ignore[arg-type]
+            wrapper_kwargs={"max_episode_steps": max_episode_steps},
+        )
         self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
         self.model = PPO("MlpPolicy", self.vec_env, verbose=1 if n_envs == 1 else 0)
         self.env: AntiPendulumEnv = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
@@ -104,6 +116,7 @@ class ProximalPolicyOptimizationAgent:
         env_kwargs: dict[str, Any] | None = None,
         save_path: str | None = None,
         n_envs: int = 4,
+        max_episode_steps: int = 3000,
     ) -> ProximalPolicyOptimizationAgent:
         """Load a saved agent to continue training.
 
@@ -119,6 +132,8 @@ class ProximalPolicyOptimizationAgent:
             File path for saving the model after further training (default None).
         n_envs : int, optional
             Number of parallel environments for continued training (default 4).
+        max_episode_steps : int, optional
+            Maximum steps per episode enforced via a TimeLimit wrapper (default 3000).
 
         Returns
         -------
@@ -127,7 +142,13 @@ class ProximalPolicyOptimizationAgent:
         """
         instance = object.__new__(cls)
         instance.save_path = save_path
-        raw_vec_env = make_vec_env(env_id=env, n_envs=n_envs, env_kwargs=env_kwargs)
+        raw_vec_env = make_vec_env(
+            env_id=env,
+            n_envs=n_envs,
+            env_kwargs=env_kwargs,
+            wrapper_class=TimeLimit,  # type: ignore[arg-type]
+            wrapper_kwargs={"max_episode_steps": max_episode_steps},
+        )
         stats_path = cls._stats_path(str(model_path))
         if stats_path.exists():
             instance.vec_env = VecNormalize.load(str(stats_path), raw_vec_env)
@@ -138,6 +159,38 @@ class ProximalPolicyOptimizationAgent:
         instance.model = PPO.load(str(model_path), env=instance.vec_env)
         instance.env = instance.vec_env.venv.envs[0]  # type: ignore[attr-defined]
         return instance
+
+    def _save_reward_plot(self, save_path: str) -> None:
+        """Save a scatter plot of training rewards to a PNG file alongside the model.
+
+        Collects ``reward_stats`` from all vectorized environments and saves a
+        scatter plot of episode rewards vs training step to ``<save_path>.png``.
+        Does nothing if no episodes completed during training.
+
+        Parameters
+        ----------
+        save_path : str
+            Path to the saved model zip file. The plot is written to the same
+            location with a ``.png`` extension.
+        """
+        reward_stats: list[list[float]] = []
+        for env in self.vec_env.venv.envs:  # type: ignore[attr-defined]
+            reward_stats.extend(env.unwrapped.reward_stats)  # type: ignore[attr-defined]
+        if not reward_stats:
+            logger.warning("No episode reward stats found; skipping reward plot")
+            return
+        steps = [r[0] for r in reward_stats]
+        rewards = [r[1] for r in reward_stats]
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.scatter(steps, rewards, s=10, alpha=0.6, color="steelblue")
+        ax.set_xlabel("Training step")
+        ax.set_ylabel("Final reward")
+        ax.set_title(f"Training rewards - {Path(save_path).stem}")
+        fig.tight_layout()
+        plot_path = str(Path(save_path).with_suffix(".png"))
+        fig.savefig(plot_path)
+        plt.close(fig)
+        logger.info("Reward plot saved to %s", plot_path)
 
     @staticmethod
     def _stats_path(model_path: str) -> Path:
@@ -184,6 +237,7 @@ class ProximalPolicyOptimizationAgent:
         if self.save_path is not None and self.env.render_mode != "play-back":
             self.model.save(self.save_path)
             self.vec_env.save(str(self._stats_path(self.save_path)))
+            self._save_reward_plot(self.save_path)
 
     def evaluate(self, n_episodes: int = 10) -> None:
         """Evaluate the trained policy and log results.
