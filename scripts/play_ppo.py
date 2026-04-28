@@ -20,6 +20,7 @@ LOGGER = logging.getLogger(__name__)
 
 def main() -> None:
     """Parse CLI arguments and run a trained PPO agent."""
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = argparse.ArgumentParser(description="Run a trained PPO agent on the crane anti-pendulum task.")
     _ = parser.add_argument("--model-path", type=str, required=True, help="Path to a trained .zip model")
     _ = parser.add_argument("--render-mode", type=str, default="play-back", help="Render mode for playback")
@@ -36,7 +37,6 @@ def main() -> None:
         },
     )
 
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
     for episode in range(args.episodes):
         LOGGER.info("Episode %s/%s", episode + 1, args.episodes)
         agent.do_one_episode(seed=episode + 1)

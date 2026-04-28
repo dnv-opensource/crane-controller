@@ -104,6 +104,7 @@ Key options:
 - ``--steps N`` — total training timesteps (default: 100 000)
 - ``--n-envs N`` — number of parallel environments (default: 4)
 - ``--save-path PATH`` — where to write the trained model (default: ``models/ppo_AntiPendulumEnv.zip``)
+- ``--resume-from PATH`` — continue training from a saved checkpoint; preserves VecNormalize statistics and learning rate schedule
 - ``--dry-run`` — run 1 000 steps with a live reward-tracking plot and no model saved
 
 **Q-learning:**

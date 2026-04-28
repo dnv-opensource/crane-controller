@@ -5,7 +5,19 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 
 ## [Unreleased]
 
+### Added
+* `ProximalPolicyOptimizationAgent.resume()` classmethod to continue training from a saved checkpoint.
+  Restores VecNormalize statistics and keeps normalization in training mode, consistent with SB3's
+  `PPO.load()` + `.learn(reset_num_timesteps=False)` pattern.
+* `reset_num_timesteps` keyword argument to `do_training()` -- pass `False` when resuming to
+  preserve the learning rate schedule across training sessions.
+* `--resume-from PATH` CLI flag to `scripts/train_ppo.py` for checkpoint-based continued training.
+* `ProximalPolicyOptimizationAgent._save_reward_plot()` saves a scatter plot of episode rewards
+  vs training step as a PNG alongside the model after each training run.
+
 ### Changed
+* Moved `logging.basicConfig` to the top of `main()` in `train_ppo.py` and `play_ppo.py` so
+  logging is configured before any application logic runs.
 * Refactored `ProximalPolicyOptimizationAgent` API to separate training and inference concerns:
   * Constructor (`__init__`) is now training-only; accepts `save_path: str | None` instead of `trained: tuple`.
   * New `load()` classmethod loads a saved model for inference, mirroring the SB3 `PPO.load()` convention.
