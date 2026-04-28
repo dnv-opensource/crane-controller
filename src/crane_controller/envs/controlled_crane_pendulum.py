@@ -160,6 +160,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.int64)
         self.action_to_acc = {0: -self.acc, 1: 0.0, 2: self.acc}
         self.steps: int = 0
+        self.time:float = 0.0
         _ = super().reset(seed=seed)
 
     def _init_discrete(
@@ -439,6 +440,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         if self.render_mode == "play-back":
             self._append_playback(0.0)
         self.steps = 0
+        self.time = 0.0
         info = self._get_info(self.reward, self.steps)
         return obs, info
 
@@ -460,7 +462,8 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             action_idx += 1
         self.crane.d_velocity[0] = self.action_to_acc[action_idx]
         self.steps += 1
-        _ = self.crane.do_step(self.steps, self.dt)
+        _ = self.crane.do_step(self.time, self.dt)
+        self.time += self.dt
 
         obs, self.reward, truncated = self._get_obs()
         if self.render_mode != "none":
