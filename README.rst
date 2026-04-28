@@ -83,8 +83,10 @@ Install dependencies and run the test suite with ``uv``:
 
 Test files are organised by algorithm:
 
-- ``tests/test_crane_pendulum.py`` — environment, Q-learning, and algorithm tests
-- ``tests/test_ppo.py`` — PPO pipeline smoke test (``test_monitor``)
+- ``tests/test_environment.py`` -- environment and observation space tests
+- ``tests/test_algorithm.py`` -- brute-force algorithm tests
+- ``tests/test_q.py`` -- Q-learning smoke and analysis tests
+- ``tests/test_ppo.py`` -- PPO training, VecNormalize, and inference tests
 
 Tests are suitable for CI/CD — no plot windows are produced.
 
@@ -102,6 +104,7 @@ Key options:
 - ``--steps N`` — total training timesteps (default: 100 000)
 - ``--n-envs N`` — number of parallel environments (default: 4)
 - ``--save-path PATH`` — where to write the trained model (default: ``models/ppo_AntiPendulumEnv.zip``)
+- ``--resume-from PATH`` — continue training from a saved checkpoint; preserves VecNormalize statistics and learning rate schedule
 - ``--dry-run`` — run 1 000 steps with a live reward-tracking plot and no model saved
 
 **Q-learning:**

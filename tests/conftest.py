@@ -6,10 +6,13 @@ from collections.abc import Callable
 from pathlib import Path
 from shutil import rmtree
 
+import matplotlib as mpl
 import pytest
 from py_crane.crane import Crane
 
 from crane_controller.crane_factory import build_crane
+
+mpl.use("Agg")  # headless backend — must be set before any pyplot import
 
 
 @pytest.fixture(scope="package", autouse=True)
