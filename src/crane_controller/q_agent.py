@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import logging
 from ast import literal_eval
@@ -63,10 +64,8 @@ class QLearningAgent:
         Minimum exploration rate (default 0.1).
     discount_factor : float, optional
         How much to value future rewards, in the range [0, 1] (default 0.95).
-    trained : tuple[str | Path, bool] or None, optional
-        Optional path and flag for pre-trained Q-values.
-        ``(filename, False)`` trains from scratch and saves;
-        ``(filename, True)`` loads pre-trained values (default None).
+    filename (Path): Optional path to filename for pre-trained data and saving of results
+    use_trained (bool) = False: load pre-trained values?
     """
 
     DEFAULT_DISCRETE: ClassVar[dict[str, tuple[float | int, ...]]] = {
@@ -84,17 +83,19 @@ class QLearningAgent:
         initial_epsilon: float = 1.0,
         final_epsilon: float = 0.1,
         discount_factor: float = 0.95,
-        trained: tuple[str | Path, bool] | None = None,
+        filename: Path | None = None,
+        *,
+        use_trained: bool = False,
     ) -> None:
         """Initialize the Q-learning agent.
 
         See the class docstring for parameter descriptions.
         """
         self.env = env
-        _filename, self.use_pre_trained = trained if trained is not None else (None, False)
-        self.filename: Path | None = Path(_filename) if _filename is not None else None
+        self.filename = Path(filename) if filename is not None else None
+        self.use_trained = use_trained
         self.q_values: defaultdict[tuple[int, ...], np.ndarray]
-        if self.use_pre_trained and self.filename is not None:
+        if self.use_trained and self.filename is not None and self.filename.exists():
             self.q_values = self.read_dumped(self.filename)
             self.epsilon = final_epsilon  # assume that we are fully learned
         else:  # start from scratch, but save the q_values afterwards
@@ -206,10 +207,11 @@ class QLearningAgent:
             Visualization mode - 0 for none, 1 for training summary, 2 for
             per-episode analysis (default 0).
         """
-        if self.use_pre_trained:
+        if self.use_trained:
             logger.info("Starting %s episodes, using pre-trained values from %s", n_episodes, self.filename)
         else:
             logger.info("Starting new training with %s episodes.", n_episodes)
+        total_steps = 0
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
             obs, _ = self.env.reset()
@@ -229,42 +231,53 @@ class QLearningAgent:
                     self.analyse_episode()
                 nsteps += 1
                 truncated |= nsteps > max_steps
+            total_steps += nsteps
             # Reduce exploration rate (agent becomes less random over time):
             self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon / (n_episodes / 2))
         if show == SHOW_TRAINING_SUMMARY:
             self.analyse_training()
         if self.filename:
-            self.dump_results()
+            self.dump_results(episodes=n_episodes, steps=total_steps)
 
-    def dump_results(self, filename: str | Path = "") -> None:
+    def dump_results(self, filename: str | Path = "", episodes: int = -1, steps: int = -1) -> None:
         """Dump the Q-values to a JSON file.
 
-        Parameters
-        ----------
-        filename : str or Path, optional
-            Target file path. When empty, the filename provided at
-            construction time is used (default "").
+        Args:
+            filename (str|Path): Optional target file path.
+               When empty, the filename provided at construction time is used (default "").
+            episodes (int): the number of episodes which have been run
+            steps (int): the limiting number of steps per episode
         """
         if not filename:  # automatic file name
             if self.filename is None:
                 logger.warning("No base file name provided. Aborting dump to file.")
                 return
-            if self.use_pre_trained:  # do not overwrite pre-trained data
-                if len(self.filename.stem.split("_")) == 1:
-                    _filename = self.filename.parent / f"{self.filename.stem}_1{self.filename.suffix}"
-                else:
-                    stem, version = self.filename.stem.split("_")
-                    _filename = self.filename.parent / f"{stem}_{int(version) + 1}{self.filename.suffix}"
-            else:
-                _filename = self.filename
+            _filename = self.filename
         else:
             _filename = Path(filename)
 
         converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
             converted |= {str(k): list(v)}
+        content = {
+            "date": dt.datetime.now(dt.UTC).strftime("%d.%m.%Y %H:%M:%S"),
+            "pendulum": {
+                "start_speed": str(self.env.start_speed),
+                "render_mode": str(self.env.render_mode),
+                "reward_limit": str(self.env.reward_limit),
+            },
+            "q_agent": {
+                "use_trained": str(self.use_trained),
+                "filename": str(self.filename),
+                "episodes": str(episodes),
+                "steps": str(steps),
+                "learning_rate": str(self.lr),
+                "discount_factor": str(self.discount_factor),
+            },
+            "q_values": converted,
+        }
         with _filename.open("w", encoding="utf-8") as _f:
-            json.dump(converted, _f, indent=3)
+            json.dump(content, _f, indent=3)
         logger.info("Updated q_values saved to %s", _filename.resolve())
 
     def read_dumped(self, filename: str | Path) -> defaultdict[tuple[int, ...], np.ndarray]:
@@ -286,7 +299,8 @@ class QLearningAgent:
         q_values: defaultdict[tuple[int, ...], np.ndarray] = defaultdict(
             lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined,type-var]
         )
-        for k, v in from_dump.items():
+        assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
+        for k, v in from_dump["q_values"].items():
             q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
         return q_values
 

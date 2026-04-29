@@ -19,6 +19,7 @@ from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 LOGGER = logging.getLogger(__name__)
 
 
@@ -52,8 +53,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-
     env = AntiPendulumEnv(
         build_crane,
         start_speed=args.v0,
@@ -66,22 +65,12 @@ def main() -> None:
         agent = QLearningAgent(env, trained=None)
         agent.do_episodes(n_episodes=50, max_steps=1000)
 
-    elif args.intervals > 0:
-        Path(args.save_path).parent.mkdir(parents=True, exist_ok=True)
-        agent = QLearningAgent(env, trained=(args.save_path, False))
-        for i in range(args.intervals):
-            _ = env.reset(seed=i + 1)
-            agent.do_episodes(n_episodes=10)
-            if i == 0:
-                agent = QLearningAgent(env, trained=(args.save_path, True))
-        LOGGER.info("Model saved to %s", args.save_path)
-
     else:
         Path(args.save_path).parent.mkdir(parents=True, exist_ok=True)
         trained = (args.trained, True) if args.trained else (args.save_path, False)
         agent = QLearningAgent(env, trained=trained)
         agent.do_episodes(n_episodes=args.episodes, max_steps=5000)
-        LOGGER.info("Model saved to %s", args.save_path)
+        LOGGER.info(f"Model saved to {args.save_path}")
 
 
 if __name__ == "__main__":

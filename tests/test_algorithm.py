@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     from crane_controller.crane_factory import build_crane  # noqa: F401
 
-    retcode = pytest.main(["-rP -s -v", "--show", "False", __file__])
+    retcode = pytest.main(["-rP -s -v", __file__])
     assert retcode == 0, f"Return code {retcode}"
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
 

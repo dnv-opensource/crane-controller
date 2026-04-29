@@ -1,5 +1,7 @@
 import logging
+import shutil
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 from py_crane.crane import Crane
@@ -18,16 +20,19 @@ def test_smoke(crane: Callable[..., Crane], *, show: bool) -> None:
         reward_limit=-0.05,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
-    agent = QLearningAgent(env, trained=None)
+    agent = QLearningAgent(env, filename=None)
     agent.do_episodes(n_episodes=5, max_steps=200)
 
 
-def test_q_analyse(crane: Callable[..., Crane], *, trained: tuple[str, bool]) -> None:
+def test_q_analyse(crane: Callable[..., Crane], *, show: bool) -> None:
+    models = Path(__file__).parent.resolve().parent / "models"
+    assert (models / "q_trained.json").exists(), "Expect a file 'q_trained.json' in the models directory. Not found"
+    _ = shutil.copy2(models / "q_trained.json", ".")  # copy to working_directory
     env = AntiPendulumEnv(
         crane,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
-    agent = QLearningAgent(env, trained=trained)
+    agent = QLearningAgent(env, filename=Path("q_trained.json"), use_trained=True)
     for k, v in agent.q_values.items():
         assert len(k) == 5, len(v) == 3
     for pos in (0, 1):
@@ -39,3 +44,38 @@ def test_q_analyse(crane: Callable[..., Crane], *, trained: tuple[str, bool]) ->
                 col = [x[i] for x in res.values()]
                 acc.append(np.average(col))
             logger.info(f"averages: {acc}")
+
+
+def test_intervals(crane: Callable[..., Crane]):
+    """Test that learning / saving / resuming learning works:"""
+    save_path = Path.cwd() / "q_interval_training.json"
+    env = AntiPendulumEnv(
+        crane,
+        start_speed=-1.0,
+        render_mode="none",
+        reward_limit=-0.05,
+        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+    )
+
+    agent = QLearningAgent(env, filename=save_path, use_trained=False)
+    for i in range(10):
+        _ = env.reset(seed=i + 1)
+        agent.do_episodes(n_episodes=2, max_steps=100)
+        if i == 0:
+            agent = QLearningAgent(env, filename=save_path, use_trained=True)
+    logger.info(f"Model saved to {save_path}")
+
+
+if __name__ == "__main__":
+    import os
+    from pathlib import Path
+
+    import pytest
+
+    retcode = pytest.main(["-rP -s -v", __file__])
+    assert retcode == 0, f"Return code {retcode}"
+    os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
+
+    # test_smoke(build_crane, show=True)
+    # test_q_analyse(build_crane, show=True)
+    # test_intervals(build_crane)
