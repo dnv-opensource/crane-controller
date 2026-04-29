@@ -37,6 +37,7 @@ def test_dir() -> Path:
     """
     return Path(__file__).parent.absolute()
 
+
 @pytest.fixture(scope="package", autouse=True)
 def model_dir() -> Path:
     """

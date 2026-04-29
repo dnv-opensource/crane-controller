@@ -19,10 +19,11 @@ from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 LOGGER = logging.getLogger(__name__)
 
 
-def get_args() -> None:
+def main() -> None:
     """Parse CLI arguments and train a Q-learning agent."""
     parser = argparse.ArgumentParser(description="Train a Q-learning agent on the crane anti-pendulum task.")
     _ = parser.add_argument("--episodes", type=int, default=10_000, help="Total training episodes")
@@ -51,11 +52,6 @@ def get_args() -> None:
         help="Run 50 episodes with a reward plot and no model saved, for a quick visual sanity check.",
     )
     args = parser.parse_args()
-    return args
-
-def do_main( args: argparse.Namespace):
-
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     env = AntiPendulumEnv(
         build_crane,
@@ -74,11 +70,8 @@ def do_main( args: argparse.Namespace):
         trained = (args.trained, True) if args.trained else (args.save_path, False)
         agent = QLearningAgent(env, trained=trained)
         agent.do_episodes(n_episodes=args.episodes, max_steps=5000)
-        LOGGER.info("Model saved to %s", args.save_path)
+        LOGGER.info(f"Model saved to {args.save_path}")
 
 
 if __name__ == "__main__":
-    #do_main(get_args())
-    default = {'episodes':10,'v0':1.0,'reward_limit':-0.1,'dry_run':False}
-    do_main( argparse.Namespace(**default))
-    
+    main()
