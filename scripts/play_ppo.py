@@ -34,6 +34,7 @@ def main() -> None:
             "crane": build_crane,
             "start_speed": 1.0,
             "render_mode": args.render_mode,
+            "reward_fac": (1.0, 0.0015, 0.0),
         },
     )
 

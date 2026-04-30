@@ -41,6 +41,12 @@ def main() -> None:
         help="Path to a saved model zip to resume training from.",
     )
     _ = parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.99,
+        help="Discount factor for future rewards (default 0.99). Try 0.999 for longer planning horizon.",
+    )
+    _ = parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Run 1000 steps with live reward-tracking plot, without saving the model.",
@@ -67,6 +73,7 @@ def main() -> None:
                 "crane": build_crane,
                 "start_speed": 1.0,
                 "render_mode": args.render_mode,
+                "reward_fac": (1.0, 0.0015, 0.0),
             },
             save_path=args.save_path,
             n_envs=args.n_envs,
@@ -84,8 +91,10 @@ def main() -> None:
                 "crane": build_crane,
                 "start_speed": 1.0,
                 "render_mode": args.render_mode,
+                "reward_fac": (1.0, 0.0015, 0.0),
             },
             save_path=args.save_path,
+            gamma=args.gamma,
         )
         agent.do_training(args.steps)
         vecnorm_path = Path(args.save_path).parent / f"{Path(args.save_path).stem}_vecnorm.pkl"
