@@ -1,0 +1,38 @@
+QLearningAgent
+==============
+
+.. currentmodule:: crane_controller.q_agent
+
+.. autoclass:: QLearningAgent
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~QLearningAgent.__init__
+      ~QLearningAgent.analyse_episode
+      ~QLearningAgent.analyse_q
+      ~QLearningAgent.analyse_training
+      ~QLearningAgent.do_episodes
+      ~QLearningAgent.dump_results
+      ~QLearningAgent.get_action
+      ~QLearningAgent.read_dumped
+      ~QLearningAgent.test_agent
+      ~QLearningAgent.update_q
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~QLearningAgent.DEFAULT_DISCRETE
+   
+   

@@ -1,0 +1,17 @@
+﻿crane\_controller.ppo\_agent
+============================
+
+.. automodule:: crane_controller.ppo_agent
+   :members:
+   :exclude-members: ProximalPolicyOptimizationAgent,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      ProximalPolicyOptimizationAgent
+   

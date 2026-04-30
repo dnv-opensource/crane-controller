@@ -1,0 +1,18 @@
+﻿crane\_controller.wrappers
+==========================
+
+.. automodule:: crane_controller.wrappers
+   :members:
+
+
+   
+.. rubric:: Modules
+.. autosummary::
+   :toctree:
+   :template: custom-module.rst
+   :recursive:
+
+   clip_reward
+   discrete_actions
+   reacher_weighted_reward
+   relative_position

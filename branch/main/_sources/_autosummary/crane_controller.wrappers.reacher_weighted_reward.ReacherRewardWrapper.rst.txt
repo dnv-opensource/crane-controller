@@ -1,0 +1,45 @@
+ReacherRewardWrapper
+====================
+
+.. currentmodule:: crane_controller.wrappers.reacher_weighted_reward
+
+.. autoclass:: ReacherRewardWrapper
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~ReacherRewardWrapper.__init__
+      ~ReacherRewardWrapper.class_name
+      ~ReacherRewardWrapper.close
+      ~ReacherRewardWrapper.get_wrapper_attr
+      ~ReacherRewardWrapper.has_wrapper_attr
+      ~ReacherRewardWrapper.render
+      ~ReacherRewardWrapper.reset
+      ~ReacherRewardWrapper.set_wrapper_attr
+      ~ReacherRewardWrapper.step
+      ~ReacherRewardWrapper.wrapper_spec
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~ReacherRewardWrapper.action_space
+      ~ReacherRewardWrapper.metadata
+      ~ReacherRewardWrapper.np_random
+      ~ReacherRewardWrapper.np_random_seed
+      ~ReacherRewardWrapper.observation_space
+      ~ReacherRewardWrapper.render_mode
+      ~ReacherRewardWrapper.spec
+      ~ReacherRewardWrapper.unwrapped
+   
+   

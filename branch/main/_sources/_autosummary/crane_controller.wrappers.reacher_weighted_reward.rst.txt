@@ -1,0 +1,17 @@
+crane\_controller.wrappers.reacher\_weighted\_reward
+====================================================
+
+.. automodule:: crane_controller.wrappers.reacher_weighted_reward
+   :members:
+   :exclude-members: ReacherRewardWrapper,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      ReacherRewardWrapper
+   

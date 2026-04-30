@@ -1,0 +1,46 @@
+DiscreteActions
+===============
+
+.. currentmodule:: crane_controller.wrappers.discrete_actions
+
+.. autoclass:: DiscreteActions
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~DiscreteActions.__init__
+      ~DiscreteActions.action
+      ~DiscreteActions.class_name
+      ~DiscreteActions.close
+      ~DiscreteActions.get_wrapper_attr
+      ~DiscreteActions.has_wrapper_attr
+      ~DiscreteActions.render
+      ~DiscreteActions.reset
+      ~DiscreteActions.set_wrapper_attr
+      ~DiscreteActions.step
+      ~DiscreteActions.wrapper_spec
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~DiscreteActions.action_space
+      ~DiscreteActions.metadata
+      ~DiscreteActions.np_random
+      ~DiscreteActions.np_random_seed
+      ~DiscreteActions.observation_space
+      ~DiscreteActions.render_mode
+      ~DiscreteActions.spec
+      ~DiscreteActions.unwrapped
+   
+   
