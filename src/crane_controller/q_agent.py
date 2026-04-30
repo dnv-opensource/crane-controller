@@ -283,7 +283,7 @@ class QLearningAgent:
             json.dump(content, _f, indent=3)
         logger.info("Updated q_values saved to %s", _filename.resolve())
 
-    def read_dumped(self, filename: str | Path) -> defaultdict[tuple[int, ...], np.ndarray]:
+    def read_dumped(self, filename: str | Path | None = None) -> defaultdict[tuple[int, ...], np.ndarray]:
         """Read a Q-values dict from a JSON file.
 
         Parameters
@@ -296,17 +296,24 @@ class QLearningAgent:
         defaultdict[tuple[int, ...], np.ndarray]
             Loaded Q-values mapping observation tuples to action-value arrays.
         """
-        path = Path(filename)
-        with path.open(encoding="utf-8") as _f:
-            from_dump = json.load(_f)
-        self.previous_steps = int(from_dump["q_agent"]["steps"])
-        self.epsilon = float(from_dump["q_agent"].get("epsilon", 1.0))
         q_values: defaultdict[tuple[int, ...], np.ndarray] = defaultdict(
             lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined,type-var]
         )
-        assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
-        for k, v in from_dump["q_values"].items():
-            q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
+        if filename is None and self.filename is None:  # there is no file to read. Return empty defautdict
+            pass
+        else:
+            if filename is not None:
+                path = Path(filename)
+            elif self.filename is not None:
+                path = Path(self.filename)
+
+            with path.open(encoding="utf-8") as _f:
+                from_dump = json.load(_f)
+            self.previous_steps = int(from_dump["q_agent"]["steps"])
+            self.epsilon = float(from_dump["q_agent"].get("epsilon", 1.0))
+            assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
+            for k, v in from_dump["q_values"].items():
+                q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
         return q_values
 
     def analyse_training(self, window: int = 500) -> None:
