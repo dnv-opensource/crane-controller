@@ -485,5 +485,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
 
     def render(self) -> None:
         """Render the current episode."""
-        if self.render_mode == "play-back":  # show the animation
+        if self.render_mode == "play-back":
             self.show_animation()
+        elif self.render_mode == "plot":
+            self.show_plot(self.nresets)
