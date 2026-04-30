@@ -242,7 +242,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         episode : int
             Episode number used in the plot title.
         """
-        _, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+        _, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(16, 12))
         times = self.dt * np.arange(len(self.traces["c_x"]))
         damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
@@ -254,11 +254,15 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         ax2y2.plot(times, self.traces["c_v"], label="crane speed", color="red")
         ax3.plot(times[: len(self.rewards)], self.rewards, label="rewards")
         ax4.plot(times, self.traces["acc"], label="x-acceleration", color="green")
-        _ = ax1.legend()
-        _ = ax2.legend()
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax1y2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2)
+        lines3, labels3 = ax2.get_legend_handles_labels()
+        lines4, labels4 = ax2y2.get_legend_handles_labels()
+        ax2.legend(lines3 + lines4, labels3 + labels4, loc="upper left")
         _ = ax3.legend()
         _ = ax4.legend()
-        _ = plt.title(f"Detailed plot of episode {episode}, reward:{self.reward}")
+        _ = plt.suptitle(f"Detailed plot of episode {episode}, reward:{self.reward}")
         plt.show()
         for key in self.traces:
             self.traces[key] = []
