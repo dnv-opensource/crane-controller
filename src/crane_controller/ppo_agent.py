@@ -104,7 +104,7 @@ class ProximalPolicyOptimizationAgent:
             env_id=env,
             n_envs=1,
             env_kwargs=env_kwargs,
-            wrapper_class=TimeLimit,
+            wrapper_class=TimeLimit,  # type: ignore[arg-type]
             wrapper_kwargs={"max_episode_steps": 3000},
         )
         stats_path = cls._stats_path(str(model_path))
