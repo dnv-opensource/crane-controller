@@ -52,7 +52,7 @@ def do_use(kwargs: dict[str, Any]) -> None:
     use_file = kwargs.get("use_file", "r")
     agent = QLearningAgent(env, filename=filename, use_file=use_file)
     agent.do_episodes(n_episodes=kwargs.get("episodes", 100), max_steps=kwargs.get("steps", 5000))
-    if filename is not None:
+    if filename is not None and 'w' in agent.use_file:
         LOGGER.info(f"Model saved to {filename}")
 
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         "t_fac": 0.0,
     }
     # ruff: disable[ERA001]  ## we intentionally work with commenting out lines here
-    args = _args(anti, {"episodes": 10})  # anti-pendulum training
+    args = _args(anti, {"episodes": 2000})  # anti-pendulum (additional) training
     # args = _args(pend, {'episodes':10000}) # pendulum training
     # args = _args( anti, {"episodes": 10, "render": "plot","use_file":'r'}) # show anti-pendulum results
     # args = _args( pend, {"episodes": 10, "render": "plot", "use_file":'r'}) # show start pendulum results

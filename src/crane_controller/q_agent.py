@@ -80,7 +80,7 @@ class QLearningAgent:
         self,
         env: AntiPendulumEnv,
         learning_rate: float = 0.1,
-        epsilon_decay: float = 1e-3,
+        epsilon_decay: float = 1e-4,
         final_epsilon: float = 0.1,
         discount_factor: float = 0.95,
         filename: Path | None = None,
@@ -311,6 +311,7 @@ class QLearningAgent:
                 from_dump = json.load(_f)
             self.previous_steps = int(from_dump["q_agent"]["steps"])
             self.epsilon = float(from_dump["q_agent"].get("epsilon", 1.0))
+            self.epsilon_decay = float(from_dump["q_agent"].get("epsilon", 1e-4))
             assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
             for k, v in from_dump["q_values"].items():
                 q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
