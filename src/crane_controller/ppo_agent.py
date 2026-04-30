@@ -95,7 +95,13 @@ class ProximalPolicyOptimizationAgent:
             Agent configured for inference with VecNormalize in evaluation mode.
         """
         instance = object.__new__(cls)
-        raw_vec_env = make_vec_env(env_id=env, n_envs=1, env_kwargs=env_kwargs)
+        raw_vec_env = make_vec_env(
+            env_id=env,
+            n_envs=1,
+            env_kwargs=env_kwargs,
+            wrapper_class=TimeLimit,
+            wrapper_kwargs={"max_episode_steps": 3000},
+        )
         stats_path = cls._stats_path(str(model_path))
         if stats_path.exists():
             instance.vec_env = VecNormalize.load(str(stats_path), raw_vec_env)
