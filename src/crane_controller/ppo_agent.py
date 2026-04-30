@@ -48,6 +48,10 @@ class ProximalPolicyOptimizationAgent:
         Maximum steps per episode enforced via a TimeLimit wrapper (default 3000).
         Ensures episodes always end, even when a plateau agent never triggers the
         environment's own termination condition.
+    gamma : float, optional
+        Discount factor for future rewards (default 0.99). Higher values (e.g. 0.999)
+        extend the effective planning horizon, which can improve policy quality on
+        long episodes at the cost of slower value function convergence.
     """
 
     def __init__(
@@ -57,6 +61,7 @@ class ProximalPolicyOptimizationAgent:
         env_kwargs: dict[str, Any] | None = None,
         save_path: str | None = None,
         max_episode_steps: int = 3000,
+        gamma: float = 0.99,
     ) -> None:
         """Set up the agent for training. Use :meth:`load` for inference."""
         self.save_path = save_path
@@ -68,7 +73,7 @@ class ProximalPolicyOptimizationAgent:
             wrapper_kwargs={"max_episode_steps": max_episode_steps},
         )
         self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
-        self.model = PPO("MlpPolicy", self.vec_env, verbose=1 if n_envs == 1 else 0)
+        self.model = PPO("MlpPolicy", self.vec_env, gamma=gamma, verbose=1 if n_envs == 1 else 0)
         self.env: AntiPendulumEnv = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
 
     @classmethod
