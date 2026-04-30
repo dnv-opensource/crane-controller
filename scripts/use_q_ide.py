@@ -26,15 +26,15 @@ def do_use(kwargs: dict[str, Any]) -> None:
         render (str)='none': render mode of environment
         reward (float)=-0.1: reward limit at which episode is terminated
         file (str): Optional definition of model-save file
-        use_trained (bool): Use pre-trained data?
+        use_file (str): How 'file' is used (if exists): 'r', 'w', 'rw'
         episodes (int)=10000: nnumber of episodes run in the training
         steps (int)=5000: number of steps per episodes (if not terminated or truncated)
-
+        t_fac (float)=0.001
     """
     if "dry-train" in kwargs:  # Check training setup (over-write some parameters)
-        kwargs.update({"render": "plot", "file": None, "use_trained": False, "episodes": 10, "steps": 1000})
+        kwargs.update({"render": "plot", "file": None, "use_file": 'r', "episodes": 10, "steps": 1000})
     elif "dry_do" in kwargs:  # Run a few episodes on trained data (file can be set by caller)
-        kwargs.update({"render": "plot", "use_trained": True, "episodes": 10, "steps": 1000})
+        kwargs.update({"render": "plot", "use_file": 'r', "episodes": 10, "steps": 1000})
     env = AntiPendulumEnv(
         build_crane,
         seed=1,
@@ -43,31 +43,49 @@ def do_use(kwargs: dict[str, Any]) -> None:
         render_mode=kwargs.get("render", "none"),
         reward_limit=kwargs.get("reward", 0.0),
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+        reward_fac = (1.0, 0.0015,kwargs.get('t_fac',0.0)),
     )
 
     filename = kwargs.get("file")
     if filename is not None:
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-    use_trained = kwargs.get("use_trained", False)
-    agent = QLearningAgent(env, filename=filename, use_trained=use_trained)
+    use_file = kwargs.get("use_file", 'r')
+    agent = QLearningAgent(env, filename=filename, use_file=use_file)
     agent.do_episodes(n_episodes=kwargs.get("episodes", 100), max_steps=kwargs.get("steps", 5000))
     if filename is not None:
         LOGGER.info(f"Model saved to {filename}")
 
 
 if __name__ == "__main__":
+    # ruff: disable[ERA001]  ## we intentionally work with commenting out lines here
+    def _args( base:dict[str,Any], upd:dict[str,Any])-> dict[str,Any]:
+        base.update(upd)
+        return base
+    
     models = Path(__file__).parent.resolve().parent / "models"
-    args = {
+    anti = { # anti-pendulum settings
         "v0": 1.0,
         "render": "none",
         "reward": 0.0,
         "file": models / "q_anti-pendulum.json",
-        "use_trained": True,
+        "use_file": 'rw',
         "episodes": 1000,
-        "steps": 5000,
+        "steps": 2000,
+        "t_fac":0.0,
     }
-    # args.update({'episodes':6000, 'use_trained':True}) # noqa: ERA001 ## do a mayor training adding to data
-    args.update({"episodes": 10, "render": "plot"})
-    # args.update({'dry-train':True,}) # noqa: ERA001  ## check the setup before a long training
-    # args.update({'dry_do':True}) # noqa: ERA001
+    pend = { # start pendulum settings
+        "v0": 0.0,
+        "render": "none",
+        "reward": 200.0,
+        "file": models / "q_pendulum.json",
+        "use_file": 'rw',
+        "episodes": 1000,
+        "steps": 2000,
+        "t_fac":0.0,
+    }
+    args = _args(anti, {'episodes':10}) # anti-pendulum training
+    # args = _args(pend, {'episodes':10000}) # pendulum training
+    # args = _args( anti, {"episodes": 10, "render": "plot","use_file":'r'}) # show anti-pendulum results
+    # args = _args( pend, {"episodes": 10, "render": "plot", "use_file":'r'}) # show start pendulum results
+    # args = args.update(_args(anti, {'dry-train':True,})) # check the setup before a long training
     do_use(args)

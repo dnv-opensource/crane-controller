@@ -87,6 +87,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         When provided, activates discrete observation mode with the given
         category boundaries. Expected keys: ``"angles"``, ``"pos"``,
         ``"speed"``, ``"distance"``, ``"sector"`` (default None).
+    reward_fac (tuple[float,...])=(1.0,0.0015,0.001): Weights between reward contributions
     """
 
     metadata: ClassVar[dict[str, object]] = {  # pyright: ignore[reportIncompatibleVariableOverride]  # Gymnasium metadata typing is loose
@@ -102,7 +103,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         "show-len-1": False,
         "x-max": None,
     }
-
+    
     def __init__(  # noqa: PLR0913 - environment API needs explicit parameters
         self,
         crane: Callable[..., Crane],
@@ -487,3 +488,15 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         """Render the current episode."""
         if self.render_mode == "play-back":  # show the animation
             self.show_animation()
+
+    def get_parameters(self) -> dict[str,Any]:
+        """Return the environment parameter settings as dict."""
+        return {
+            'wire-length':self.wire.length,
+            'wire-q-factor':self.wire.q_factor,
+            'reward-factors': self.reward_fac,
+            'acceleration':self.acc,
+            'step-size':self.dt,
+            'observations-discretization':None if not hasattr(self,'discrete') else self.discrete,
+            'reward_limit':self.reward_limit
+            }
