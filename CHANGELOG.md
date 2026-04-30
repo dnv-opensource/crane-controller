@@ -6,6 +6,26 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 ## [Unreleased]
 
 ### Added
+* `gamma` parameter on `ProximalPolicyOptimizationAgent` (default 0.99) and `--gamma` CLI flag in
+  `train_ppo.py` to configure the PPO discount factor without editing source code.
+
+### Fixed
+* `ProximalPolicyOptimizationAgent.load()` now applies a `TimeLimit` wrapper (max 3000 steps),
+  matching the training configuration. Without it, `play_ppo.py` ran indefinitely on a converged
+  model whose near-zero reward never crossed the termination threshold.
+* `AntiPendulumEnv.render()` now handles `render_mode='plot'` by calling `show_plot()` directly,
+  so the episode plot appears when running `play_ppo.py --render-mode plot`.
+* `show_plot()` legend now includes lines from twin y-axes (load speed, crane speed, damping) by
+  combining handles from both axes with `get_legend_handles_labels()`.
+* `show_plot()` title moved from `plt.title()` (attached to last axes) to `plt.suptitle()`
+  (figure-level), preventing the title from appearing between subplots.
+* `show_plot()` switched from 2×2 grid to 4×1 vertical layout (16×12 in) so all subplots share
+  a common time axis and each has full width.
+* Disabled explicit time penalty (`reward_fac[2] = 0.0`) in PPO training and playback scripts.
+  The term `−self.time × 0.001` uses hidden state absent from the observation, violating the
+  Markov property and destabilising PPO's value function. Time preference is already encoded
+  implicitly through the discount factor γ.
+
 * `ProximalPolicyOptimizationAgent.resume()` classmethod to continue training from a saved checkpoint.
   Restores VecNormalize statistics and keeps normalization in training mode, consistent with SB3's
   `PPO.load()` + `.learn(reset_num_timesteps=False)` pattern.

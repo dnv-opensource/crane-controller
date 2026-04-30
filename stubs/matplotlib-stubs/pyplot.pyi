@@ -66,6 +66,7 @@ def title(
     y: float | None = None,
     **kwargs: Any,
 ) -> Text: ...
+def suptitle(t: str, **kwargs: Any) -> Text: ...
 def plot(
     *args: Any,
     scalex: bool = True,
