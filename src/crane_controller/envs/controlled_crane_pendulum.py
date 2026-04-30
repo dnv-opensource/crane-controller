@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -103,7 +103,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         "show-len-1": False,
         "x-max": None,
     }
-    
+
     def __init__(  # noqa: PLR0913 - environment API needs explicit parameters
         self,
         crane: Callable[..., Crane],
@@ -495,14 +495,14 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         elif self.render_mode == "plot":
             self.show_plot(self.nresets)
 
-    def get_parameters(self) -> dict[str,Any]:
+    def get_parameters(self) -> dict[str, Any]:
         """Return the environment parameter settings as dict."""
         return {
-            'wire-length':self.wire.length,
-            'wire-q-factor':self.wire.q_factor,
-            'reward-factors': self.reward_fac,
-            'acceleration':self.acc,
-            'step-size':self.dt,
-            'observations-discretization':None if not hasattr(self,'discrete') else self.discrete,
-            'reward_limit':self.reward_limit
-            }
+            "wire-length": self.wire.length,
+            "wire-q-factor": self.wire.q_factor,
+            "reward-factors": self.reward_fac,
+            "acceleration": self.acc,
+            "step-size": self.dt,
+            "observations-discretization": None if not hasattr(self, "discrete") else self.discrete,
+            "reward_limit": self.reward_limit,
+        }

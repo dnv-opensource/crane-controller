@@ -80,12 +80,11 @@ class QLearningAgent:
         self,
         env: AntiPendulumEnv,
         learning_rate: float = 0.1,
-        initial_epsilon: float = 1.0,
-        epsilon_decay:float = 1e-3,
+        epsilon_decay: float = 1e-3,
         final_epsilon: float = 0.1,
         discount_factor: float = 0.95,
         filename: Path | None = None,
-        use_file: str = 'r',
+        use_file: str = "r",
     ) -> None:
         """Initialize the Q-learning agent.
 
@@ -100,7 +99,7 @@ class QLearningAgent:
         self.discount_factor = discount_factor  # How much we care about future rewards
 
         # Exploration parameters
-        self.epsilon = initial_epsilon
+        self.epsilon = 1.0
         self.epsilon_decay = epsilon_decay
         self.final_epsilon = final_epsilon
 
@@ -204,7 +203,7 @@ class QLearningAgent:
             Visualization mode - 0 for none, 1 for training summary, 2 for
             per-episode analysis (default 0).
         """
-        if 'r' in self.use_file and self.filename is not None and self.filename.exists():
+        if "r" in self.use_file and self.filename is not None and self.filename.exists():
             self.q_values = self.read_dumped(self.filename)
             logger.info("Starting %s episodes, using pre-trained values from %s", n_episodes, self.filename)
         else:  # start from scratch
@@ -236,14 +235,12 @@ class QLearningAgent:
             self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
         if show == SHOW_TRAINING_SUMMARY:
             self.analyse_training()
-        if self.filename and 'w' in self.use_file:
+        if self.filename and "w" in self.use_file:
             self.dump_results(episodes=n_episodes, steps=total_steps, start_time=start_time)
 
-    def dump_results(self,
-                     filename: str | Path = "",
-                     episodes: int = -1,
-                     steps: int = -1,
-                     start_time:dt.datetime|None=None) -> None:
+    def dump_results(
+        self, filename: str | Path = "", episodes: int = -1, steps: int = -1, start_time: dt.datetime | None = None
+    ) -> None:
         """Dump the Q-values to a JSON file.
 
         Args:
@@ -264,21 +261,21 @@ class QLearningAgent:
         converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
             converted |= {str(k): list(v)}
-        env_parameters = { k:str(v) for k,v in self.env.get_parameters().items()}
+        env_parameters = {k: str(v) for k, v in self.env.get_parameters().items()}
         content = {
-            "start-training":"unknown" if start_time is None else start_time.strftime("%d.%m.%Y %H:%M:%S"),
+            "start-training": "unknown" if start_time is None else start_time.strftime("%d.%m.%Y %H:%M:%S"),
             "end-training": dt.datetime.now(dt.UTC).strftime("%d.%m.%Y %H:%M:%S"),
             "pendulum": env_parameters,
             "q_agent": {
                 "filename": str(self.filename),
                 "use_file": self.use_file,
                 "episodes": str(episodes),
-                "steps": str(steps+self.previous_steps),
+                "steps": str(steps + self.previous_steps),
                 "learning_rate": str(self.lr),
                 "discount_factor": str(self.discount_factor),
-                "epsilon-decay":str(self.epsilon_decay),
-                "final-epsilon":str(self.final_epsilon),
-                "epsilon":str(self.epsilon),
+                "epsilon-decay": str(self.epsilon_decay),
+                "final-epsilon": str(self.final_epsilon),
+                "epsilon": str(self.epsilon),
             },
             "q_values": converted,
         }

@@ -32,7 +32,7 @@ def test_q_analyse(crane: Callable[..., Crane], *, show: bool) -> None:
         crane,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
-    agent = QLearningAgent(env, filename=Path("q_trained.json"), use_trained=True)
+    agent = QLearningAgent(env, filename=Path("q_trained.json"), use_file='r')
     for k, v in agent.q_values.items():
         assert len(k) == 5, len(v) == 3
     for pos in (0, 1):
@@ -57,12 +57,12 @@ def test_intervals(crane: Callable[..., Crane]):
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
     )
 
-    agent = QLearningAgent(env, filename=save_path, use_trained=False)
+    agent = QLearningAgent(env, filename=save_path, use_file='w')
     for i in range(10):
         _ = env.reset(seed=i + 1)
         agent.do_episodes(n_episodes=2, max_steps=100)
         if i == 0:
-            agent = QLearningAgent(env, filename=save_path, use_trained=True)
+            agent = QLearningAgent(env, filename=save_path, use_file='rw')
     logger.info(f"Model saved to {save_path}")
 
 
