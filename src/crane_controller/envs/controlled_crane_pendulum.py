@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -87,6 +87,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         When provided, activates discrete observation mode with the given
         category boundaries. Expected keys: ``"angles"``, ``"pos"``,
         ``"speed"``, ``"distance"``, ``"sector"`` (default None).
+    reward_fac (tuple[float,...])=(1.0,0.0015,0.001): Weights between reward contributions
     """
 
     metadata: ClassVar[dict[str, object]] = {  # pyright: ignore[reportIncompatibleVariableOverride]  # Gymnasium metadata typing is loose
@@ -493,3 +494,15 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             self.show_animation()
         elif self.render_mode == "plot":
             self.show_plot(self.nresets)
+
+    def get_parameters(self) -> dict[str, Any]:
+        """Return the environment parameter settings as dict."""
+        return {
+            "wire-length": self.wire.length,
+            "wire-q-factor": self.wire.q_factor,
+            "reward-factors": self.reward_fac,
+            "acceleration": self.acc,
+            "step-size": self.dt,
+            "observations-discretization": None if not hasattr(self, "discrete") else self.discrete,
+            "reward_limit": self.reward_limit,
+        }

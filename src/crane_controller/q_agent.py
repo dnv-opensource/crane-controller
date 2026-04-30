@@ -65,7 +65,7 @@ class QLearningAgent:
     discount_factor : float, optional
         How much to value future rewards, in the range [0, 1] (default 0.95).
     filename (Path): Optional path to filename for pre-trained data and saving of results
-    use_trained (bool) = False: load pre-trained values?
+    use_file (str) = 'r': How to use filename. 'r', 'w', 'rw'. File is not read when not found!
     """
 
     DEFAULT_DISCRETE: ClassVar[dict[str, tuple[float | int, ...]]] = {
@@ -80,12 +80,11 @@ class QLearningAgent:
         self,
         env: AntiPendulumEnv,
         learning_rate: float = 0.1,
-        initial_epsilon: float = 1.0,
+        epsilon_decay: float = 1e-4,
         final_epsilon: float = 0.1,
         discount_factor: float = 0.95,
         filename: Path | None = None,
-        *,
-        use_trained: bool = False,
+        use_file: str = "r",
     ) -> None:
         """Initialize the Q-learning agent.
 
@@ -93,23 +92,20 @@ class QLearningAgent:
         """
         self.env = env
         self.filename = Path(filename) if filename is not None else None
-        self.use_trained = use_trained
+        self.use_file = use_file
         self.q_values: defaultdict[tuple[int, ...], np.ndarray]
-        if self.use_trained and self.filename is not None and self.filename.exists():
-            self.q_values = self.read_dumped(self.filename)
-            self.epsilon = final_epsilon  # assume that we are fully learned
-        else:  # start from scratch, but save the q_values afterwards
-            self.q_values = defaultdict(lambda: np.array((0.0,) * env.action_space.n, float))  # type: ignore[attr-defined,type-var]
-            self.epsilon = initial_epsilon  # start from scratch
 
         self.lr = learning_rate
         self.discount_factor = discount_factor  # How much we care about future rewards
 
         # Exploration parameters
+        self.epsilon = 1.0
+        self.epsilon_decay = epsilon_decay
         self.final_epsilon = final_epsilon
 
         # Track learning progress
         self.training_error: list[float] = []
+        self.previous_steps = 0
 
     def analyse_q(self, obs: tuple[int, ...]) -> None:
         """Log Q-table entries matching an observation pattern.
@@ -207,10 +203,13 @@ class QLearningAgent:
             Visualization mode - 0 for none, 1 for training summary, 2 for
             per-episode analysis (default 0).
         """
-        if self.use_trained:
+        if "r" in self.use_file and self.filename is not None and self.filename.exists():
+            self.q_values = self.read_dumped(self.filename)
             logger.info("Starting %s episodes, using pre-trained values from %s", n_episodes, self.filename)
-        else:
+        else:  # start from scratch
+            self.q_values = defaultdict(lambda: np.array((0.0,) * self.env.action_space.n, float))  # type: ignore[attr-defined,type-var]
             logger.info("Starting new training with %s episodes.", n_episodes)
+        start_time = dt.datetime.now(dt.UTC)
         total_steps = 0
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
@@ -233,13 +232,15 @@ class QLearningAgent:
                 truncated |= nsteps > max_steps
             total_steps += nsteps
             # Reduce exploration rate (agent becomes less random over time):
-            self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon / (n_episodes / 2))
+            self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
         if show == SHOW_TRAINING_SUMMARY:
             self.analyse_training()
-        if self.filename:
-            self.dump_results(episodes=n_episodes, steps=total_steps)
+        if self.filename and "w" in self.use_file:
+            self.dump_results(episodes=n_episodes, steps=total_steps, start_time=start_time)
 
-    def dump_results(self, filename: str | Path = "", episodes: int = -1, steps: int = -1) -> None:
+    def dump_results(
+        self, filename: str | Path = "", episodes: int = -1, steps: int = -1, start_time: dt.datetime | None = None
+    ) -> None:
         """Dump the Q-values to a JSON file.
 
         Args:
@@ -247,6 +248,7 @@ class QLearningAgent:
                When empty, the filename provided at construction time is used (default "").
             episodes (int): the number of episodes which have been run
             steps (int): the limiting number of steps per episode
+            start_time (dt.datetime): clock-time when the training started
         """
         if not filename:  # automatic file name
             if self.filename is None:
@@ -259,20 +261,21 @@ class QLearningAgent:
         converted: dict[str, list[float]] = {}
         for k, v in self.q_values.items():
             converted |= {str(k): list(v)}
+        env_parameters = {k: str(v) for k, v in self.env.get_parameters().items()}
         content = {
-            "date": dt.datetime.now(dt.UTC).strftime("%d.%m.%Y %H:%M:%S"),
-            "pendulum": {
-                "start_speed": str(self.env.start_speed),
-                "render_mode": str(self.env.render_mode),
-                "reward_limit": str(self.env.reward_limit),
-            },
+            "start-training": "unknown" if start_time is None else start_time.strftime("%d.%m.%Y %H:%M:%S"),
+            "end-training": dt.datetime.now(dt.UTC).strftime("%d.%m.%Y %H:%M:%S"),
+            "pendulum": env_parameters,
             "q_agent": {
-                "use_trained": str(self.use_trained),
                 "filename": str(self.filename),
+                "use_file": self.use_file,
                 "episodes": str(episodes),
-                "steps": str(steps),
+                "steps": str(steps + self.previous_steps),
                 "learning_rate": str(self.lr),
                 "discount_factor": str(self.discount_factor),
+                "epsilon-decay": str(self.epsilon_decay),
+                "final-epsilon": str(self.final_epsilon),
+                "epsilon": str(self.epsilon),
             },
             "q_values": converted,
         }
@@ -280,7 +283,7 @@ class QLearningAgent:
             json.dump(content, _f, indent=3)
         logger.info("Updated q_values saved to %s", _filename.resolve())
 
-    def read_dumped(self, filename: str | Path) -> defaultdict[tuple[int, ...], np.ndarray]:
+    def read_dumped(self, filename: str | Path | None = None) -> defaultdict[tuple[int, ...], np.ndarray]:
         """Read a Q-values dict from a JSON file.
 
         Parameters
@@ -293,15 +296,25 @@ class QLearningAgent:
         defaultdict[tuple[int, ...], np.ndarray]
             Loaded Q-values mapping observation tuples to action-value arrays.
         """
-        path = Path(filename)
-        with path.open(encoding="utf-8") as _f:
-            from_dump = json.load(_f)
         q_values: defaultdict[tuple[int, ...], np.ndarray] = defaultdict(
             lambda: np.array((0.0,) * self.env.action_space.n, float)  # type: ignore[attr-defined,type-var]
         )
-        assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
-        for k, v in from_dump["q_values"].items():
-            q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
+        if filename is None and self.filename is None:  # there is no file to read. Return empty defautdict
+            pass
+        else:
+            if filename is not None:
+                path = Path(filename)
+            elif self.filename is not None:
+                path = Path(self.filename)
+
+            with path.open(encoding="utf-8") as _f:
+                from_dump = json.load(_f)
+            self.previous_steps = int(from_dump["q_agent"]["steps"])
+            self.epsilon = float(from_dump["q_agent"].get("epsilon", 1.0))
+            self.epsilon_decay = float(from_dump["q_agent"].get("epsilon", 1e-4))
+            assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
+            for k, v in from_dump["q_values"].items():
+                q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
         return q_values
 
     def analyse_training(self, window: int = 500) -> None:
