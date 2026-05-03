@@ -68,7 +68,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
     acc : float, optional
         Acceleration magnitude applied to the crane (default 0.1).
     start_speed : float, optional
-        Fixed start speed in degrees. A negative value causes a random speed
+        Fixed start speed in m/s. A negative value causes a random speed
         in the range ``[-|start_speed|, |start_speed|]`` each episode
         (default 1.0).
     render_mode : str, optional
@@ -148,7 +148,6 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             self.spaces_min = np.array((-size, -max_speed, 0.0, -max_speed), float)
             self.spaces_max = np.array((size, max_speed, np.pi, max_speed), float)
             self.observation_space = spaces.Box(self.spaces_min, self.spaces_max, shape=(4,), dtype=np.float64)
-
         self.nresets: int = 0
         self.acc = acc
         self.start_speed = start_speed
@@ -192,11 +191,13 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             (with ``'angles'`` replaced by ``'energies'``).
         """
         # We replace the angles with pendulum energy levels, which are easier to use for observation calculation
-        observation_space = spaces.MultiDiscrete(np.array([len(spec[k]) for k in spec]))
         angles = spec.pop("angles")
         energies = [9.81 * self.wire.length * (1.0 - np.cos(np.radians(a))) for a in angles]
-        spec["energies"] = tuple(energies)
-        return (observation_space, spec)
+        _spec = {"energies" : tuple(energies)}
+        for k,v in spec.items():
+            _spec.update({k:v})
+        observation_space = spaces.MultiDiscrete(np.array([len(_spec[k]) for k in _spec]))
+        return (observation_space, _spec)
 
     def _reward_plot_init(self, marker: str = "") -> Line2D:
         point = plt.plot(0, 0, marker)[0] if marker else plt.plot(0, 0)[0]
@@ -346,7 +347,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
 
         obs: tuple[int, ...] | np.ndarray
         if len(self.discrete):
-            obs = self._get_discrete_obs(energy)
+            obs = self._get_discrete_obs(abs(energy))
             err = 0
 
         else:

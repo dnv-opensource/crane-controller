@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     models = Path(__file__).parent.resolve().parent / "models"
     anti = {  # anti-pendulum settings
-        "v0": 1.0,
+        "v0": -5.0,
         "render": "none",
         "reward": 0.0,
         "file": models / "q_anti-pendulum.json",
@@ -84,9 +84,9 @@ if __name__ == "__main__":
         "t_fac": 0.0,
     }
     # ruff: disable[ERA001]  ## we intentionally work with commenting out lines here
-    args = _args(anti, {"episodes": 2000})  # anti-pendulum (additional) training
-    # args = _args(pend, {'episodes':10000}) # pendulum training
-    # args = _args( anti, {"episodes": 10, "render": "plot","use_file":'r'}) # show anti-pendulum results
+    #args = _args(anti, {"episodes": 10000})  # anti-pendulum (additional) training
+    #args = _args(pend, {'episodes':1000}) # pendulum training
+    args = _args( anti, {"episodes": 10, "render": "plot","use_file":'r'}) # show anti-pendulum results
     # args = _args( pend, {"episodes": 10, "render": "plot", "use_file":'r'}) # show start pendulum results
     # args = args.update(_args(anti, {'dry-train':True,})) # check the setup before a long training
     # ruff: enable[ERA001]
