@@ -1,0 +1,47 @@
+AntiPendulumEnv
+===============
+
+.. currentmodule:: crane_controller.envs.controlled_crane_pendulum
+
+.. autoclass:: AntiPendulumEnv
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~AntiPendulumEnv.__init__
+      ~AntiPendulumEnv.close
+      ~AntiPendulumEnv.get_wrapper_attr
+      ~AntiPendulumEnv.has_wrapper_attr
+      ~AntiPendulumEnv.low_reward
+      ~AntiPendulumEnv.render
+      ~AntiPendulumEnv.reset
+      ~AntiPendulumEnv.reset_crane
+      ~AntiPendulumEnv.set_wrapper_attr
+      ~AntiPendulumEnv.show_animation
+      ~AntiPendulumEnv.show_plot
+      ~AntiPendulumEnv.step
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~AntiPendulumEnv.metadata
+      ~AntiPendulumEnv.np_random
+      ~AntiPendulumEnv.np_random_seed
+      ~AntiPendulumEnv.render_mode
+      ~AntiPendulumEnv.spec
+      ~AntiPendulumEnv.unwrapped
+      ~AntiPendulumEnv.action_space
+      ~AntiPendulumEnv.observation_space
+   
+   

@@ -1,0 +1,17 @@
+crane\_controller.envs.controlled\_crane\_pendulum
+==================================================
+
+.. automodule:: crane_controller.envs.controlled_crane_pendulum
+   :members:
+   :exclude-members: AntiPendulumEnv,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      AntiPendulumEnv
+   

@@ -1,0 +1,29 @@
+ProximalPolicyOptimizationAgent
+===============================
+
+.. currentmodule:: crane_controller.ppo_agent
+
+.. autoclass:: ProximalPolicyOptimizationAgent
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~ProximalPolicyOptimizationAgent.__init__
+      ~ProximalPolicyOptimizationAgent.do_one_episode
+      ~ProximalPolicyOptimizationAgent.do_training
+      ~ProximalPolicyOptimizationAgent.evaluate
+      ~ProximalPolicyOptimizationAgent.load
+      ~ProximalPolicyOptimizationAgent.resume
+   
+   
+
+
+   
+   
+   

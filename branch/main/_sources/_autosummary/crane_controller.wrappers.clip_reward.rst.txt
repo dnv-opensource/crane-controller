@@ -1,0 +1,17 @@
+crane\_controller.wrappers.clip\_reward
+=======================================
+
+.. automodule:: crane_controller.wrappers.clip_reward
+   :members:
+   :exclude-members: ClipReward,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      ClipReward
+   

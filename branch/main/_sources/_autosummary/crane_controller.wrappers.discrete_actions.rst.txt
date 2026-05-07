@@ -1,0 +1,17 @@
+crane\_controller.wrappers.discrete\_actions
+============================================
+
+.. automodule:: crane_controller.wrappers.discrete_actions
+   :members:
+   :exclude-members: DiscreteActions,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      DiscreteActions
+   
