@@ -1,0 +1,28 @@
+# Validated hybrid reward: energy + crane_velocity penalty + position return.
+# energy=1.0 (KE+PE physics signal), crane_velocity=0.1 (-x_dot^2 penalty to
+# damp trolley oscillation), position=0.02 (-|x| to encourage return to origin).
+# terminal_penalty=-5.0 provides a one-shot crash signal propagated ~100 steps
+# back by gamma=0.99. Trained with randomize_start=True on speeds +-[0.1, 1.0].
+# Seeds 2718, 3141, 31415 achieve 6/6 OOD generalisation at start_speed=7.0.
+reward:
+  energy: 1.0
+  positional: 0.0
+  time: 0.0
+  position: 0.02
+  acceleration: 0.0
+  terminal_penalty: -5.0
+  angle: 0.0
+  angular_velocity: 0.0
+  crane_velocity: 0.1
+  crane_acceleration: 0.0
+  angular_acceleration: 0.0
+training:
+  steps: 3000000
+  n_envs: 32
+  gamma: 0.99
+  save_path: models/hybrid_cv01.zip
+  ent_coef: 0.0
+  n_steps: 4096
+  rail_limit: 2.0
+  randomize_start: true
+  start_speed: 1.0

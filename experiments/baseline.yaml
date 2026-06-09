@@ -1,0 +1,25 @@
+# Baseline PPO config matching the original 3-factor reward defaults.
+# energy=1.0, positional=0.0015 (braking-distance penalty), time=0.0 (disabled).
+# All new derivative reward terms are zero for backward compatibility.
+reward:
+  energy: 1.0
+  positional: 0.0015
+  time: 0.0
+  position: 0.0
+  acceleration: 0.0
+  terminal_penalty: 0.0
+  angle: 0.0
+  angular_velocity: 0.0
+  crane_velocity: 0.0
+  crane_acceleration: 0.0
+  angular_acceleration: 0.0
+training:
+  steps: 100000
+  n_envs: 4
+  gamma: 0.99
+  save_path: models/ppo_baseline.zip
+  ent_coef: 0.0
+  n_steps: 2048
+  rail_limit: 10.0
+  randomize_start: false
+  start_speed: 1.0

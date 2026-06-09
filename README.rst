@@ -19,8 +19,9 @@ Environments
     (``crane-controller`` library). The agent controls horizontal crane acceleration and must either
     start or stop the pendulum motion.
 
-    - **Observation**: crane x-position, crane x-velocity, load polar angle, load x-velocity
-    - **Actions**: Discrete(3) — accelerate left / coast / accelerate right
+    - **Observation**: crane x-position, crane x-velocity, load polar angle, pure angular velocity θ̇ (rad/s)
+    - **Actions**: ``Discrete(3)`` by default (Q-agent compatible) — accelerate left / coast / accelerate right;
+      ``Box([-1, 1])`` when ``continuous_actions=True`` (PPO default) — continuous acceleration command
     - **Modes**: *start* (build pendulum energy) or *stop* (dampen swing)
 
 ``ControlledCraneEnv``
@@ -93,16 +94,48 @@ Tests are suitable for CI/CD — no plot windows are produced.
 Training
 ^^^^^^^^
 
+Experiment configs
+""""""""""""""""""
+
+PPO training is driven by YAML experiment config files in ``experiments/``.
+Each file encodes both reward weights and training hyperparameters:
+
+.. code-block:: yaml
+
+   # experiments/hybrid_cv01.yaml
+   reward:
+     energy: 1.0
+     crane_velocity: 0.1
+     position: 0.02
+     terminal_penalty: -5.0
+   training:
+     steps: 3000000
+     n_envs: 32
+     gamma: 0.99
+     n_steps: 4096
+     rail_limit: 2.0
+     randomize_start: true
+     start_speed: 1.0
+
+Pass a config with ``--config PATH``; any key not present falls back to the dataclass defaults.
+A JSON sidecar (``*_meta.json``) is written alongside every saved model so ``play_ppo.py``
+can reconstruct the environment automatically — no ``--config`` needed at playback time.
+
 **PPO:**
 
 .. code-block:: shell
 
-   uv run python scripts/train_ppo.py
+   uv run python scripts/train_ppo.py --config experiments/hybrid_cv01.yaml \
+       --save-path models/my_model.zip --seed 42
 
 Key options:
 
+- ``--config PATH`` — load a YAML experiment config (reward weights + training hyperparams)
 - ``--steps N`` — total training timesteps (default: 100 000)
 - ``--n-envs N`` — number of parallel environments (default: 4)
+- ``--seed N`` — RNG seed for reproducibility
+- ``--continuous-actions`` / ``--no-continuous-actions`` — use ``Box([-1,1])`` or ``Discrete(3)`` action space (default: continuous)
+- ``--randomize-start`` / ``--start-speed SPEED`` — randomise initial crane speed up to ±SPEED each episode
 - ``--save-path PATH`` — where to write the trained model (default: ``models/ppo_AntiPendulumEnv.zip``)
 - ``--resume-from PATH`` — continue training from a saved checkpoint; preserves VecNormalize statistics and learning rate schedule
 - ``--dry-run`` — run 1 000 steps with a live reward-tracking plot and no model saved
@@ -128,23 +161,57 @@ Playing
 
 Run a trained agent visually. Both scripts accept ``--render-mode`` with the following options:
 
-- ``plot`` — 4-panel figure per episode (load angle, crane position/speed, rewards)
+- ``plot`` — 6-panel figure per episode (load angle, load speed, crane position, crane speed, rewards, acceleration)
 - ``play-back`` — animated crane trajectory after each episode
 - ``reward-tracking`` — live reward line plot updating every step
+
+Pre-trained models
+""""""""""""""""""
+
+Six pre-trained PPO models are included in ``models/`` (trained with ``experiments/hybrid_cv01.yaml``,
+3M steps, 32 parallel envs). All achieve 6/6 OOD generalisation at ``start_speed=7.0``
+(7× the ``[0.1, 1.0]`` training range).
+
++------------------------------------------+----------+
+| Model                                    | Actions  |
++==========================================+==========+
+| ``ppo_hcv01_discrete_s42.zip``           | Discrete |
++------------------------------------------+----------+
+| ``ppo_hcv01_discrete_s987.zip``          | Discrete |
++------------------------------------------+----------+
+| ``ppo_hcv01_discrete_s5775.zip``         | Discrete |
++------------------------------------------+----------+
+| ``ppo_hcv01_continuous_s42.zip``         | Box      |
++------------------------------------------+----------+
+| ``ppo_hcv01_continuous_s987.zip``        | Box      |
++------------------------------------------+----------+
+| ``ppo_hcv01_continuous_s5775.zip``       | Box      |
++------------------------------------------+----------+
+
+Each model bundle requires three files: ``.zip`` (policy), ``_vecnorm.pkl`` (observation
+normalisation statistics), ``_meta.json`` (reward config + flags). The ``play_ppo.py``
+script locates the sidecar files automatically from ``--model-path``.
 
 **PPO** (default render-mode: ``play-back``):
 
 .. code-block:: shell
 
-   uv run python scripts/play_ppo.py --model-path models/ppo_AntiPendulumEnv.zip
-   uv run python scripts/play_ppo.py --model-path models/ppo_AntiPendulumEnv.zip --render-mode plot --episodes 3
+   uv run python scripts/play_ppo.py --model-path models/ppo_hcv01_discrete_s42.zip --episodes 3 --render-mode plot
+   uv run python scripts/play_ppo.py --model-path models/ppo_hcv01_continuous_s42.zip --episodes 3 --render-mode plot
+
+OOD evaluation (randomised start speed, 7× training range):
+
+.. code-block:: shell
+
+   uv run python scripts/play_ppo.py --model-path models/ppo_hcv01_discrete_s42.zip \
+       --episodes 6 --render-mode plot --randomize-start --start-speed 7.0
 
 **Q-learning** (default render-mode: ``plot``):
 
 .. code-block:: shell
 
    uv run python scripts/play_q.py --model-path models/q_AntiPendulumEnv.json
-   uv run python scripts/play_q.py --model-path tests/anti-pendulum.json --render-mode play-back --episodes 3
+   uv run python scripts/play_q.py --model-path models/q_trained.json --render-mode play-back --episodes 3
 
 Analysing
 ^^^^^^^^^

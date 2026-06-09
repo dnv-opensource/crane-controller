@@ -52,9 +52,21 @@ class ProximalPolicyOptimizationAgent:
         Discount factor for future rewards (default 0.99). Higher values (e.g. 0.999)
         extend the effective planning horizon, which can improve policy quality on
         long episodes at the cost of slower value function convergence.
+    seed : int or None, optional
+        Random seed passed to PPO for reproducibility (default None).
+    ent_coef : float, optional
+        Entropy bonus coefficient (default 0.0).
+    learning_rate : float, optional
+        Adam learning rate (default 3e-4).
+    clip_range : float, optional
+        PPO clipping parameter (default 0.2). Lower = more conservative updates.
+    n_steps : int, optional
+        Timesteps collected per environment before each gradient update (default 2048).
+        Increasing to 8192 gives ~11 complete episodes per update instead of ~3,
+        producing more stable gradient estimates for long-horizon tasks.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         env: Callable[..., AntiPendulumEnv],
         n_envs: int = 4,
@@ -62,6 +74,11 @@ class ProximalPolicyOptimizationAgent:
         save_path: str | None = None,
         max_episode_steps: int = 3000,
         gamma: float = 0.99,
+        seed: int | None = None,
+        ent_coef: float = 0.0,
+        learning_rate: float = 3e-4,
+        clip_range: float = 0.2,
+        n_steps: int = 2048,
     ) -> None:
         """Set up the agent for training. Use :meth:`load` for inference."""
         self.save_path = save_path
@@ -73,7 +90,17 @@ class ProximalPolicyOptimizationAgent:
             wrapper_kwargs={"max_episode_steps": max_episode_steps},
         )
         self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
-        self.model = PPO("MlpPolicy", self.vec_env, gamma=gamma, verbose=1 if n_envs == 1 else 0)
+        self.model = PPO(
+            "MlpPolicy",
+            self.vec_env,
+            gamma=gamma,
+            seed=seed,
+            ent_coef=ent_coef,
+            learning_rate=learning_rate,
+            clip_range=clip_range,
+            n_steps=n_steps,
+            verbose=1 if n_envs == 1 else 0,
+        )
         self.env: AntiPendulumEnv = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
 
     @classmethod
@@ -278,5 +305,5 @@ class ProximalPolicyOptimizationAgent:
         while not terminated and not truncated:
             norm_obs = self.vec_env.normalize_obs(np.asarray(obs))
             action, _states = self.model.predict(np.asarray(norm_obs), deterministic=True)
-            obs, _rewards, terminated, truncated, _ = self.env.step(int(action))
+            obs, _rewards, terminated, truncated, _ = self.env.step(action)
         self.env.render()

@@ -158,3 +158,18 @@ demos/**/*.nc
 
 # Cmake generated files
 CMakeUserPresets.json
+
+# Model artifacts (large binaries and generated plots — not tracked by default)
+models/*.zip
+models/*.pkl
+models/*.png
+models/*_meta.json
+models/*_vecnorm.pkl
+
+# Pre-trained hybrid_cv01 models — explicitly tracked
+!models/ppo_hcv01_*.zip
+!models/ppo_hcv01_*_vecnorm.pkl
+!models/ppo_hcv01_*_meta.json
+
+# Q-agent test artifacts
+tests/test_working_directory/*.json
