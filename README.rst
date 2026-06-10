@@ -19,6 +19,28 @@ Environments
     (``crane-controller`` library). The agent controls horizontal crane acceleration and must either
     start or stop the pendulum motion.
 
+    .. code-block:: text
+
+          -rail_limit                   0                  +rail_limit
+               |                        |                        |
+         ──────┼────────────────────────┼────────────────────────┼──── rail
+                                  ┌─────┴─────┐
+               ← ẍ ────────────── │   crane   │ ────────────── ẍ →
+                                  └─────┬─────┘
+                                        │   obs[0] = x    crane position
+                                        │   obs[1] = ẋ    crane velocity
+                                        │   reward: −|x|, −ẋ²
+                                     L  │
+                                        │╲ θ
+                                        │ ╲
+                                        │  ╲
+                                        │   ●  load
+                                              obs[2] = θ   polar angle from vertical
+                                              obs[3] = θ̇   angular velocity (pure)
+                                              reward: KE + PE
+
+               episode truncated (terminal_penalty) when |x| > rail_limit
+
     - **Observation**: crane x-position, crane x-velocity, load polar angle, pure angular velocity θ̇ (rad/s)
     - **Actions**: ``Discrete(3)`` by default (Q-agent compatible) — accelerate left / coast / accelerate right;
       ``Box([-1, 1])`` when ``continuous_actions=True`` (PPO default) — continuous acceleration command
