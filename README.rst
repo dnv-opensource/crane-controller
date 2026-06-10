@@ -192,6 +192,24 @@ Each model bundle requires three files: ``.zip`` (policy), ``_vecnorm.pkl`` (obs
 normalisation statistics), ``_meta.json`` (reward config + flags). The ``play_ppo.py``
 script locates the sidecar files automatically from ``--model-path``.
 
+OOD evaluation at ``start_speed=7.0`` (7× the training range, seed 827596):
+
+.. figure:: assets/ood_eval_discrete_1.png
+   :width: 80%
+   :alt: Discrete PPO OOD episode 1 at start_speed=7.0
+
+.. figure:: assets/ood_eval_discrete_2.png
+   :width: 80%
+   :alt: Discrete PPO OOD episode 2 at start_speed=7.0
+
+.. figure:: assets/ood_eval_continuous_1.png
+   :width: 80%
+   :alt: Continuous PPO OOD episode 1 at start_speed=7.0
+
+.. figure:: assets/ood_eval_continuous_2.png
+   :width: 80%
+   :alt: Continuous PPO OOD episode 2 at start_speed=7.0
+
 **PPO** (default render-mode: ``play-back``):
 
 .. code-block:: shell
