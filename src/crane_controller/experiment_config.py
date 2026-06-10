@@ -175,15 +175,15 @@ class TrainingConfig:
         defaults = cls()
         seed_raw = d.get("seed", defaults.seed)
         return cls(
-            steps=int(d.get("steps", defaults.steps)),  # type: ignore[arg-type]
-            n_envs=int(d.get("n_envs", defaults.n_envs)),  # type: ignore[arg-type]
+            steps=int(d.get("steps", defaults.steps)),  # type: ignore[arg-type,call-overload]
+            n_envs=int(d.get("n_envs", defaults.n_envs)),  # type: ignore[arg-type,call-overload]
             gamma=float(d.get("gamma", defaults.gamma)),  # type: ignore[arg-type]
             save_path=str(d.get("save_path", defaults.save_path)),
             seed=int(seed_raw) if isinstance(seed_raw, int) else None,
             ent_coef=float(d.get("ent_coef", defaults.ent_coef)),  # type: ignore[arg-type]
             learning_rate=float(d.get("learning_rate", defaults.learning_rate)),  # type: ignore[arg-type]
             clip_range=float(d.get("clip_range", defaults.clip_range)),  # type: ignore[arg-type]
-            n_steps=int(d.get("n_steps", defaults.n_steps)),  # type: ignore[arg-type]
+            n_steps=int(d.get("n_steps", defaults.n_steps)),  # type: ignore[arg-type,call-overload]
             randomize_start=bool(d.get("randomize_start", defaults.randomize_start)),
             rail_limit=float(d.get("rail_limit", defaults.rail_limit)),  # type: ignore[arg-type]
             start_speed=float(d.get("start_speed", defaults.start_speed)),  # type: ignore[arg-type]
