@@ -12,7 +12,7 @@ from crane_controller.experiment_config import (
     ExperimentConfig,
     RewardConfig,
     TrainingConfig,
-    _meta_path,
+    _meta_path,  # type: ignore[reportPrivateUsage]
     load_experiment_config,
     load_training_sidecar,
     save_training_sidecar,
@@ -142,7 +142,7 @@ def test_load_experiment_config_none_returns_defaults() -> None:
 def test_load_experiment_config_reads_yaml(tmp_path: Path) -> None:
     yaml_content = "reward:\n  energy: 2.0\n  position: 0.1\ntraining:\n  steps: 50000\n  gamma: 0.95\n"
     cfg_file = tmp_path / "test.yaml"
-    cfg_file.write_text(yaml_content)
+    _ = cfg_file.write_text(yaml_content)
     ec = load_experiment_config(cfg_file)
     assert ec.reward.energy == 2.0
     assert ec.reward.position == 0.1
@@ -153,7 +153,7 @@ def test_load_experiment_config_reads_yaml(tmp_path: Path) -> None:
 
 def test_load_experiment_config_nonexistent_file_raises() -> None:
     with pytest.raises(FileNotFoundError):
-        load_experiment_config("/nonexistent/path/config.yaml")
+        _ = load_experiment_config("/nonexistent/path/config.yaml")
 
 
 # ---------------------------------------------------------------------------
@@ -200,4 +200,4 @@ def test_load_training_sidecar_round_trip(tmp_path: Path) -> None:
 def test_load_training_sidecar_missing_raises(tmp_path: Path) -> None:
     model_path = tmp_path / "model.zip"
     with pytest.raises(FileNotFoundError):
-        load_training_sidecar(model_path)
+        _ = load_training_sidecar(model_path)

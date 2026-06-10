@@ -154,7 +154,7 @@ def test_obs3_is_pure_theta_dot(crane: Callable[..., Crane]) -> None:
     env = AntiPendulumEnv(crane, start_speed=1.0, randomize_start=False)
     obs, _ = env.reset()
     wire = env.wire
-    expected = (wire.cm_v[0] - wire.origin_v[0]) / wire.length
+    expected = (wire.cm_v[0] - wire.origin_v[0]) / wire.length  # pyright: ignore[reportUnknownMemberType]
     assert np.isclose(obs[3], expected)
     # At reset: crane at rest (origin_v=0), so theta_dot = start_speed / length
     assert np.isclose(obs[3], 1.0 / wire.length)
@@ -220,7 +220,7 @@ def test_action_space_is_discrete(crane: Callable[..., Crane]) -> None:
     """Part A: action space is Discrete(3) when continuous_actions=False."""
     env = AntiPendulumEnv(crane, continuous_actions=False)
     assert isinstance(env.action_space, spaces.Discrete)
-    assert int(env.action_space.n) == 3
+    assert int(env.action_space.n) == 3  # pyright: ignore[reportUnknownMemberType]
 
 
 # ---------------------------------------------------------------------------
@@ -239,7 +239,7 @@ def test_action_space_type(crane: Callable[..., Crane], continuous_actions: bool
         assert float(env.action_space.high[0]) == 1.0
     else:
         assert isinstance(env.action_space, spaces.Discrete)
-        assert int(env.action_space.n) == 3
+        assert int(env.action_space.n) == 3  # pyright: ignore[reportUnknownMemberType]
 
 
 @pytest.mark.parametrize("continuous_actions", [True, False])

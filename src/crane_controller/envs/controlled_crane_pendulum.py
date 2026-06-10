@@ -281,7 +281,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
             _ = ax.legend()
         _ = plt.suptitle(
-            f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"
+            f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"  # pyright: ignore[reportUnknownMemberType]
         )
         plt.show()
         for key in self.traces:
@@ -375,7 +375,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         theta_dot = (self.wire.cm_v[0] - self.wire.origin_v[0]) / self.wire.length  # pyright: ignore[reportUnknownMemberType]
         theta_ddot = (theta_dot - self._prev_theta_dot) / self.dt if self._prev_theta_dot is not None else 0.0
         self._prev_theta_dot = theta_dot
-        self.reward += (
+        self.reward += (  # pyright: ignore[reportUnknownMemberType]
             rc.angle * (-(theta**2))
             + rc.angular_velocity * (-(theta_dot**2))
             + rc.crane_velocity * (-(self.crane.velocity[0] ** 2))
@@ -398,7 +398,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
             self.traces["l_v"].append(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
             self.traces["acc"].append(acc)
 
-        return (obs, self.reward, err)
+        return (obs, self.reward, err)  # pyright: ignore[reportUnknownMemberType]
 
     def low_reward(self) -> float:
         """Return the lowest possible reward for the current mode.
@@ -456,7 +456,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
                 self._reward_point = self._reward_plot_init("b.")
 
         else:  # reset between episodes. Data are available
-            self.reward_stats.append([self.steps, self.reward])
+            self.reward_stats.append([self.steps, self.reward])  # pyright: ignore[reportUnknownMemberType]
             if self.render_mode == "data":
                 self._reward_point.set_data([r[0] for r in self.reward_stats], [r[1] for r in self.reward_stats])
                 plt.pause(1e-10)

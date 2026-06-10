@@ -7,6 +7,10 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 import yaml
 
@@ -63,7 +67,7 @@ class RewardConfig:
     angular_acceleration: float = 0.0
 
     @classmethod
-    def from_dict(cls, d: dict[str, object]) -> RewardConfig:
+    def from_dict(cls, d: Mapping[str, object]) -> RewardConfig:
         """Instantiate from a mapping, filling missing keys with defaults.
 
         Parameters
@@ -155,7 +159,7 @@ class TrainingConfig:
     continuous_actions: bool = True
 
     @classmethod
-    def from_dict(cls, d: dict[str, object]) -> TrainingConfig:
+    def from_dict(cls, d: Mapping[str, object]) -> TrainingConfig:
         """Instantiate from a mapping, filling missing keys with defaults.
 
         Parameters
@@ -206,7 +210,7 @@ class ExperimentConfig:
     config_source: str | None = None
 
     @classmethod
-    def from_dict(cls, d: dict[str, object], *, config_source: str | None = None) -> ExperimentConfig:
+    def from_dict(cls, d: Mapping[str, object], *, config_source: str | None = None) -> ExperimentConfig:
         """Instantiate from a nested mapping.
 
         Parameters
@@ -301,7 +305,7 @@ def save_training_sidecar(model_path: str | Path, config: ExperimentConfig) -> P
     """
     sidecar = _meta_path(model_path)
     payload = dataclasses.asdict(config)
-    sidecar.write_text(json.dumps(payload, indent=2))
+    _ = sidecar.write_text(json.dumps(payload, indent=2))
     logger.info("Training sidecar written to %s", sidecar)
     return sidecar
 
