@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -23,6 +24,24 @@ if TYPE_CHECKING:
 plt.rcParams["figure.figsize"] = (10, 5)
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass
+class EpisodeResult:
+    """Structured result returned by :meth:`ProximalPolicyOptimizationAgent.do_one_episode`."""
+
+    start_speed: float
+    ep_steps: int
+    ep_reward: float
+    terminated: bool
+    truncated: bool
+    success: bool
+    t_min_start: float
+    t_min_min: float
+    t_min_final: float
+    t_min_mean_last100: float
+    x_pos_final: float
+    x_vel_final: float
 
 
 class ProximalPolicyOptimizationAgent:
@@ -318,7 +337,12 @@ class ProximalPolicyOptimizationAgent:
         self.vec_env.norm_reward = True
         logger.info("Mean:%s, stdev:%s", mean_reward, std_reward)
 
-    def do_one_episode(self, seed: int = 1, save_png: str | None = None) -> None:
+    def do_one_episode(
+        self,
+        seed: int = 1,
+        save_png: str | None = None,
+        success_threshold: float | None = None,
+    ) -> EpisodeResult:
         """Run one episode on the non-vectorised, trained environment.
 
         Parameters
@@ -326,24 +350,45 @@ class ProximalPolicyOptimizationAgent:
         seed : int, optional
             Random seed for the environment reset (default 1).
         save_png : str or None, optional
-            If set, save a 2-panel trajectory plot (x_pos + t_min vs step) to this path
-            (default None).
+            If set, save a 7-panel trajectory plot to this path (default None).
+        success_threshold : float or None, optional
+            Minimum episode reward to classify the episode as solved.  Defaults
+            to the threshold stored on the agent (from training config).
+
+        Returns
+        -------
+        EpisodeResult
+            Per-episode metrics including t_min stats, final crane state, and outcome.
         """
+        threshold = success_threshold if success_threshold is not None else self._success_threshold
         obs, _ = self.env.reset(seed=seed)
+        start_speed: float = self.env.unwrapped.initial_speed  # type: ignore[attr-defined]
         terminated = truncated = False
+        ep_steps = 0
+        ep_reward = 0.0
         t_min_trace: list[float] = []
+        info: dict[str, float | int] = {}
         while not terminated and not truncated:
             norm_obs = self.vec_env.normalize_obs(np.asarray(obs))
             action, _states = self.model.predict(np.asarray(norm_obs), deterministic=True)
-            obs, _rewards, terminated, truncated, info = self.env.step(action)
+            obs, reward, terminated, truncated, info = self.env.step(action)
+            ep_steps += 1
+            ep_reward += float(reward)
             if "t_min" in info:
                 t_min_trace.append(float(info["t_min"]))
-        if t_min_trace:
-            logger.info(
-                "t_min: start=%.2f  min=%.2f  final=%.2f  mean_last100=%.2f",
-                t_min_trace[0],
-                min(t_min_trace),
-                t_min_trace[-1],
-                float(np.mean(t_min_trace[-100:])),
-            )
         self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined]
+        nan = float("nan")
+        return EpisodeResult(
+            start_speed=start_speed,
+            ep_steps=ep_steps,
+            ep_reward=ep_reward,
+            terminated=terminated,
+            truncated=truncated,
+            success=truncated and not terminated and ep_reward >= threshold,
+            t_min_start=t_min_trace[0] if t_min_trace else nan,
+            t_min_min=min(t_min_trace) if t_min_trace else nan,
+            t_min_final=t_min_trace[-1] if t_min_trace else nan,
+            t_min_mean_last100=float(np.mean(t_min_trace[-100:])) if t_min_trace else nan,
+            x_pos_final=float(info.get("x_pos", nan)),
+            x_vel_final=float(info.get("x_vel", nan)),
+        )
