@@ -26,6 +26,25 @@ plt.rcParams["figure.figsize"] = (10, 5)
 logger = logging.getLogger(__name__)
 
 
+_T_MIN_SETTLE_EPS = 0.05
+
+
+def _t_min_settle(trace: list[float]) -> int:
+    """Return the first step at which t_min permanently stays at/below the plateau.
+
+    Scans from the end of *trace* to find the last step that was still above
+    ``trace[-1] + _T_MIN_SETTLE_EPS``.  Returns that index + 2 (1-indexed step
+    after the last unsettled step), or 1 if already settled from the start.
+    """
+    if not trace:
+        return 0
+    threshold = trace[-1] + _T_MIN_SETTLE_EPS
+    for i in range(len(trace) - 1, -1, -1):
+        if trace[i] > threshold:
+            return i + 2
+    return 1
+
+
 @dataclasses.dataclass
 class EpisodeResult:
     """Structured result returned by :meth:`ProximalPolicyOptimizationAgent.do_one_episode`."""
@@ -391,7 +410,7 @@ class ProximalPolicyOptimizationAgent:
             t_min_min=min(t_min_trace) if t_min_trace else nan,
             t_min_final=t_min_trace[-1] if t_min_trace else nan,
             t_min_mean_last100=float(np.mean(t_min_trace[-100:])) if t_min_trace else nan,
-            t_min_settle_step=t_min_trace.index(min(t_min_trace)) + 1 if t_min_trace else 0,
+            t_min_settle_step=_t_min_settle(t_min_trace),
             x_pos_final=float(info.get("x_pos", nan)),
             x_vel_final=float(info.get("x_vel", nan)),
         )
