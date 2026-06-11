@@ -153,7 +153,7 @@ def main() -> None:
             buckets[r.start_speed].append(r)
         header = (
             f"{'speed':>6}  {'n':>3}  {'nocrash%':>8}  {'rew/step':>9}  {'energy_frac':>11}"
-            f"  {'settle':>7}  {'x_pos_m':>8}  {'x_vel_f':>7}  {'x_acc_f':>7}"
+            f"  {'settle_step':>10}  {'x_pos_m':>8}  {'x_vel_f':>7}  {'x_acc_f':>7}"
             f"  {'theta_f':>7}  {'thdot_f':>7}"
         )
         LOGGER.info("\n%s\n%s", header, "-" * len(header))
@@ -172,7 +172,7 @@ def main() -> None:
             theta_mean = statistics.mean(r.theta_final for r in group)
             thdot_mean = statistics.mean(r.theta_dot_final for r in group)
             LOGGER.info(
-                "%6.1f  %3d  %7.0f%%  %+9.4f  %11.4f  %7.0f  %8.4f  %7.4f  %7.4f  %7.3f  %7.4f",
+                "%6.1f  %3d  %7.0f%%  %+9.4f  %11.4f  %10.0f  %8.4f  %7.4f  %7.4f  %7.3f  %7.4f",
                 speed, n, nocrash_pct, rew_per_step_mean, energy_frac_mean,
                 settle_mean, x_pos_m_mean, x_vel_mean, acc_mean, theta_mean, thdot_mean,
             )
