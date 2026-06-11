@@ -361,8 +361,10 @@ class ProximalPolicyOptimizationAgent:
             Per-episode metrics including t_min stats, final crane state, and outcome.
         """
         threshold = success_threshold if success_threshold is not None else self._success_threshold
-        obs, _ = self.env.reset(seed=seed)
+        obs, reset_info = self.env.reset(seed=seed)
+        nan = float("nan")
         start_speed: float = self.env.unwrapped.initial_speed  # type: ignore[attr-defined]
+        t_min_start_val: float = float(reset_info.get("t_min", nan))
         terminated = truncated = False
         ep_steps = 0
         ep_reward = 0.0
@@ -377,7 +379,6 @@ class ProximalPolicyOptimizationAgent:
             if "t_min" in info:
                 t_min_trace.append(float(info["t_min"]))
         self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined]
-        nan = float("nan")
         return EpisodeResult(
             start_speed=start_speed,
             ep_steps=ep_steps,
@@ -385,7 +386,7 @@ class ProximalPolicyOptimizationAgent:
             terminated=terminated,
             truncated=truncated,
             success=truncated and not terminated and ep_reward >= threshold,
-            t_min_start=t_min_trace[0] if t_min_trace else nan,
+            t_min_start=t_min_start_val,
             t_min_min=min(t_min_trace) if t_min_trace else nan,
             t_min_final=t_min_trace[-1] if t_min_trace else nan,
             t_min_mean_last100=float(np.mean(t_min_trace[-100:])) if t_min_trace else nan,

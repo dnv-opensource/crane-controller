@@ -10,9 +10,11 @@ Examples
 """
 
 import argparse
+import collections
 import csv
 import dataclasses
 import logging
+import statistics
 from pathlib import Path
 
 from crane_controller.crane_factory import build_crane
@@ -143,6 +145,22 @@ def main() -> None:
             writer.writeheader()
             writer.writerows(dataclasses.asdict(r) for r in all_results)
         LOGGER.info("Play CSV: %s", csv_path)
+
+    if args.speed_sweep and all_results:
+        buckets: dict[float, list[EpisodeResult]] = collections.defaultdict(list)
+        for r in all_results:
+            buckets[r.start_speed].append(r)
+        header = f"{'speed':>6}  {'n':>3}  {'succ%':>6}  {'rew_mean':>9}  {'rew_std':>8}  {'t_min_final':>11}"
+        LOGGER.info("\n%s\n%s", header, "-" * len(header))
+        for speed in sorted(buckets):
+            group = buckets[speed]
+            n = len(group)
+            succ_pct = 100.0 * sum(r.success for r in group) / n
+            rew_mean = statistics.mean(r.ep_reward for r in group)
+            rew_std = statistics.stdev(r.ep_reward for r in group) if n > 1 else 0.0
+            t_min_mean = statistics.mean(r.t_min_final for r in group)
+            LOGGER.info("%6.1f  %3d  %5.0f%%  %+9.2f  %8.2f  %11.2f",
+                        speed, n, succ_pct, rew_mean, rew_std, t_min_mean)
 
 
 if __name__ == "__main__":
