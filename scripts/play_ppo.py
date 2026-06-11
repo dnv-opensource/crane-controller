@@ -125,13 +125,14 @@ def main() -> None:
                 )
             result = agent.do_one_episode(seed=episode + 1, save_png=png_path)
             LOGGER.info(
-                "  steps=%d  rew=%.2f  t_min=[%.2f→%.2f]  terminated=%s  truncated=%s",
+                "  steps=%d  rew=%.2f  t_min=[%.2f→%.2f@%d]  success=%s  terminated=%s",
                 result.ep_steps,
                 result.ep_reward,
                 result.t_min_start,
                 result.t_min_final,
+                result.t_min_settle_step,
+                result.success,
                 result.terminated,
-                result.truncated,
             )
             if png_path is not None:
                 LOGGER.info("  PNG: %s", png_path)
@@ -150,7 +151,7 @@ def main() -> None:
         buckets: dict[float, list[EpisodeResult]] = collections.defaultdict(list)
         for r in all_results:
             buckets[r.start_speed].append(r)
-        header = f"{'speed':>6}  {'n':>3}  {'succ%':>6}  {'rew_mean':>9}  {'rew_std':>8}  {'t_min_final':>11}"
+        header = f"{'speed':>6}  {'n':>3}  {'succ%':>6}  {'rew_mean':>9}  {'rew_std':>8}  {'t_min_final':>11}  {'settle_step':>11}"
         LOGGER.info("\n%s\n%s", header, "-" * len(header))
         for speed in sorted(buckets):
             group = buckets[speed]
@@ -159,8 +160,9 @@ def main() -> None:
             rew_mean = statistics.mean(r.ep_reward for r in group)
             rew_std = statistics.stdev(r.ep_reward for r in group) if n > 1 else 0.0
             t_min_mean = statistics.mean(r.t_min_final for r in group)
-            LOGGER.info("%6.1f  %3d  %5.0f%%  %+9.2f  %8.2f  %11.2f",
-                        speed, n, succ_pct, rew_mean, rew_std, t_min_mean)
+            settle_mean = statistics.mean(r.t_min_settle_step for r in group)
+            LOGGER.info("%6.1f  %3d  %5.0f%%  %+9.2f  %8.2f  %11.2f  %11.0f",
+                        speed, n, succ_pct, rew_mean, rew_std, t_min_mean, settle_mean)
 
 
 if __name__ == "__main__":

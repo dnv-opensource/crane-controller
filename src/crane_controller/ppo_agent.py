@@ -40,6 +40,7 @@ class EpisodeResult:
     t_min_min: float
     t_min_final: float
     t_min_mean_last100: float
+    t_min_settle_step: int
     x_pos_final: float
     x_vel_final: float
 
@@ -390,6 +391,7 @@ class ProximalPolicyOptimizationAgent:
             t_min_min=min(t_min_trace) if t_min_trace else nan,
             t_min_final=t_min_trace[-1] if t_min_trace else nan,
             t_min_mean_last100=float(np.mean(t_min_trace[-100:])) if t_min_trace else nan,
+            t_min_settle_step=t_min_trace.index(min(t_min_trace)) + 1 if t_min_trace else 0,
             x_pos_final=float(info.get("x_pos", nan)),
             x_vel_final=float(info.get("x_vel", nan)),
         )
