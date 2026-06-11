@@ -54,6 +54,7 @@ class EpisodeResult:
     ep_reward: float
     terminated: bool
     truncated: bool
+    no_crash: bool
     success: bool
     t_min_start: float
     t_min_min: float
@@ -62,6 +63,8 @@ class EpisodeResult:
     t_min_settle_step: int
     x_pos_final: float
     x_vel_final: float
+    theta_final: float
+    theta_dot_final: float
 
 
 class ProximalPolicyOptimizationAgent:
@@ -405,6 +408,7 @@ class ProximalPolicyOptimizationAgent:
             ep_reward=ep_reward,
             terminated=terminated,
             truncated=truncated,
+            no_crash=not terminated,
             success=truncated and not terminated and ep_reward >= threshold,
             t_min_start=t_min_start_val,
             t_min_min=min(t_min_trace) if t_min_trace else nan,
@@ -413,4 +417,6 @@ class ProximalPolicyOptimizationAgent:
             t_min_settle_step=_t_min_settle(t_min_trace),
             x_pos_final=float(info.get("x_pos", nan)),
             x_vel_final=float(info.get("x_vel", nan)),
+            theta_final=float(obs[2]),
+            theta_dot_final=float(obs[3]),
         )
