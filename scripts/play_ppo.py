@@ -10,6 +10,7 @@ Examples
 
 import argparse
 import logging
+from pathlib import Path
 
 from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
@@ -52,8 +53,26 @@ def main() -> None:
         default=config.training.continuous_actions,
         help="Use Box(-1,1) action space (default from model sidecar).",
     )
+    _ = parser.add_argument(
+        "--max-episode-steps",
+        type=int,
+        default=None,
+        help=(
+            "Override TimeLimit for play episodes (default: value from model sidecar). "
+            "Pass 3000 when playing old pre-trained models that have no max_episode_steps "
+            "in their sidecar (those default to 100 otherwise)."
+        ),
+    )
+    _ = parser.add_argument(
+        "--save-png",
+        "--no-save-png",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Save x_pos + t_min trajectory plot per episode alongside the model (default True).",
+    )
     args = parser.parse_args()
 
+    mep = args.max_episode_steps if args.max_episode_steps is not None else config.training.max_episode_steps
     agent = ProximalPolicyOptimizationAgent.load(
         AntiPendulumEnv,
         model_path=args.model_path,
@@ -64,14 +83,25 @@ def main() -> None:
             "render_mode": args.render_mode,
             "reward_fac": config.reward,
             "rail_limit": config.training.rail_limit,
+            "reward_limit": config.training.reward_limit,
             "continuous_actions": args.continuous_actions,
         },
+        max_episode_steps=mep,
     )
 
     for episode in range(args.episodes):
         LOGGER.info("Episode %s/%s", episode + 1, args.episodes)
-        agent.do_one_episode(seed=episode + 1)
+        png_path: str | None = None
+        if args.save_png:
+            stem = Path(args.model_path).stem
+            png_path = str(
+                Path(args.model_path).parent
+                / f"{stem}_play_ss{args.start_speed:+.1f}_ep{episode + 1}.png"
+            )
+        agent.do_one_episode(seed=episode + 1, save_png=png_path)
         LOGGER.info("  start_speed: %.3f", agent.env.unwrapped.initial_speed)  # type: ignore[attr-defined]
+        if png_path is not None:
+            LOGGER.info("  PNG: %s", png_path)
 
 
 if __name__ == "__main__":

@@ -14,10 +14,11 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import VecNormalize
 
+from crane_controller.callbacks import EpRewardLogCallback
+from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv  # noqa: TC001
+
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 
 plt.rcParams["figure.figsize"] = (10, 5)
 
@@ -72,7 +73,8 @@ class ProximalPolicyOptimizationAgent:
         n_envs: int = 4,
         env_kwargs: dict[str, Any] | None = None,
         save_path: str | None = None,
-        max_episode_steps: int = 3000,
+        max_episode_steps: int = 1000,
+        success_threshold: float = -15.0,
         gamma: float = 0.99,
         seed: int | None = None,
         ent_coef: float = 0.0,
@@ -82,12 +84,13 @@ class ProximalPolicyOptimizationAgent:
     ) -> None:
         """Set up the agent for training. Use :meth:`load` for inference."""
         self.save_path = save_path
+        self._max_episode_steps = max_episode_steps
+        self._success_threshold = success_threshold
+        _mep = max_episode_steps
         raw_vec_env = make_vec_env(
-            env_id=env,
+            env_id=lambda **kw: TimeLimit(env(**kw), max_episode_steps=_mep),
             n_envs=n_envs,
             env_kwargs=env_kwargs,
-            wrapper_class=TimeLimit,  # type: ignore[arg-type]
-            wrapper_kwargs={"max_episode_steps": max_episode_steps},
         )
         self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
         self.model = PPO(
@@ -109,6 +112,8 @@ class ProximalPolicyOptimizationAgent:
         env: Callable[..., AntiPendulumEnv],
         model_path: str | Path,
         env_kwargs: dict[str, Any] | None = None,
+        max_episode_steps: int = 1000,
+        success_threshold: float = -15.0,
     ) -> ProximalPolicyOptimizationAgent:
         """Load a trained agent for inference.
 
@@ -127,12 +132,13 @@ class ProximalPolicyOptimizationAgent:
             Agent configured for inference with VecNormalize in evaluation mode.
         """
         instance = object.__new__(cls)
+        instance._max_episode_steps = max_episode_steps  # noqa: SLF001
+        instance._success_threshold = success_threshold  # noqa: SLF001
+        _mep = max_episode_steps
         raw_vec_env = make_vec_env(
-            env_id=env,
+            env_id=lambda **kw: TimeLimit(env(**kw), max_episode_steps=_mep),
             n_envs=1,
             env_kwargs=env_kwargs,
-            wrapper_class=TimeLimit,  # type: ignore[arg-type]
-            wrapper_kwargs={"max_episode_steps": 3000},
         )
         stats_path = cls._stats_path(str(model_path))
         if stats_path.exists():
@@ -154,7 +160,8 @@ class ProximalPolicyOptimizationAgent:
         env_kwargs: dict[str, Any] | None = None,
         save_path: str | None = None,
         n_envs: int = 4,
-        max_episode_steps: int = 3000,
+        max_episode_steps: int = 1000,
+        success_threshold: float = -15.0,
     ) -> ProximalPolicyOptimizationAgent:
         """Load a saved agent to continue training.
 
@@ -180,12 +187,13 @@ class ProximalPolicyOptimizationAgent:
         """
         instance = object.__new__(cls)
         instance.save_path = save_path
+        instance._max_episode_steps = max_episode_steps  # noqa: SLF001
+        instance._success_threshold = success_threshold  # noqa: SLF001
+        _mep = max_episode_steps
         raw_vec_env = make_vec_env(
-            env_id=env,
+            env_id=lambda **kw: TimeLimit(env(**kw), max_episode_steps=_mep),
             n_envs=n_envs,
             env_kwargs=env_kwargs,
-            wrapper_class=TimeLimit,  # type: ignore[arg-type]
-            wrapper_kwargs={"max_episode_steps": max_episode_steps},
         )
         stats_path = cls._stats_path(str(model_path))
         if stats_path.exists():
@@ -253,6 +261,8 @@ class ProximalPolicyOptimizationAgent:
         *,
         progress_bar: bool = True,
         reset_num_timesteps: bool = True,
+        log_interval: int = 50_000,
+        csv_path: str | None = None,
     ) -> None:
         """Train the PPO model.
 
@@ -266,11 +276,27 @@ class ProximalPolicyOptimizationAgent:
             Whether to reset the internal timestep counter before training.
             Set to False when resuming to preserve the learning rate schedule
             (default True).
+        log_interval : int, optional
+            Timesteps between ep_rew_mean log lines printed alongside the
+            progress bar (default 50 000). Ignored when progress_bar=False.
+        csv_path : str or None, optional
+            Path to write a CSV log file with per-interval metrics at the end
+            of training (default None).
         """
+        cb = (
+            EpRewardLogCallback(
+                total_timesteps, log_interval,
+                csv_path=csv_path,
+                max_episode_steps=self._max_episode_steps,
+                success_threshold=self._success_threshold,
+            )
+            if progress_bar else None
+        )
         _ = self.model.learn(
             total_timesteps,
             progress_bar=progress_bar,
             reset_num_timesteps=reset_num_timesteps,
+            callback=cb,
         )
         if self.save_path is not None and self.env.render_mode != "play-back":
             self.model.save(self.save_path)
@@ -292,18 +318,32 @@ class ProximalPolicyOptimizationAgent:
         self.vec_env.norm_reward = True
         logger.info("Mean:%s, stdev:%s", mean_reward, std_reward)
 
-    def do_one_episode(self, seed: int = 1) -> None:
+    def do_one_episode(self, seed: int = 1, save_png: str | None = None) -> None:
         """Run one episode on the non-vectorised, trained environment.
 
         Parameters
         ----------
         seed : int, optional
             Random seed for the environment reset (default 1).
+        save_png : str or None, optional
+            If set, save a 2-panel trajectory plot (x_pos + t_min vs step) to this path
+            (default None).
         """
         obs, _ = self.env.reset(seed=seed)
         terminated = truncated = False
+        t_min_trace: list[float] = []
         while not terminated and not truncated:
             norm_obs = self.vec_env.normalize_obs(np.asarray(obs))
             action, _states = self.model.predict(np.asarray(norm_obs), deterministic=True)
-            obs, _rewards, terminated, truncated, _ = self.env.step(action)
-        self.env.render()
+            obs, _rewards, terminated, truncated, info = self.env.step(action)
+            if "t_min" in info:
+                t_min_trace.append(float(info["t_min"]))
+        if t_min_trace:
+            logger.info(
+                "t_min: start=%.2f  min=%.2f  final=%.2f  mean_last100=%.2f",
+                t_min_trace[0],
+                min(t_min_trace),
+                t_min_trace[-1],
+                float(np.mean(t_min_trace[-100:])),
+            )
+        self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined]

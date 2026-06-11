@@ -147,6 +147,18 @@ def main() -> None:  # noqa: PLR0915
         default=config.training.continuous_actions,
         help="Use Box(-1,1) action space for PPO (default True). Pass --no-continuous-actions for Discrete(3).",
     )
+    _ = parser.add_argument(
+        "--max-episode-steps",
+        type=int,
+        default=config.training.max_episode_steps,
+        help="TimeLimit cap per episode (default 1000).",
+    )
+    _ = parser.add_argument(
+        "--success-threshold",
+        type=float,
+        default=config.training.success_threshold,
+        help="Minimum episode reward to classify a full-duration episode as solved (default -15.0).",
+    )
     args = parser.parse_args()
 
     # Resolve final reward config: explicit --reward-fac beats loaded YAML/defaults.
@@ -168,6 +180,8 @@ def main() -> None:  # noqa: PLR0915
             rail_limit=args.rail_limit,
             start_speed=args.start_speed,
             continuous_actions=args.continuous_actions,
+            max_episode_steps=args.max_episode_steps,
+            success_threshold=args.success_threshold,
         ),
         config_source=pre_args.config,
     )
@@ -227,12 +241,16 @@ def main() -> None:  # noqa: PLR0915
                 "render_mode": args.render_mode,
                 "reward_fac": resume_config.reward,
                 "rail_limit": args.rail_limit,
+                "reward_limit": resume_config.training.reward_limit,
                 "continuous_actions": args.continuous_actions,
             },
             save_path=args.save_path,
             n_envs=args.n_envs,
+            max_episode_steps=resume_config.training.max_episode_steps,
+            success_threshold=resume_config.training.success_threshold,
         )
-        agent.do_training(args.steps, reset_num_timesteps=False)
+        csv_path = str(Path(args.save_path).with_name(Path(args.save_path).stem + "_log.csv"))
+        agent.do_training(args.steps, reset_num_timesteps=False, csv_path=csv_path)
         _ = save_training_sidecar(args.save_path, resume_config)
         vecnorm_path = Path(args.save_path).parent / f"{Path(args.save_path).stem}_vecnorm.pkl"
         LOGGER.info("Model saved to %s", args.save_path)
@@ -249,6 +267,7 @@ def main() -> None:  # noqa: PLR0915
                 "render_mode": args.render_mode,
                 "reward_fac": experiment_config.reward,
                 "rail_limit": experiment_config.training.rail_limit,
+                "reward_limit": experiment_config.training.reward_limit,
                 "continuous_actions": args.continuous_actions,
             },
             save_path=args.save_path,
@@ -258,8 +277,11 @@ def main() -> None:  # noqa: PLR0915
             learning_rate=args.learning_rate,
             clip_range=args.clip_range,
             n_steps=args.n_steps,
+            max_episode_steps=experiment_config.training.max_episode_steps,
+            success_threshold=experiment_config.training.success_threshold,
         )
-        agent.do_training(args.steps)
+        csv_path = str(Path(args.save_path).with_name(Path(args.save_path).stem + "_log.csv"))
+        agent.do_training(args.steps, csv_path=csv_path)
         _ = save_training_sidecar(args.save_path, experiment_config)
         vecnorm_path = Path(args.save_path).parent / f"{Path(args.save_path).stem}_vecnorm.pkl"
         LOGGER.info("Model saved to %s", args.save_path)

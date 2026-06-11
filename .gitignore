@@ -173,3 +173,6 @@ models/*_vecnorm.pkl
 
 # Q-agent test artifacts
 tests/test_working_directory/*.json
+
+# Local dev docs (not for the repo)
+for_sig.md

@@ -8,7 +8,7 @@ reward:
   energy: 1.0
   positional: 0.0
   time: 0.0
-  position: 0.02
+  position: 0.1
   acceleration: 0.0
   terminal_penalty: -5.0
   angle: 0.0
@@ -26,3 +26,4 @@ training:
   rail_limit: 2.0
   randomize_start: true
   start_speed: 1.0
+  max_episode_steps: 1000

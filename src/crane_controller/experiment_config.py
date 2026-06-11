@@ -52,6 +52,11 @@ class RewardConfig:
         Weight for the squared angular acceleration penalty ``-theta_ddot^2`` (default 0.0).
         Computed as a one-step finite difference of theta_dot; zero on the first step
         after each reset.
+    t_min_crane : float
+        Weight for the minimum-time-to-origin penalty ``-t_min`` (default 0.0).
+        ``t_min`` is the optimal bang-bang time for the crane to reach ``x=0`` at rest
+        given current position and velocity.  Captures both crane position and velocity
+        in a single physically grounded signal.
     """
 
     energy: float = 1.0
@@ -65,6 +70,7 @@ class RewardConfig:
     crane_velocity: float = 0.0
     crane_acceleration: float = 0.0
     angular_acceleration: float = 0.0
+    t_min_crane: float = 0.0
 
     @classmethod
     def from_dict(cls, d: Mapping[str, object]) -> RewardConfig:
@@ -93,6 +99,7 @@ class RewardConfig:
             crane_velocity=float(d.get("crane_velocity", defaults.crane_velocity)),  # type: ignore[arg-type]
             crane_acceleration=float(d.get("crane_acceleration", defaults.crane_acceleration)),  # type: ignore[arg-type]
             angular_acceleration=float(d.get("angular_acceleration", defaults.angular_acceleration)),  # type: ignore[arg-type]
+            t_min_crane=float(d.get("t_min_crane", defaults.t_min_crane)),  # type: ignore[arg-type]
         )
 
 
@@ -142,6 +149,16 @@ class TrainingConfig:
         If True, use a ``Box([-1], [1])`` action space so PPO can output any
         acceleration in ``[-acc, +acc]``.  If False, use ``Discrete(3)`` for
         Q-learning compatibility (default True).
+    reward_limit : float
+        Per-step reward threshold at which an episode is terminated as solved
+        (default 50.0, effectively disabled). 0.0 is the theoretical maximum;
+        setting to a large positive value (e.g. 50.0) disables early
+        termination so the episode always runs to ``max_episode_steps``.
+    max_episode_steps : int
+        Maximum steps per episode enforced via a TimeLimit wrapper (default
+        100). Replaces the previous hardcoded value of 3000; shorter episodes
+        let the discount factor propagate rail-penalty credit meaningfully
+        (``0.99^100 ≈ 0.37`` vs ``0.99^3000 ≈ 10^-13``).
     """
 
     steps: int = 100_000
@@ -157,6 +174,9 @@ class TrainingConfig:
     rail_limit: float = 10.0
     start_speed: float = 1.0
     continuous_actions: bool = True
+    reward_limit: float = 50.0
+    max_episode_steps: int = 1000
+    success_threshold: float = -15.0
 
     @classmethod
     def from_dict(cls, d: Mapping[str, object]) -> TrainingConfig:
@@ -188,6 +208,9 @@ class TrainingConfig:
             rail_limit=float(d.get("rail_limit", defaults.rail_limit)),  # type: ignore[arg-type]
             start_speed=float(d.get("start_speed", defaults.start_speed)),  # type: ignore[arg-type]
             continuous_actions=bool(d.get("continuous_actions", defaults.continuous_actions)),
+            reward_limit=float(d.get("reward_limit", defaults.reward_limit)),  # type: ignore[arg-type]
+            max_episode_steps=int(d.get("max_episode_steps", defaults.max_episode_steps)),  # type: ignore[arg-type,call-overload]
+            success_threshold=float(d.get("success_threshold", defaults.success_threshold)),  # type: ignore[arg-type]
         )
 
 

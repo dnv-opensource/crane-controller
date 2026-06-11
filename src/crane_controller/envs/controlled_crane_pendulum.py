@@ -151,7 +151,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         if render_mode == "reward-tracking":
             self._reward_point = self._reward_plot_init()
         elif render_mode == "plot":
-            self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": [], "acc": []}
+            self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": [], "acc": [], "t_min": []}
 
         self.obeservation_space: spaces.Box | spaces.Discrete  # pyright: ignore[reportMissingTypeArgument]  # Discrete type arg not needed here
         # Continuous observations: crane position, crane velocity, wire polar angle, pure angular velocity theta_dot.
@@ -257,17 +257,20 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         )
         ani.do_animation()
 
-    def show_plot(self, episode: int) -> None:
+    def show_plot(self, episode: int, save_path: str | None = None) -> None:
         """Plot detailed traces for a single episode.
 
         Parameters
         ----------
         episode : int
             Episode number used in the plot title.
+        save_path : str or None, optional
+            If set, save the figure to this path and close it instead of calling
+            ``plt.show()`` (default None — interactive display).
         """
         if not self.traces["l_v"]:
             return
-        _, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(16, 18))
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7, 1, figsize=(16, 21), sharex=True)
         times = self.dt * np.arange(len(self.traces["c_x"]))
         damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
@@ -278,12 +281,22 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         ax4.plot(times, self.traces["c_v"], label="crane speed", color="red")
         ax5.plot(times[: len(self.rewards)], self.rewards, label="rewards")
         ax6.plot(times, self.traces["acc"], label="x-acceleration", color="green")
-        for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
+        ax7.plot(times[: len(self.traces["t_min"])], self.traces["t_min"], label="t_min", color="purple")
+        ax7.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax7.set_xlabel("time [s]")
+        for ax in (ax1, ax2, ax3, ax4, ax5, ax6, ax7):
             _ = ax.legend()
         _ = plt.suptitle(
             f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"  # pyright: ignore[reportUnknownMemberType]
         )
-        plt.show()
+        fig.tight_layout()
+        if save_path is not None:
+            from pathlib import Path  # noqa: PLC0415
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(save_path)
+            plt.close(fig)
+        else:
+            plt.show()
         for key in self.traces:
             self.traces[key] = []
         self.rewards = []
@@ -381,6 +394,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
             + rc.crane_velocity * (-(self.crane.velocity[0] ** 2))
             + rc.crane_acceleration * (-(acc**2))
             + rc.angular_acceleration * (-(theta_ddot**2))
+            + rc.t_min_crane * (-self._t_min_crane())
         )
 
         obs: tuple[int, ...] | np.ndarray
@@ -397,8 +411,29 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
             self.traces["l_x"].append(self.wire.c_m[0])
             self.traces["l_v"].append(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
             self.traces["acc"].append(acc)
+            self.traces["t_min"].append(self._t_min_crane())
 
         return (obs, self.reward, err)  # pyright: ignore[reportUnknownMemberType]
+
+    def _t_min_crane(self) -> float:
+        """Minimum time for the crane to reach x=0 at rest under bang-bang control.
+
+        Returns
+        -------
+        float
+            Optimal time-to-origin in seconds; zero when crane is already at rest
+            at the origin.
+        """
+        x0 = self.crane.position[0]
+        v0 = self.crane.velocity[0]
+        a = self.acc
+        if (x0 >= 0 and v0 >= 0) or (x0 <= 0 and v0 <= 0):  # moving away from origin
+            return (abs(v0) + 2.0 * np.sqrt(max(0.0, abs(x0) * a + 0.5 * v0**2))) / a
+        # moving toward origin
+        if abs(x0) >= 0.5 * v0**2 / a:  # no overshoot
+            return (-abs(v0) + 2.0 * np.sqrt(max(0.0, abs(x0) * a + 0.5 * v0**2))) / a
+        # overshoot
+        return (abs(v0) + 2.0 * np.sqrt(max(0.0, abs(x0) * a - 0.5 * v0**2))) / a
 
     def low_reward(self) -> float:
         """Return the lowest possible reward for the current mode.
@@ -414,7 +449,13 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         return -float(self.discrete["energies"][-1])
 
     def _get_info(self, reward: float, steps: int) -> dict[str, float | int]:
-        return {"steps": steps, "reward": reward}
+        return {
+            "steps": steps,
+            "reward": reward,
+            "t_min": self._t_min_crane(),
+            "x_pos": self.crane.position[0],
+            "x_vel": self.crane.velocity[0],
+        }
 
     def reset_crane(self) -> None:
         """Reset the crane to its initial physical state.
@@ -534,9 +575,16 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         info = self._get_info(self.reward, self.steps)
         return obs, self.reward, terminated, (truncated > 0), info
 
-    def render(self) -> None:
-        """Render the current episode."""
+    def render(self, save_path: str | None = None) -> None:
+        """Render the current episode.
+
+        Parameters
+        ----------
+        save_path : str or None, optional
+            If set and render_mode is ``"plot"``, save the figure to this path
+            instead of showing it interactively (default None).
+        """
         if self.render_mode == "play-back":
             self.show_animation()
         elif self.render_mode == "plot":
-            self.show_plot(self.nresets)
+            self.show_plot(self.nresets, save_path=save_path)

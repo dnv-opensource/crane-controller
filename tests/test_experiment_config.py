@@ -36,6 +36,7 @@ def test_reward_config_defaults() -> None:
     assert rc.crane_velocity == 0.0
     assert rc.crane_acceleration == 0.0
     assert rc.angular_acceleration == 0.0
+    assert rc.t_min_crane == 0.0
 
 
 def test_reward_config_from_dict_full() -> None:
@@ -91,6 +92,9 @@ def test_training_config_defaults() -> None:
     assert tc.randomize_start is False
     assert tc.rail_limit == 10.0
     assert tc.continuous_actions is True
+    assert tc.reward_limit == 50.0
+    assert tc.max_episode_steps == 1000
+    assert tc.success_threshold == -15.0
 
 
 def test_training_config_from_dict() -> None:
@@ -105,6 +109,8 @@ def test_training_config_from_dict() -> None:
         "clip_range": 0.1,
         "n_steps": 8192,
         "randomize_start": True,
+        "max_episode_steps": 50,
+        "success_threshold": -10.0,
     }
     tc = TrainingConfig.from_dict(d)
     assert tc == TrainingConfig(
@@ -118,6 +124,8 @@ def test_training_config_from_dict() -> None:
         clip_range=0.1,
         n_steps=8192,
         randomize_start=True,
+        max_episode_steps=50,
+        success_threshold=-10.0,
     )
 
 

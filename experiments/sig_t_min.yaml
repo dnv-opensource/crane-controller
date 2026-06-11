@@ -1,0 +1,18 @@
+# Experimental config: t_min_crane reward term (Sig's suggestion).
+# Replaces position + crane_velocity with a single physics-grounded signal:
+# the optimal bang-bang time for the crane to return to x=0 at rest.
+# Weight 0.01 calibrated so max contribution (~0.09 at rail_limit=2) stays
+# small relative to the energy term (~1.0 scale).
+reward:
+  energy: 1.0
+  t_min_crane: 0.05
+  terminal_penalty: -5.0
+training:
+  steps: 3000000
+  n_envs: 32
+  gamma: 0.99
+  n_steps: 4096
+  rail_limit: 2.0
+  randomize_start: true
+  start_speed: 1.0
+  max_episode_steps: 1000

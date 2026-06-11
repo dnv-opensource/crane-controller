@@ -1,0 +1,18 @@
+# hybrid_cv01 reward terms + t_min_crane to push policy past the ~0.76s plateau.
+# t_min_crane: 0.01 gives ~-7.6/episode at hybrid's plateau (t_min≈0.76, 1000 steps)
+# vs position's ~-2.0/episode — noticeable without dominating early learning.
+reward:
+  energy: 1.0
+  position: 0.1
+  crane_velocity: 0.1
+  t_min_crane: 0.01
+  terminal_penalty: -5.0
+training:
+  steps: 3000000
+  n_envs: 32
+  n_steps: 4096
+  gamma: 0.99
+  rail_limit: 2.0
+  randomize_start: true
+  start_speed: 1.0
+  max_episode_steps: 1000
