@@ -152,24 +152,28 @@ def main() -> None:
         for r in all_results:
             buckets[r.start_speed].append(r)
         header = (
-            f"{'speed':>6}  {'n':>3}  {'nocrash%':>8}  {'succ%':>6}"
-            f"  {'rew_mean':>9}  {'settle':>7}  {'t_min_f':>7}  {'theta_f':>7}  {'thdot_f':>7}"
+            f"{'speed':>6}  {'n':>3}  {'nocrash%':>8}"
+            f"  {'rew_mean':>9}  {'settle':>7}"
+            f"  {'x_pos_f':>7}  {'t_min_f':>7}  {'theta_f':>7}  {'thdot_f':>7}"
+            f"  {'energy_f':>8}  {'acc_f':>7}"
         )
         LOGGER.info("\n%s\n%s", header, "-" * len(header))
         for speed in sorted(buckets):
             group = buckets[speed]
             n = len(group)
             nocrash_pct = 100.0 * sum(r.no_crash for r in group) / n
-            succ_pct = 100.0 * sum(r.success for r in group) / n
             rew_mean = statistics.mean(r.ep_reward for r in group)
             settle_mean = statistics.mean(r.t_min_settle_step for r in group)
+            x_pos_mean = statistics.mean(r.x_pos_final for r in group)
             t_min_mean = statistics.mean(r.t_min_final for r in group)
             theta_mean = statistics.mean(r.theta_final for r in group)
             thdot_mean = statistics.mean(r.theta_dot_final for r in group)
+            energy_mean = statistics.mean(r.energy_final for r in group)
+            acc_mean = statistics.mean(r.acc_final for r in group)
             LOGGER.info(
-                "%6.1f  %3d  %7.0f%%  %5.0f%%  %+9.2f  %7.0f  %7.3f  %7.3f  %7.3f",
-                speed, n, nocrash_pct, succ_pct, rew_mean, settle_mean,
-                t_min_mean, theta_mean, thdot_mean,
+                "%6.1f  %3d  %7.0f%%  %+9.2f  %7.0f  %7.4f  %7.3f  %7.3f  %7.4f  %8.2e  %7.4f",
+                speed, n, nocrash_pct, rew_mean, settle_mean,
+                x_pos_mean, t_min_mean, theta_mean, thdot_mean, energy_mean, acc_mean,
             )
 
 

@@ -65,6 +65,8 @@ class EpisodeResult:
     x_vel_final: float
     theta_final: float
     theta_dot_final: float
+    energy_final: float
+    acc_final: float
 
 
 class ProximalPolicyOptimizationAgent:
@@ -393,15 +395,23 @@ class ProximalPolicyOptimizationAgent:
         ep_reward = 0.0
         t_min_trace: list[float] = []
         info: dict[str, float | int] = {}
+        last_action: np.ndarray | int = 0
         while not terminated and not truncated:
             norm_obs = self.vec_env.normalize_obs(np.asarray(obs))
             action, _states = self.model.predict(np.asarray(norm_obs), deterministic=True)
+            last_action = action
             obs, reward, terminated, truncated, info = self.env.step(action)
             ep_steps += 1
             ep_reward += float(reward)
             if "t_min" in info:
                 t_min_trace.append(float(info["t_min"]))
         self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined]
+        env_u = self.env.unwrapped
+        energy_final = 0.5 * float(env_u.wire.cm_v[0]) ** 2  # type: ignore[attr-defined]
+        if env_u.continuous_actions:  # type: ignore[attr-defined]
+            acc_final = float(np.asarray(last_action).flat[0]) * float(env_u.acc)  # type: ignore[attr-defined]
+        else:
+            acc_final = float(env_u.action_to_acc[int(last_action)])  # type: ignore[attr-defined]
         return EpisodeResult(
             start_speed=start_speed,
             ep_steps=ep_steps,
@@ -419,4 +429,6 @@ class ProximalPolicyOptimizationAgent:
             x_vel_final=float(info.get("x_vel", nan)),
             theta_final=float(obs[2]),
             theta_dot_final=float(obs[3]),
+            energy_final=energy_final,
+            acc_final=acc_final,
         )
