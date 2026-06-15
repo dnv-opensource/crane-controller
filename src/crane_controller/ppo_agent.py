@@ -55,7 +55,6 @@ class EpisodeResult:
     terminated: bool
     truncated: bool
     no_crash: bool
-    success: bool
     t_min_start: float
     t_min_min: float
     t_min_final: float
@@ -118,7 +117,6 @@ class ProximalPolicyOptimizationAgent:
         env_kwargs: dict[str, Any] | None = None,
         save_path: str | None = None,
         max_episode_steps: int = 1000,
-        success_threshold: float = -15.0,
         gamma: float = 0.99,
         seed: int | None = None,
         ent_coef: float = 0.0,
@@ -129,7 +127,6 @@ class ProximalPolicyOptimizationAgent:
         """Set up the agent for training. Use :meth:`load` for inference."""
         self.save_path = save_path
         self._max_episode_steps = max_episode_steps
-        self._success_threshold = success_threshold
         _mep = max_episode_steps
         raw_vec_env = make_vec_env(
             env_id=lambda **kw: TimeLimit(env(**kw), max_episode_steps=_mep),
@@ -157,7 +154,6 @@ class ProximalPolicyOptimizationAgent:
         model_path: str | Path,
         env_kwargs: dict[str, Any] | None = None,
         max_episode_steps: int = 1000,
-        success_threshold: float = -15.0,
     ) -> ProximalPolicyOptimizationAgent:
         """Load a trained agent for inference.
 
@@ -177,7 +173,6 @@ class ProximalPolicyOptimizationAgent:
         """
         instance = object.__new__(cls)
         instance._max_episode_steps = max_episode_steps  # noqa: SLF001
-        instance._success_threshold = success_threshold  # noqa: SLF001
         _mep = max_episode_steps
         raw_vec_env = make_vec_env(
             env_id=lambda **kw: TimeLimit(env(**kw), max_episode_steps=_mep),
@@ -205,7 +200,6 @@ class ProximalPolicyOptimizationAgent:
         save_path: str | None = None,
         n_envs: int = 4,
         max_episode_steps: int = 1000,
-        success_threshold: float = -15.0,
     ) -> ProximalPolicyOptimizationAgent:
         """Load a saved agent to continue training.
 
@@ -232,7 +226,6 @@ class ProximalPolicyOptimizationAgent:
         instance = object.__new__(cls)
         instance.save_path = save_path
         instance._max_episode_steps = max_episode_steps  # noqa: SLF001
-        instance._success_threshold = success_threshold  # noqa: SLF001
         _mep = max_episode_steps
         raw_vec_env = make_vec_env(
             env_id=lambda **kw: TimeLimit(env(**kw), max_episode_steps=_mep),
@@ -332,7 +325,6 @@ class ProximalPolicyOptimizationAgent:
                 total_timesteps, log_interval,
                 csv_path=csv_path,
                 max_episode_steps=self._max_episode_steps,
-                success_threshold=self._success_threshold,
             )
             if progress_bar else None
         )
@@ -366,7 +358,6 @@ class ProximalPolicyOptimizationAgent:
         self,
         seed: int = 1,
         save_png: str | None = None,
-        success_threshold: float | None = None,
     ) -> EpisodeResult:
         """Run one episode on the non-vectorised, trained environment.
 
@@ -376,16 +367,12 @@ class ProximalPolicyOptimizationAgent:
             Random seed for the environment reset (default 1).
         save_png : str or None, optional
             If set, save a 7-panel trajectory plot to this path (default None).
-        success_threshold : float or None, optional
-            Minimum episode reward to classify the episode as solved.  Defaults
-            to the threshold stored on the agent (from training config).
 
         Returns
         -------
         EpisodeResult
             Per-episode metrics including t_min stats, final crane state, and outcome.
         """
-        threshold = success_threshold if success_threshold is not None else self._success_threshold
         obs, reset_info = self.env.reset(seed=seed)
         nan = float("nan")
         start_speed: float = self.env.unwrapped.initial_speed  # type: ignore[attr-defined]
@@ -418,8 +405,7 @@ class ProximalPolicyOptimizationAgent:
             ep_reward=ep_reward,
             terminated=terminated,
             truncated=truncated,
-            no_crash=not terminated,
-            success=truncated and not terminated and ep_reward >= threshold,
+            no_crash=not info.get("crash", False),
             t_min_start=t_min_start_val,
             t_min_min=min(t_min_trace) if t_min_trace else nan,
             t_min_final=t_min_trace[-1] if t_min_trace else nan,

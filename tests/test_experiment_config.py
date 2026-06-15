@@ -94,7 +94,6 @@ def test_training_config_defaults() -> None:
     assert tc.continuous_actions is True
     assert tc.reward_limit == 50.0
     assert tc.max_episode_steps == 1000
-    assert tc.success_threshold == -15.0
 
 
 def test_training_config_from_dict() -> None:
@@ -110,7 +109,6 @@ def test_training_config_from_dict() -> None:
         "n_steps": 8192,
         "randomize_start": True,
         "max_episode_steps": 50,
-        "success_threshold": -10.0,
     }
     tc = TrainingConfig.from_dict(d)
     assert tc == TrainingConfig(
@@ -125,7 +123,6 @@ def test_training_config_from_dict() -> None:
         n_steps=8192,
         randomize_start=True,
         max_episode_steps=50,
-        success_threshold=-10.0,
     )
 
 

@@ -153,12 +153,6 @@ def main() -> None:  # noqa: PLR0915
         default=config.training.max_episode_steps,
         help="TimeLimit cap per episode (default 1000).",
     )
-    _ = parser.add_argument(
-        "--success-threshold",
-        type=float,
-        default=config.training.success_threshold,
-        help="Minimum episode reward to classify a full-duration episode as solved (default -15.0).",
-    )
     args = parser.parse_args()
 
     # Resolve final reward config: explicit --reward-fac beats loaded YAML/defaults.
@@ -181,7 +175,6 @@ def main() -> None:  # noqa: PLR0915
             start_speed=args.start_speed,
             continuous_actions=args.continuous_actions,
             max_episode_steps=args.max_episode_steps,
-            success_threshold=args.success_threshold,
         ),
         config_source=pre_args.config,
     )
@@ -247,7 +240,6 @@ def main() -> None:  # noqa: PLR0915
             save_path=args.save_path,
             n_envs=args.n_envs,
             max_episode_steps=resume_config.training.max_episode_steps,
-            success_threshold=resume_config.training.success_threshold,
         )
         csv_path = str(Path(args.save_path).with_name(Path(args.save_path).stem + "_log.csv"))
         agent.do_training(args.steps, reset_num_timesteps=False, csv_path=csv_path)
@@ -278,7 +270,6 @@ def main() -> None:  # noqa: PLR0915
             clip_range=args.clip_range,
             n_steps=args.n_steps,
             max_episode_steps=experiment_config.training.max_episode_steps,
-            success_threshold=experiment_config.training.success_threshold,
         )
         csv_path = str(Path(args.save_path).with_name(Path(args.save_path).stem + "_log.csv"))
         agent.do_training(args.steps, csv_path=csv_path)

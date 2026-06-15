@@ -176,7 +176,6 @@ class TrainingConfig:
     continuous_actions: bool = True
     reward_limit: float = 50.0
     max_episode_steps: int = 1000
-    success_threshold: float = -15.0
 
     @classmethod
     def from_dict(cls, d: Mapping[str, object]) -> TrainingConfig:
@@ -210,7 +209,6 @@ class TrainingConfig:
             continuous_actions=bool(d.get("continuous_actions", defaults.continuous_actions)),
             reward_limit=float(d.get("reward_limit", defaults.reward_limit)),  # type: ignore[arg-type]
             max_episode_steps=int(d.get("max_episode_steps", defaults.max_episode_steps)),  # type: ignore[arg-type,call-overload]
-            success_threshold=float(d.get("success_threshold", defaults.success_threshold)),  # type: ignore[arg-type]
         )
 
 

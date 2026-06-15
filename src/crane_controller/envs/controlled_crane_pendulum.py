@@ -455,6 +455,9 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
             "t_min": self._t_min_crane(),
             "x_pos": self.crane.position[0],
             "x_vel": self.crane.velocity[0],
+            "energy": 0.5 * float(self.wire.cm_v[0]) ** 2,  # pyright: ignore[reportUnknownMemberType]
+            "theta": float(self.wire.boom[1]),
+            "theta_dot": (float(self.wire.cm_v[0]) - float(self.wire.origin_v[0])) / float(self.wire.length),  # pyright: ignore[reportUnknownMemberType]
         }
 
     def reset_crane(self) -> None:
@@ -573,6 +576,8 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         if terminated:
             self.nsuccess += 1
         info = self._get_info(self.reward, self.steps)
+        if truncated > 0:
+            info["crash"] = True
         return obs, self.reward, terminated, (truncated > 0), info
 
     def render(self, save_path: str | None = None) -> None:

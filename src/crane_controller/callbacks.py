@@ -16,16 +16,19 @@ class EpRewardLogCallback(BaseCallback):
 
     Prints one line per interval with three ``|``-separated families::
 
-        [  600,192/3,000,000]  ep_rew_mean↑=  -27.68  ep_len_mean↑=100  rew/step↑=-0.046
+        [  600,192/3,000,000]  ep_len_mean↑=100  rew/step↑=-0.046
           |  kl↓=0.0163  expl_var↑=0.346  value_loss↓=0.041  entropy~=-1.188  clip_frac↓=0.175
-          |  rail_hit%↓=12%  timelimit%↓=70%  success%↑=18%
+          |  rail_hit%↓=12%  t_min↓=0.820s  |x|↓=0.019m  |xv|↓=0.001  E↓=0.0001  |ω|↓=0.001
 
-    - Family 1: policy performance (ep_rew_mean, ep_len_mean, rew/step)
+    - Family 1: policy performance (ep_len_mean, rew/step)
     - Family 2: PPO diagnostics (kl, expl_var, value_loss, entropy, clip_frac)
-    - Family 3: task quality — three counters that must sum to 100%:
+    - Family 3: task quality — rail crash rate plus mean physical end-states for survived episodes:
         - rail_hit%   truncated before max_episode_steps (crane hit the rail)
-        - timelimit%  survived all steps but ep_rew < success_threshold (not solved)
-        - success%    survived all steps AND ep_rew >= success_threshold (solved)
+        - t_min       mean minimum-time-to-stop at episode end (s)
+        - |x|         mean absolute crane position at episode end (m)
+        - |xv|        mean absolute crane velocity at episode end
+        - E           mean load kinetic energy at episode end
+        - |ω|         mean absolute load angular velocity at episode end
 
     If *csv_path* is given, all rows are written to a CSV file at the end of
     training for post-training analysis and plotting. The CSV also includes
@@ -40,17 +43,9 @@ class EpRewardLogCallback(BaseCallback):
     csv_path : str or None
         Path to write a CSV log file at the end of training (default None).
     max_episode_steps : int
-        TimeLimit cap passed to the environment (default 100). Used to
+        TimeLimit cap passed to the environment (default 1000). Used to
         distinguish rail hits (ep_len < max_episode_steps) from survived
         episodes (ep_len >= max_episode_steps).
-    success_threshold : float
-        Minimum total episode reward to count as a solved episode (default
-        -50.0). Episodes that survive ``max_episode_steps`` but whose total
-        reward is below this threshold are counted as ``timelimit`` (alive but
-        not solved). Tune based on expected solved-episode reward:
-        ``ep_rew_mean ≈ -0.07/step × 1000 steps ≈ -70`` for a good policy;
-        ``-50`` is a conservative threshold that only triggers once the policy
-        is clearly converging.
     """
 
     def __init__(
@@ -59,7 +54,6 @@ class EpRewardLogCallback(BaseCallback):
         log_interval: int = 50_000,
         csv_path: str | None = None,
         max_episode_steps: int = 1000,
-        success_threshold: float = -15.0,
     ) -> None:
         super().__init__(verbose=0)  # pyright: ignore[reportCallIssue]
         self._total = total_timesteps
@@ -67,13 +61,22 @@ class EpRewardLogCallback(BaseCallback):
         self._last_log: int = 0
         self._csv_path = csv_path
         self._max_episode_steps = max_episode_steps
-        self._success_threshold = success_threshold
         self._rows: list[dict[str, float]] = []
         # Per-interval episode counters (reset after each log line)
         self._ep_count: int = 0
         self._rail_hits: int = 0
-        self._timelimit_count: int = 0
-        self._success_count: int = 0
+        self._surv_t_min_sum: float = 0.0
+        self._surv_t_min_n: int = 0
+        self._surv_x_pos_sum: float = 0.0
+        self._surv_x_pos_n: int = 0
+        self._surv_x_vel_sum: float = 0.0
+        self._surv_x_vel_n: int = 0
+        self._surv_energy_sum: float = 0.0
+        self._surv_energy_n: int = 0
+        self._surv_theta_dot_sum: float = 0.0
+        self._surv_theta_dot_n: int = 0
+        self._surv_theta_dev_sum: float = 0.0
+        self._surv_theta_dev_n: int = 0
 
     def _diag(self, key: str) -> float | None:
         """Read a value from SB3's internal logger; returns None if not yet available."""
@@ -84,11 +87,6 @@ class EpRewardLogCallback(BaseCallback):
             return None
 
     def _on_step(self) -> bool:  # noqa: C901, PLR0912, PLR0915
-        # Three-bucket classification per episode:
-        #   rail_hit  — truncated before max_episode_steps
-        #   timelimit — survived all steps but ep_rew < success_threshold
-        #   success   — survived all steps AND ep_rew >= success_threshold
-        # info["r"] is the total episode reward injected by SB3's Monitor wrapper.
         _locals: dict[str, Any] = self.locals  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
         dones = _locals.get("dones")  # pyright: ignore[reportUnknownMemberType]
         infos = _locals.get("infos")  # pyright: ignore[reportUnknownMemberType]
@@ -100,12 +98,30 @@ class EpRewardLogCallback(BaseCallback):
                     if ep_steps < self._max_episode_steps:
                         self._rail_hits += 1
                     else:
-                        ep_info = info.get("episode", {})  # pyright: ignore[reportUnknownMemberType]
-                        ep_rew: float = float(ep_info.get("r", float("-inf")))  # pyright: ignore[reportUnknownMemberType]
-                        if ep_rew >= self._success_threshold:
-                            self._success_count += 1
-                        else:
-                            self._timelimit_count += 1
+                        t_min = info.get("t_min")  # pyright: ignore[reportUnknownMemberType]
+                        x_pos = info.get("x_pos")  # pyright: ignore[reportUnknownMemberType]
+                        x_vel = info.get("x_vel")  # pyright: ignore[reportUnknownMemberType]
+                        energy = info.get("energy")  # pyright: ignore[reportUnknownMemberType]
+                        theta_dot = info.get("theta_dot")  # pyright: ignore[reportUnknownMemberType]
+                        if t_min is not None:
+                            self._surv_t_min_sum += float(t_min)
+                            self._surv_t_min_n += 1
+                        if x_pos is not None:
+                            self._surv_x_pos_sum += abs(float(x_pos))
+                            self._surv_x_pos_n += 1
+                        if x_vel is not None:
+                            self._surv_x_vel_sum += abs(float(x_vel))
+                            self._surv_x_vel_n += 1
+                        if energy is not None:
+                            self._surv_energy_sum += float(energy)
+                            self._surv_energy_n += 1
+                        if theta_dot is not None:
+                            self._surv_theta_dot_sum += abs(float(theta_dot))
+                            self._surv_theta_dot_n += 1
+                        theta = info.get("theta")  # pyright: ignore[reportUnknownMemberType]
+                        if theta is not None:
+                            self._surv_theta_dev_sum += abs(float(theta) - np.pi)
+                            self._surv_theta_dev_n += 1
 
         t: int = self.num_timesteps  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
         buf = self.model.ep_info_buffer  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
@@ -122,7 +138,6 @@ class EpRewardLogCallback(BaseCallback):
             # Family 1
             line = (
                 f"[{t:>8,}/{self._total:,}]"
-                f"  ep_rew_mean↑={mean_rew:+8.2f}"
                 f"  ep_len_mean↑={mean_len:.0f}"
                 f"  rew/step↑={mean_rew / mean_len:+.3f}"
             )
@@ -142,27 +157,34 @@ class EpRewardLogCallback(BaseCallback):
                     parts.append(f"clip_frac↓={clip:.3f}")  # lower is healthier (<0.15 OK)
                 line += "  |  " + "  ".join(parts)
 
-            # Family 3 — shown only once episodes start completing
+            # Family 3 — physical end-state means for survived episodes
+            _sm = lambda s, n: s / n if n > 0 else float("nan")  # noqa: E731
+            t_min_m     = _sm(self._surv_t_min_sum,     self._surv_t_min_n)
+            x_pos_m     = _sm(self._surv_x_pos_sum,     self._surv_x_pos_n)
+            x_vel_m     = _sm(self._surv_x_vel_sum,     self._surv_x_vel_n)
+            energy_m    = _sm(self._surv_energy_sum,    self._surv_energy_n)
+            theta_dot_m   = _sm(self._surv_theta_dot_sum,  self._surv_theta_dot_n)
+            theta_dev_m   = _sm(self._surv_theta_dev_sum,  self._surv_theta_dev_n)
+
             if self._ep_count > 0:
-                n = self._ep_count
-                rail_pct      = 100.0 * self._rail_hits      / n
-                timelimit_pct = 100.0 * self._timelimit_count / n
-                success_pct   = 100.0 * self._success_count  / n
+                rail_pct = 100.0 * self._rail_hits / self._ep_count
+                _f = lambda v, fmt, u="": "---" if np.isnan(v) else f"{v:{fmt}}{u}"  # noqa: E731
                 line += (
                     f"  |  rail_hit%↓={rail_pct:.0f}%"
-                    f"  timelimit%↓={timelimit_pct:.0f}%"
-                    f"  success%↑={success_pct:.0f}%"
+                    f"  t_min↓={_f(t_min_m, '.3f', 's')}"
+                    f"  |x|↓={_f(x_pos_m, '.4f', 'm')}"
+                    f"  |xv|↓={_f(x_vel_m, '.4f')}"
+                    f"  E↓={_f(energy_m, '.4f')}"
+                    f"  |ω|↓={_f(theta_dot_m, '.4f')}"
+                    f"  |θ-π|↓={_f(theta_dev_m, '.4f')}"
                 )
 
             tqdm.write(line)
 
-            rail_pct_val      = 100.0 * self._rail_hits      / self._ep_count if self._ep_count > 0 else float("nan")
-            timelimit_pct_val = 100.0 * self._timelimit_count / self._ep_count if self._ep_count > 0 else float("nan")
-            success_pct_val   = 100.0 * self._success_count  / self._ep_count if self._ep_count > 0 else float("nan")
+            rail_pct_val = 100.0 * self._rail_hits / self._ep_count if self._ep_count > 0 else float("nan")
 
             self._rows.append({
                 "t": float(t),
-                "ep_rew_mean":          mean_rew,
                 "ep_len_mean":          mean_len,
                 "rew_per_step":         mean_rew / mean_len,
                 "approx_kl":            kl   if kl   is not None else float("nan"),
@@ -172,15 +194,29 @@ class EpRewardLogCallback(BaseCallback):
                 "clip_fraction":        clip if clip is not None else float("nan"),
                 "policy_gradient_loss": pgl  if pgl  is not None else float("nan"),
                 "rail_hit_pct":         rail_pct_val,
-                "timelimit_pct":        timelimit_pct_val,
-                "success_pct":          success_pct_val,
+                "mean_t_min":           t_min_m,
+                "mean_x_pos_abs":       x_pos_m,
+                "mean_x_vel_abs":       x_vel_m,
+                "mean_energy":          energy_m,
+                "mean_theta_dot_abs":   theta_dot_m,
+                "mean_theta_dev":       theta_dev_m,
             })
 
             # Reset per-interval counters
             self._ep_count = 0
             self._rail_hits = 0
-            self._timelimit_count = 0
-            self._success_count = 0
+            self._surv_t_min_sum = 0.0
+            self._surv_t_min_n = 0
+            self._surv_x_pos_sum = 0.0
+            self._surv_x_pos_n = 0
+            self._surv_x_vel_sum = 0.0
+            self._surv_x_vel_n = 0
+            self._surv_energy_sum = 0.0
+            self._surv_energy_n = 0
+            self._surv_theta_dot_sum = 0.0
+            self._surv_theta_dot_n = 0
+            self._surv_theta_dev_sum = 0.0
+            self._surv_theta_dev_n = 0
             self._last_log = t
 
         return True

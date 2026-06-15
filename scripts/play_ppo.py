@@ -17,6 +17,9 @@ import logging
 import statistics
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from crane_controller.crane_factory import build_crane
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 from crane_controller.experiment_config import load_training_sidecar
@@ -24,7 +27,55 @@ from crane_controller.ppo_agent import EpisodeResult, ProximalPolicyOptimization
 
 LOGGER = logging.getLogger(__name__)
 
-SWEEP_SPEEDS = [0.5, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0]
+_neg = [-round(s, 1) for s in np.arange(10.0, 0.0, -0.2)]
+_pos = [ round(s, 1) for s in np.arange(0.2, 10.2,  0.2)]
+SWEEP_SPEEDS = _neg + _pos  # 100 values: -10.0 … -0.2  +0.2 … +10.0
+
+
+def _save_sweep_png(results: list[EpisodeResult], stem: str, out_dir: Path) -> None:
+    """Save a 3×3 summary figure for a speed sweep — one subplot per metric."""
+    buckets: dict[float, list[EpisodeResult]] = collections.defaultdict(list)
+    for r in results:
+        buckets[r.start_speed].append(r)
+    xs = sorted(buckets)
+
+    nocrash_pct  = [100.0 * sum(r.no_crash for r in buckets[sp]) / len(buckets[sp]) for sp in xs]
+    rew_per_step = [statistics.mean(r.ep_reward / r.ep_steps for r in buckets[sp]) for sp in xs]
+    energy_frac  = [statistics.mean(r.energy_final / (0.5 * sp ** 2) for r in buckets[sp]) for sp in xs]
+    settle_step  = [statistics.mean(r.t_min_settle_step for r in buckets[sp]) for sp in xs]
+    x_pos_m      = [statistics.mean(r.x_pos_final for r in buckets[sp]) for sp in xs]
+    x_vel_f      = [statistics.mean(r.x_vel_final for r in buckets[sp]) for sp in xs]
+    x_acc_f      = [statistics.mean(r.acc_final for r in buckets[sp]) for sp in xs]
+    theta_f      = [statistics.mean(r.theta_final for r in buckets[sp]) for sp in xs]
+    thdot_f      = [statistics.mean(r.theta_dot_final for r in buckets[sp]) for sp in xs]
+
+    panels: list[tuple[str, list[float]]] = [
+        ("nocrash%↑",    nocrash_pct),
+        ("rew/step↑",    rew_per_step),
+        ("energy_frac↓", energy_frac),
+        ("settle_step↓", settle_step),
+        ("x_pos_m↓",     x_pos_m),
+        ("x_vel_f",      x_vel_f),
+        ("x_acc_f",      x_acc_f),
+        ("theta_f",      theta_f),
+        ("thdot_f↓",     thdot_f),
+    ]
+
+    fig, axes = plt.subplots(3, 3, figsize=(15, 10))
+    for ax, (title, ys) in zip(axes.flat, panels):
+        ax.plot(xs, ys, "o-", linewidth=1.5, markersize=5)
+        ax.axvline(0, color="gray", linestyle="--", linewidth=0.8)
+        ax.set_title(title, fontsize=10)
+        ax.set_xlabel("start_speed (m/s)", fontsize=8)
+        ax.tick_params(labelsize=8)
+        ax.grid(True, alpha=0.3)
+
+    fig.suptitle(stem, fontsize=12)  # pyright: ignore[reportAttributeAccessIssue]
+    fig.tight_layout()
+    png_path = out_dir / f"{stem}_sweep.png"
+    fig.savefig(str(png_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    LOGGER.info("Sweep PNG: %s", png_path)
 
 
 def main() -> None:
@@ -124,15 +175,17 @@ def main() -> None:
                     Path(args.model_path).parent / f"{stem}_play_ss{speed:+.1f}_ep{episode + 1}.png"
                 )
             result = agent.do_one_episode(seed=episode + 1, save_png=png_path)
+            result.start_speed = speed  # override wire-CM value with the explicitly set speed
             LOGGER.info(
-                "  steps=%d  rew=%.2f  t_min=[%.2f→%.2f@%d]  success=%s  terminated=%s",
+                "  steps=%d  rew=%.2f  no_crash=%s  t_min=[%.2f→%.2f@%d]  x_pos=%+.4fm  theta=%.3f",
                 result.ep_steps,
                 result.ep_reward,
+                result.no_crash,
                 result.t_min_start,
                 result.t_min_final,
                 result.t_min_settle_step,
-                result.success,
-                result.terminated,
+                result.x_pos_final,
+                result.theta_final,
             )
             if png_path is not None:
                 LOGGER.info("  PNG: %s", png_path)
@@ -176,6 +229,7 @@ def main() -> None:
                 speed, n, nocrash_pct, rew_per_step_mean, energy_frac_mean,
                 settle_mean, x_pos_m_mean, x_vel_mean, acc_mean, theta_mean, thdot_mean,
             )
+        _save_sweep_png(all_results, stem, Path(args.model_path).parent)
 
 
 if __name__ == "__main__":
