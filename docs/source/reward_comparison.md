@@ -1,6 +1,6 @@
 # Reward Design Comparison: `hybrid_cv01` vs `sig_t_min`
 
-**Scope**: seed 5775 · 3 000 000 training steps each · PPO (Stable-Baselines3)
+**Scope**: seeds 5775 and 42 · 3 000 000 training steps each · PPO (Stable-Baselines3)
 
 Two reward formulations were trained on the same anti-pendulum crane environment with
 identical PPO hyperparameters and the same random seed.  This document compares their
@@ -302,31 +302,108 @@ discussed in §4.3.*
 
 ---
 
-## 5  Conclusion
+## 5  Seed sensitivity — s42
 
-### 5.1  Quantitative comparison
+The sweep was repeated with seed 42 to probe how sensitive each reward formulation is
+to the specific training trajectory.
 
-| Dimension | `hybrid_cv01` | `sig_t_min` |
+![Speed sweep comparison for s42](_static/fig2_sweep_s42.png)
+
+*Figure 5. Speed sweep across ±10 m/s — seed 42.  Same layout as Figure 2.
+Note the crash band visible in the sig_t_min centre panel.*
+
+### 5.1  hybrid_cv01 — seed 42
+
+| Metric | s5775 | s42 |
 |---|---|---|
-| Time to crash-free training | **~850 k steps** | ~2.1 M steps |
-| Value function at 3 M (EV) | **0.93** | 0.46 |
-| Final precision — seed 5775 | **0.64 cm, 0.506 s** | 1.86 cm, 0.862 s |
-| Speed-range robustness | 100% nc, flat | 100% nc, flat |
+| Crash-free | **100%** | **100%** |
+| Final position | **0.64 cm** | 1.46 cm |
+| Final $t_\text{min}$ | **0.506 s** | 0.763 s |
+| Non-converging episodes | 0 | 2 (−9.0 and −2.0 m/s) |
 
-### 5.2  Convergence speed
+`hybrid_cv01_s42` is crash-free across all 100 speeds.  Final position degrades
+from 0.64 cm (s5775) to 1.46 cm — approximately 2.3× less precise, but the
+controller remains fully functional across the entire speed range.
+
+Two speeds (−9.0 and −2.0 m/s) fail to converge within the 1 000-step episode
+budget: the crane is still moving at episode end (`settle_step` ≈ 885–907, final
+velocity ≈ 0.05 m/s).  These are edge cases in the training distribution, not
+rail crashes.
+
+![hybrid_cv01_s42 detailed sweep](_static/hybrid_cv01_s42_detail.png)
+
+*Figure 6.  `hybrid_cv01_s42` — nine sweep metrics.  Compare to Figure 3 (s5775):
+the position and $t_\text{min}$ attractor is slightly looser; the two non-converging
+episodes appear as outliers in the settle-step and x_vel panels.*
+
+### 5.2  sig_t_min — seed 42
+
+| Metric | s5775 | s42 |
+|---|---|---|
+| Crash-free | **100%** | 93% (7 crashes) |
+| Crash band | none | +6.6 to +7.8 m/s |
+| Final position (survivors) | 1.86 cm | 2.95 cm |
+| Final $t_\text{min}$ (survivors) | 0.862 s | 1.086 s |
+
+`sig_t_min_s42` shows a clear crash band at initial speeds +6.6 to +7.8 m/s: seven
+consecutive speeds produce rail collisions within 21–32 steps.  The same speed range
+is handled cleanly by both s5775 models and by `hybrid_cv01_s42`.  The band is
+absent on the negative-speed side (−6.6 to −7.8 m/s all succeed), suggesting the
+policy learned an asymmetric response to initial direction at this speed level.
+
+For surviving episodes, the attractor is also 1.6× less precise than s5775
+(2.95 cm vs 1.86 cm).
+
+![sig_t_min_s42 detailed sweep](_static/sig_t_min_s42_detail.png)
+
+*Figure 7.  `sig_t_min_s42` — nine sweep metrics.  The crash band at +6.6–+7.8 m/s
+is visible as zeros in the nocrash% panel (top left) and short episodes in
+the settle-step panel.*
+
+### 5.3  Interpretation
+
+`hybrid_cv01` is more seed-robust.  The multi-term reward provides dense per-step
+feedback on position, velocity, and energy simultaneously.  Across two seeds the
+controller is always crash-free; performance degrades modestly (0.64 → 1.46 cm) but
+remains within operational bounds.
+
+`sig_t_min` is more seed-sensitive.  The single physics-derived signal leaves the
+policy more dependent on the exact optimisation path taken.  Seed 5775 produced a
+policy that generalises cleanly across the full ±10 m/s range; seed 42 produced a
+policy with a narrow but definite vulnerability band.  This does not mean `sig_t_min`
+is unreliable — seed 5775 demonstrates it *can* generalise — but it highlights a
+higher training variance compared to `hybrid_cv01`.
+
+---
+
+## 6  Conclusion
+
+### 6.1  Quantitative comparison
+
+| Dimension | `hybrid_cv01` s5775 | `hybrid_cv01` s42 | `sig_t_min` s5775 | `sig_t_min` s42 |
+|---|---|---|---|---|
+| Time to crash-free training | **~850 k steps** | **~850 k steps** | ~2.1 M steps | ~2.1 M steps |
+| Value function at 3 M (EV) | **0.93** | — | 0.46 | — |
+| Final precision | **0.64 cm, 0.506 s** | 1.46 cm, 0.763 s | 1.86 cm, 0.862 s | 2.95 cm, 1.086 s |
+| Speed-range robustness | 100% nc, flat | 100% nc\* | 100% nc, flat | 93% nc† |
+
+\* 2 episodes fail to converge within budget (speeds −9.0 and −2.0 m/s).  
+† Crash band at +6.6–+7.8 m/s (7 of 100 speeds).
+
+### 6.2  Convergence speed
 
 `hybrid_cv01` eliminates crashes approximately 2.5× earlier.  Dense, multi-term reward
 feedback gives the agent unambiguous guidance from the very start of training.  `sig_t_min`
 must derive the same understanding from a single scalar, which takes longer.
 
-### 5.3  Training stability
+### 6.3  Training stability
 
 `hybrid_cv01` develops a much better-calibrated value function (EV 0.93 vs 0.46).  It
 experiences one minor instability and recovers quickly; the subsequent convergence is
 monotonic.  `sig_t_min` experiences two instability events, never fully recovers its value
 function, and ends training with roughly half the return variance unexplained.
 
-### 5.4  Design trade-off
+### 6.4  Design trade-off
 
 `hybrid_cv01` works by giving the agent explicit, step-by-step feedback on every aspect
 of the desired behaviour: position, velocity, acceleration, and energy.  This is a
@@ -347,4 +424,4 @@ cost of greater sensitivity to training dynamics.
 
 ---
 
-*Analysis based on seed 5775.*
+*Analysis based on seeds 5775 and 42.*
