@@ -23,6 +23,7 @@ def test_smoke(crane: Callable[..., Crane], *, show: bool) -> None:
         render_mode="plot" if show else "none",
         reward_limit=-0.05,
         discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy(),
+        continuous_actions=False,
     )
     agent = QLearningAgent(env, filename=None)
     agent.do_episodes(n_episodes=5, max_steps=200)
@@ -35,6 +36,7 @@ def test_q_analyse(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy(),
+        continuous_actions=False,
     )
     assert Path("q_trained.json").exists(), "File 'q_trained.json' not found"
     agent = QLearningAgent(env, filename=Path("q_trained.json"), use_file="r")
@@ -61,6 +63,7 @@ def test_intervals(crane: Callable[..., Crane]):
         render_mode="none",
         reward_limit=-0.05,
         discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy(),
+        continuous_actions=False,
     )
 
     agent = QLearningAgent(env, filename=save_path, use_file="w")
@@ -314,7 +317,7 @@ if __name__ == "__main__":
 
     from crane_controller.crane_factory import build_crane  # noqa: F401
 
-    retcode = 0#pytest.main(["-rP -s -v", __file__])
+    retcode = pytest.main(["-rP -s -v", __file__])
     assert retcode == 0, f"Return code {retcode}"
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
 
@@ -323,6 +326,6 @@ if __name__ == "__main__":
     # test_q_analyse(build_crane, show=True)
     # test_intervals(build_crane)
     # test_state(build_crane, show=True)
-    test_state2(build_crane, show=True)
+    # test_state2(build_crane, show=True)
     #test_update_q_values(build_crane, show=True)
     #test_discretization(build_crane, show=True, discretization=AntiPendulumEnv.DISCRETE2)

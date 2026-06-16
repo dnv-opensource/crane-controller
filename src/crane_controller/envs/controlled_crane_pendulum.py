@@ -14,6 +14,8 @@ from gymnasium import spaces
 from component_model.utils.transform import cartesian_to_spherical
 from py_crane.animation import AnimatePlayBackLines
 
+from crane_controller.experiment_config import RewardConfig
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -48,7 +50,7 @@ def _level(val: float, categories: tuple[float, ...]) -> int:
 AntiPendulumObs = tuple[int, ...] | np.ndarray
 
 
-class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
+class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
     """Environment for a py-crane-based anti-pendulum task.
 
     Uses the matplotlib-based animation module from py-crane.
@@ -60,6 +62,8 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
            in the range ``[-|start_speed|, |start_speed|]`` each episode
         render_mode (str)='none': One of the modes listed in ``metadata["render_modes"]``
         size (float)=0.0: Axis length in all directions
+        rail_limit (float): Half-span of the crane rail in metres (default 10.0). The crane spans
+            ``+-rail_limit``; within PPO an episode is truncated when ``|x| > rail_limit``.
         seed (int)=None: Seed for repeatable random numbers.
         reward_limit (float)=None: Reward at which an episode is terminated and the anti-pendulum is deemed successful
         reward_truncate (float)=None: Reward at which an episode is truncated.
@@ -67,8 +71,11 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         dt (float)=1.0: Simulation time step
         discrete (dict[str, tuple[float | int, ...]]: When provided, activates discrete observation mode with the given
            category boundaries. Expected keys: `angle`,`pos`,`speed`,`distance`,`crane-sector`,`crane-speed` 
-        reward_fac (tuple[float,...])=(1.0,0.005): Weights between reward contributions
+        reward_fac (tuple[float,...])=(-1.0,-1.0,-0.5): Weights between reward contributions
         discount (float) = 0.8: discount factor for acceleration history to include in (discrete) observation
+        continuous_actions (bool)=False: If True, the action space is ``Box([-1], [1])`` and an action value
+            in ``[-1, 1]`` is scaled by ``acc`` to produce the crane acceleration.
+            If False, the action space is ``Discrete(3)`` with mapping``0=-acc, 1=0, 2=+acc`` (Q-agent compatible).
     """
 
     metadata: ClassVar[dict[str, object]] = {  # pyright: ignore[reportIncompatibleVariableOverride]  # Gymnasium metadata typing is loose
@@ -107,14 +114,16 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         crane: Callable[..., Crane],
         acc: float = 0.1,
         start_speed: float = 1.0,
+        randomize_start: bool = False,  # noqa: FBT001, FBT002
         render_mode: str = "none",
-        size: float = 10.0,
+        rail_limit: float = 10.0,
         seed: int | None = None,
         reward_limit: float|None = None,
         reward_truncate: float|None = None,
         dt: float = 1.0,
         discrete: dict[str, tuple[float | int, ...]] | None = None,
-        reward_fac: tuple[float, float, float] = (1.0, 0.005),
+        reward_fac: RewardConfig | None = None,
+        continuous_actions: bool = False,  # noqa: FBT001, FBT002
         discount: float = 0.8,
     ) -> None:
         """Initialize the anti-pendulum environment.
@@ -128,7 +137,8 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         self.wire: Wire = wire  # type: ignore[assignment]  # boom_by_name returns Boom; at runtime this is Wire
         assert render_mode in self.metadata["render_modes"], f"render_mode: {render_mode}"  # type: ignore[operator]  # metadata values are typed as object
         self.render_mode = render_mode
-        self.reward_fac = reward_fac
+        self.reward_fac: RewardConfig = reward_fac if reward_fac is not None else RewardConfig()
+        self.continuous_actions = continuous_actions
         self.discount = discount
         self.reward_stats: list[list[float]] = []
         self._playback: list[list[float]] = []
@@ -147,8 +157,9 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         if discrete is not None:
             self.init_discrete(discrete)
         else:
-            self.spaces_min = np.array((-size, -max_speed, 0.0, -max_speed), float)
-            self.spaces_max = np.array((size, max_speed, np.pi, max_speed), float)
+            self.discrete = {}
+            self.spaces_min = np.array((-rail_limit, -max_speed, 0.0, -max_speed), float)
+            self.spaces_max = np.array((rail_limit, max_speed, np.pi, max_speed), float)
             self.observation_space = spaces.Box(self.spaces_min, self.spaces_max, shape=(4,), dtype=np.float64)
 
         self.dt = dt
@@ -158,20 +169,23 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
 
         self.nresets: int = 0
         self.start_speed = start_speed
-        self.size = size
-        self.figsize: tuple[float, float] = (-size, size)  # The matplotlib animation window
-        if reward_limit is None: # automatic limit
-            self.reward_limit = sum( f*x for f,x in zip(reward_fac, (self.energy_max,self.distance_max), strict=True))
-        else:
-            self.reward_limit = reward_limit
-
-        self.reward_truncate = 0 if reward_truncate is None else reward_truncate
-        self.nsuccess: int = 0
-        self.reward = 0.0  # start value for reward
-
-        # We have 1 acceleration action which can each be min, zero or max, corresponding to acceleration of crane
         _ = super().reset(seed=seed)
-        self.action_space = spaces.Discrete(3, start=0, dtype=np.uint16)
+        self.randomize_start = randomize_start
+        self.initial_speed: float = start_speed
+        self.rail_limit = rail_limit
+        self.figsize: tuple[float, float] = (-rail_limit, rail_limit)  # The matplotlib animation window
+        self.reward_limit = reward_limit
+        self.nsuccess: int = 0
+        self.reward = 0.0  # a basic reward (pendulum energy + distance measure)
+        self.dt = dt
+        self._prev_theta_dot: float | None = None
+
+        if continuous_actions:
+            self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+        else:
+            # Discrete actions: 0 = -acc (left), 1 = 0 (coast), 2 = +acc (right)
+            self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.int64)
+        self.action_to_acc = {0: -self.acc, 1: 0.0, 2: self.acc}
         self.steps: int = 0
         self.time: float = 0.0
         self.obs : tuple[int, ...] | np.ndarray # previous observation
@@ -278,34 +292,41 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         )
         ani.do_animation()
 
-    def show_plot(self, episode: int) -> None:
+    def show_plot(self, episode: int, save_path: str | None = None) -> None:
         """Plot detailed traces for a single episode.
 
         Args:
             episode (int): Episode number used in the plot title.
+            save_path (str)=None: If set, save the figure to this path and close it instead of calling ``plt.show()``
         """
-        _, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(16, 12))
+        if not self.traces["l_v"]:
+            return
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(16, 18), sharex=True)
         times = self.dt * np.arange(len(self.traces["c_x"]))
         damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
-        ax1y2 = ax1.twinx()
-        ax1y2.plot(times, self.traces["l_v"], label="load speed", color="red")
-        ax1y2.plot(times, damping, label="damping", color="green")
-        ax2.plot(times, self.traces["c_x"], label="crane pos", color="blue")
-        ax2y2 = ax2.twinx()
-        ax2y2.plot(times, self.traces["c_v"], label="crane speed", color="red")
-        ax3.plot(times[: len(self.rewards)], self.rewards, label="rewards")
-        ax4.plot(times, self.traces["acc"], label="x-acceleration", color="green")
-        lines1, labels1 = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax1y2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2)
-        lines3, labels3 = ax2.get_legend_handles_labels()
-        lines4, labels4 = ax2y2.get_legend_handles_labels()
-        ax2.legend(lines3 + lines4, labels3 + labels4, loc="upper left")
-        _ = ax3.legend()
-        _ = ax4.legend()
-        _ = plt.suptitle(f"Detailed plot of episode {episode}, reward:{self.reward}")
-        plt.show()
+        ax2.plot(times, self.traces["l_v"], label="load speed", color="red")
+        ax2.plot(times, damping, label="damping", color="green")
+        ax3.plot(times, self.traces["c_x"], label="crane pos", color="blue")
+        ax3.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7, label="origin")
+        ax4.plot(times, self.traces["c_v"], label="crane speed", color="red")
+        ax5.plot(times[: len(self.rewards)], self.rewards, label="rewards")
+        ax6.plot(times, self.traces["acc"], label="x-acceleration", color="green")
+        ax6.set_xlabel("time [s]")
+        for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
+            _ = ax.legend()
+        _ = plt.suptitle(
+            f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"  # pyright: ignore[reportUnknownMemberType]
+        )
+        fig.tight_layout()
+        if save_path is not None:
+            from pathlib import Path  # noqa: PLC0415
+
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(save_path)
+            plt.close(fig)
+        else:
+            plt.show()
         for key in self.traces:
             self.traces[key] = []
 
@@ -322,7 +343,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
                 self.crane.position[0],
                 self.crane.velocity[0],
                 self.wire.boom[1],
-                self.wire.cm_v[0],  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
+                (self.wire.cm_v[0] - self.wire.origin_v[0]) / self.wire.length,  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
             ),
             float,
         )
@@ -379,15 +400,35 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         Returns:
             tuple[np.ndarray | tuple[int, ...], float, int]: ``(observation, reward, truncate_flag)``.
         """
-        # calculate the minimum time for the crane to stop at zero (optimal acceleration usage)
-        x0 = self.crane.position[0]
-        v0 = self.crane.velocity[0]
-        a = self.acc # absolute max acceleration
-        _r = [
-            9.81*self.wire.end[2]+0.5*np.dot(self.wire.cm_v,self.wire.cm_v), # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
-            abs(x0),
-            v0*v0
-            ]
+        energy = 9.81 * self.wire.end[2] + 0.5 * np.dot(self.wire.cm_v, self.wire.cm_v)  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
+        if self.start_speed != 0.0:  # anti-pendulum mode
+            energy = -energy
+        if np.sign(self.crane.position[0]) == np.sign(self.crane.velocity[0]):  # moving away from origo
+            positional = -self.wire.length * (abs(self.crane.position[0]) + self.crane.velocity[0] ** 2 / self.acc)
+        else:
+            positional = 0.0  # if the crane moves towards the origo we do not subtract reward
+        position = -abs(self.crane.position[0])
+        acc_penalty = -abs(acc)
+        rc = self.reward_fac
+        self.reward = (
+            rc.energy * energy
+            + rc.positional * positional
+            + rc.time * (-self.time)
+            + rc.position * position
+            + rc.acceleration * acc_penalty
+        )
+        theta = self.wire.boom[1]
+        theta_dot = (self.wire.cm_v[0] - self.wire.origin_v[0]) / self.wire.length  # pyright: ignore[reportUnknownMemberType]
+        theta_ddot = (theta_dot - self._prev_theta_dot) / self.dt if self._prev_theta_dot is not None else 0.0
+        self._prev_theta_dot = theta_dot
+        self.reward += (  # pyright: ignore[reportUnknownMemberType]
+            rc.angle * (-(theta**2))
+            + rc.angular_velocity * (-(theta_dot**2))
+            + rc.crane_velocity * (-(self.crane.velocity[0] ** 2))
+            + rc.crane_acceleration * (-(acc**2))
+            + rc.angular_acceleration * (-(theta_ddot**2))
+            + rc.t_min_crane * (-self._t_min_crane())
+        )
 
         if len(self.discrete):
             self.obs, truncate = self._get_discrete_obs(_r[0], acc)
@@ -405,8 +446,37 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
 
         return (self.obs, self.reward, truncate)
 
+    def _t_min_crane(self) -> float:
+        """Minimum time for the crane to reach x=0 at rest under bang-bang control.
+
+        Returns
+        -------
+        float
+            Optimal time-to-origin in seconds; zero when crane is already at rest
+            at the origin.
+        """
+        x0 = self.crane.position[0]
+        v0 = self.crane.velocity[0]
+        a = self.acc
+        if (x0 >= 0 and v0 >= 0) or (x0 <= 0 and v0 <= 0):  # moving away from origin
+            return (abs(v0) + 2.0 * np.sqrt(max(0.0, abs(x0) * a + 0.5 * v0**2))) / a
+        # moving toward origin
+        if abs(x0) >= 0.5 * v0**2 / a:  # no overshoot
+            return (-abs(v0) + 2.0 * np.sqrt(max(0.0, abs(x0) * a + 0.5 * v0**2))) / a
+        # overshoot
+        return (abs(v0) + 2.0 * np.sqrt(max(0.0, abs(x0) * a - 0.5 * v0**2))) / a
+
     def _get_info(self, reward: float, steps: int) -> dict[str, float | int]:
-        return {"steps": steps, "reward": reward}
+        return {
+            "steps": steps,
+            "reward": reward,
+            "t_min": self._t_min_crane(),
+            "x_pos": self.crane.position[0],
+            "x_vel": self.crane.velocity[0],
+            "energy": 0.5 * float(self.wire.cm_v[0]) ** 2,  # pyright: ignore[reportUnknownMemberType]
+            "theta": float(self.wire.boom[1]),
+            "theta_dot": (float(self.wire.cm_v[0]) - float(self.wire.origin_v[0])) / float(self.wire.length),  # pyright: ignore[reportUnknownMemberType]
+        }
 
     def reset_crane(self) -> None:
         """Reset the crane to its initial physical state.
@@ -441,9 +511,16 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         """
         self.reset_crane()
 
-        if self.nresets > 0:  # reset between episodes. Data are available
-            self.reward_stats.append(self.reward_stats_calc( self.steps))
-            if self.render_mode == "play-back" and len(self._playback):
+        if self.nresets <= 0:  # reset during instantiation. Initialize
+            if self.render_mode == "data":
+                self._reward_point = self._reward_plot_init("b.")
+
+        else:  # reset between episodes. Data are available
+            self.reward_stats.append([self.steps, self.reward])  # pyright: ignore[reportUnknownMemberType]
+            if self.render_mode == "data":
+                self._reward_point.set_data([r[0] for r in self.reward_stats], [r[1] for r in self.reward_stats])
+                plt.pause(1e-10)
+            elif self.render_mode == "play-back" and len(self._playback):
                 self.show_animation()
                 self._playback = []
             elif self.render_mode == "plot":
@@ -454,21 +531,15 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         self.nresets += 1
         if self.start_speed == 0.0:  # run in 'start' mode, learning how to start the pendulum action
             assert self.wire.cm_v[0] == 0.0, f"Load speed expected zero. Found {self.wire.cm_v[0]}"  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
+        elif self.randomize_start:
+            speed = self.np_random.uniform(self.min_speed, abs(self.start_speed))
+            sign = 1.0 if self.np_random.random() > 0.5 else -1.0  # noqa: PLR2004
+            self.wire.cm_v[0] = speed * sign  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         else:
-            if self.start_speed < 0.0:  # random speed in 'stop' mode [-,+] range
-                speed = 0
-                lim = -self.reward_limit/ self.reward_fac[0]
-                while speed* speed < lim: # try until start-speed is high enough to not terminate
-                    speed = self.np_random.uniform(self.start_speed, -self.start_speed)
-            else:  # fixed speed in 'stop' mode (more control)
-                speed = self.start_speed
-            self.wire.cm_v[0] = speed  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
-            self.energy0 = 0.5* speed* speed
-
-        if len(self.discrete):
-            self.obs = (0,)*len(self.discrete)
-        self.obs, self.reward, _ = self._get_obs()
-        #logger.info(f"RESET speed:{speed}. obs:{self.obs}=>{self.reward}")
+            self.wire.cm_v[0] = self.start_speed  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
+        self.initial_speed = float(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
+        self._prev_theta_dot = None
+        obs, self.reward, _ = self._get_obs()
         if self.render_mode == "play-back":
             self._append_playback(0.0)
         self.steps = 0
@@ -477,7 +548,9 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         self.rewards = [float(self.reward)]
         return self.obs, info
 
-    def step(self, action: int) -> tuple[tuple[int, ...] | np.ndarray, float, bool, bool, dict[str, float | int]]:
+    def step(
+        self, action: int | np.ndarray
+    ) -> tuple[tuple[int, ...] | np.ndarray, float, bool, bool, dict[str, float | int]]:
         """Advance the environment by one time step.
 
         Args:
@@ -487,13 +560,21 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
             tuple[tuple[int, ...] | np.ndarray, float, bool, bool, dict[str, float | int]]:
                 (observation, reward, terminated, truncated, info)
         """
-        acc = -self.acc if action==0 else (0.0 if action==1 else self.acc)
+        if self.continuous_actions:
+            acc = float(np.asarray(action).flat[0]) * self.acc
+        else:
+            action_idx = int(action)
+            if action_idx not in self.action_to_acc:
+                action_idx += 1
+            acc = self.action_to_acc[action_idx]
         self.crane.d_velocity[0] = acc
         self.steps += 1
         _ = self.crane.do_step(self.time, self.dt)
         self.time += self.dt
 
-        self.obs, self.reward, truncated = self._get_obs(acc)
+        obs, self.reward, truncated = self._get_obs(acc)
+        if truncated and self.reward_fac.terminal_penalty != 0.0:
+            self.reward += self.reward_fac.terminal_penalty
         if self.render_mode != "none":
             self.rewards.append(float(self.reward))
 
@@ -508,14 +589,25 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int]):
         if terminated:
             self.nsuccess += 1
         info = self._get_info(self.reward, self.steps)
-        return self.obs, self.reward, terminated, (truncated > 0), info
+        if truncated > 0:
+            info["crash"] = True
+        return obs, self.reward, terminated, (truncated > 0), info
 
-    def render(self) -> None:
-        """Render the current episode."""
+
+    def render(self, save_path: str | None = None) -> None:
+        """Render the current episode.
+
+        Parameters
+        ----------
+        save_path : str or None, optional
+            If set and render_mode is ``"plot"``, save the figure to this path
+            instead of showing it interactively (default None).
+        """
         if self.render_mode == "play-back":
             self.show_animation()
         elif self.render_mode == "plot":
-            self.show_plot(self.nresets)
+            self.show_plot(self.nresets, save_path=save_path)
+
 
     def set_state(self, pos:np.ndarray|float, speed:np.ndarray|float, direction:np.ndarray|float, w_speed:np.ndarray|float):
         """Set the state of the pendulum. Used for test purposes.

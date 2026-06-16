@@ -8,6 +8,7 @@ crane-controller Documentation
    :caption: Contents:
 
    README
+   reward_comparison
    assurance
    api
    CHANGELOG
