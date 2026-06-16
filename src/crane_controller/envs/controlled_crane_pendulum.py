@@ -290,6 +290,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         fig.tight_layout()
         if save_path is not None:
             from pathlib import Path  # noqa: PLC0415
+
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(save_path)
             plt.close(fig)
