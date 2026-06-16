@@ -237,8 +237,11 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
     def energy_max(self):
         try:
             return self.discrete['energy'][-1]
-        except KeyError as err:
-            logger.error(f"'energy' not part of discretization, such that maximum value is not defined: {err}")
+        except KeyError as err1:
+            try:
+                return 0.5*self.discrete['speed'][-1]**2
+            except KeyError as err2:
+                logger.error(f"'energy' or 'speedæ not part of discretization, => maximum value not defined: {err2}")
     
     @property
     def distance_max(self):
@@ -301,7 +304,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         """
         if not self.traces["l_v"]:
             return
-        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(16, 18), sharex=True)
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(16, 10), sharex=True)
         times = self.dt * np.arange(len(self.traces["c_x"]))
         damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
@@ -421,22 +424,12 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         theta_dot = (self.wire.cm_v[0] - self.wire.origin_v[0]) / self.wire.length  # pyright: ignore[reportUnknownMemberType]
         theta_ddot = (theta_dot - self._prev_theta_dot) / self.dt if self._prev_theta_dot is not None else 0.0
         self._prev_theta_dot = theta_dot
-        self.reward += (  # pyright: ignore[reportUnknownMemberType]
-            rc.angle * (-(theta**2))
-            + rc.angular_velocity * (-(theta_dot**2))
-            + rc.crane_velocity * (-(self.crane.velocity[0] ** 2))
-            + rc.crane_acceleration * (-(acc**2))
-            + rc.angular_acceleration * (-(theta_ddot**2))
-            + rc.t_min_crane * (-self._t_min_crane())
-        )
 
         if len(self.discrete):
-            self.obs, truncate = self._get_discrete_obs(_r[0], acc)
+            self.obs, truncate = self._get_discrete_obs(energy, acc)
         else:
             self.obs, truncate = self._get_continuous_obs()
 
-        self.reward = sum( f*x for f,x in zip(self.reward_fac, _r, strict=True))
-        
         if self.render_mode == "plot":
             self.traces["c_x"].append(self.crane.position[0])
             self.traces["c_v"].append(self.crane.velocity[0])

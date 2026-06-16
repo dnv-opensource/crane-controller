@@ -72,11 +72,12 @@ dependencies = [
     "scipy>=1.17.1",
     "pandas>=3.0",
     "gymnasium>=1.2.3",
-    "pygame-ce>=2.5",  # replacement for pygame (transitive dependency of gymnasium)
-    "stable-baselines3[extra]>=2.8",  # does not support Python 3.14 (By the time of writing, 2026-04-22)
+    "pygame-ce>=2.5", # replacement for pygame (transitive dependency of gymnasium)
+    "stable-baselines3[extra]>=2.8", # does not support Python 3.14 (By the time of writing, 2026-04-22)
     "matplotlib>=3.10",
     "seaborn>=0.13.2",
     "tqdm>=4.67",
+    "pyment>=0.3.3",
 ]
 
 [project.urls]

@@ -1,0 +1,93 @@
+import logging
+import shutil
+from collections.abc import Callable
+from pathlib import Path
+
+import numpy as np
+
+from crane_controller.envs.simple_test_env import SimpleTestEnv
+from crane_controller.q_agent import QLearningAgent
+
+logger = logging.getLogger(__name__)
+
+
+def test_env():
+    env = SimpleTestEnv(
+        acc = 1.0,
+        pos_range = (100,100),
+        speed_range = (10,10),
+        reward_fac = (1.0, 1.0),
+        reward_limit = 1000,
+        dt = 1.0,
+        pos0 = 0.0,
+        speed0 = 0.0,
+        pos1 = 10.0,
+        speed1 = 0.0,
+        seed = 1
+    )
+    assert env.action_space.n == 3
+    assert env.action_space.sample() == 1, "Pseudo random"
+    assert list(env.observation_space.sample()) == [-98,-10]
+    pos = env.pos
+    speed = env.speed
+    dt = env.dt
+    stats = [0,0,0]
+    for i in range(1000):
+        i_acc = env.action_space.sample()
+        stats[i_acc+1] += 1
+        a = i_acc* env.acc
+        obs, reward, term, trunc, _ = env.step(i_acc)
+        pos += speed*dt + 0.5*a*dt*dt
+        speed += a*dt
+        assert pos == env.pos and round(pos) == obs[0]
+        assert speed == env.speed and round(speed) == obs[1]
+    assert abs(stats[0]-stats[1])/stats[2] < 0.05, f"stats: {stats}" 
+
+def test_smoke(*, show: bool) -> None:
+    env = SimpleTestEnv(
+        acc = 1.0,
+        pos_range = (-100,100),
+        speed_range = (-10,10),
+        reward_fac = (1.0, 1.0),
+        reward_limit = None,
+        dt = 1.0,
+        pos0 = 0.0,
+        speed0 = 0.0,
+        pos1 = 10.0,
+        speed1 = 0.0,
+        render_mode = 'plot'
+    )
+    agent = QLearningAgent(env, filename=None)
+    agent.do_episodes(n_episodes=5, max_steps=200)
+
+
+def test_q_analyse(env, *, show: bool) -> None:
+    agent = QLearningAgent(env, filename=Path("q_trained.json"), use_file="r")
+    agent.q_values = agent.read_dumped()
+    for k, v in agent.q_values.items():
+        assert len(k) == 5, len(v) == 3
+    for pos in (0, 1):
+        for speed in (0, 1):
+            res = {k: v for k, v in agent.q_values.items() if k[1] == pos and k[2] == speed}
+            logger.info(f"pos:{pos}, speed:{speed}")
+            acc: list[np.floating] = []
+            for i in range(3):
+                col = [x[i] for x in res.values()]
+                acc.append(np.average(col))
+            logger.info(f"averages: {acc}")
+
+
+if __name__ == "__main__":
+    import os
+    from pathlib import Path
+
+    import pytest
+
+    retcode = 0#pytest.main(["-rP -s -v", __file__])
+    assert retcode == 0, f"Return code {retcode}"
+    os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
+
+    #test_env()
+    test_smoke(show=True)
+    env = SimpleTestEnv(1.0, (100,100), (10,10), (1.0, 1.0), None, 1.0)
+    #test_q_analyse(env, show=True)

@@ -32,31 +32,24 @@ def _get_moving_avgs(
 ) -> np.ndarray:
     """Compute moving averages to smooth noisy data.
 
-    Parameters
-    ----------
-    values : Sequence[float] | np.ndarray
-        Raw data series to smooth.
-    window : int
-        Number of elements in the averaging window.
-    convolution_mode : {"valid", "same"}
-        Convolution mode passed to `numpy.convolve`.
+    Args:
+      values(Sequence[float] | np.ndarray): Raw data series to smooth.
+      window(int): Number of elements in the averaging window.
+      convolution_mode({"valid", "same"}): Convolution mode passed to `numpy.convolve`.
+      values: Sequence[float] | np.ndarray:
+      window: int:
+      convolution_mode: Literal["valid":
+      "same"]:
 
     Returns
     -------
-    np.ndarray
-        Smoothed data series.
+    Moving average as np array
     """
     return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
 
 
 class AlgorithmAgent:
-    """Agent for algorithmic control of a simple environment.
-
-    Parameters
-    ----------
-    env : AntiPendulumEnv
-        The environment to be controlled. Must provide `.reset()` and `.step()` methods.
-    """
+    """Agent for algorithmic control of a simple environment."""
 
     envs = ("AntiPendulumEnv",)
 
@@ -66,10 +59,8 @@ class AlgorithmAgent:
     ) -> None:
         """Initialize the algorithmic agent.
 
-        Parameters
-        ----------
-        env : AntiPendulumEnv
-            The environment to be controlled.
+        Args:
+            env (AntiPendulumEnv): The environment to be controlled.
         """
         self.env = env
         assert type(self.env).__name__ in AlgorithmAgent.envs, f"Environment {type(self.env).__name__} not listed."
@@ -83,20 +74,14 @@ class AlgorithmAgent:
         The algorithmic strategy is coded as ``self.strategy`` and the
         observation slots 0, 3, 4 are ignored.
 
-        Parameters
-        ----------
-        obs : AntiPendulumObs
-            Current observation from the environment.
+        Args:
+          obs(AntiPendulumObs): Current observation from the environment.
 
         Returns
         -------
-        int
-            An allowed action from the action space.
+          int: An allowed action from the action space.
 
-        Raises
-        ------
-        ValueError
-            If `obs` contains an unexpected combination of position and speed.
+
         """
         if obs == START_MODE_OBSERVATION:  # in start mode. Random push to get started.
             return int(self.env.np_random.choice((0, 2)))
@@ -125,10 +110,8 @@ class AlgorithmAgent:
         where ``pos = obs[1]`` and ``speed = obs[2]``.
         Observations 0, 3 and 4 are ignored.
 
-        Parameters
-        ----------
-        max_steps : int, optional
-            Maximum number of steps per episode before truncation (default 5000).
+        Args:
+          max_steps (int)=5000: Maximum steps per episodes
         """
         rewards: list[float] = []
         for self.strategy in product(range(3), range(3), range(3), range(3)):
@@ -150,15 +133,10 @@ class AlgorithmAgent:
     def do_episodes(self, n_episodes: int = 1000, show: int = 0, max_steps: int = 1000) -> None:
         """Run training episodes.
 
-        Parameters
-        ----------
-        n_episodes : int, optional
-            Number of episodes to run (default 1000).
-        show : int, optional
-            Visualization mode - 0 for none, 1 for training summary, 2 for
-            per-episode analysis (default 0).
-        max_steps : int, optional
-            Maximum steps per episode before truncation (default 1000).
+        Args:
+          n_episodes (int)=1000: Number of episodes to run
+          show (int)=0: Show mode (default: no show)
+          max_steps (int)=1000: max steps per episodes
         """
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
@@ -185,10 +163,8 @@ class AlgorithmAgent:
     def analyse_training(self, window: int = 500) -> None:
         """Plot moving averages of episode rewards, lengths, and training error.
 
-        Parameters
-        ----------
-        window : int, optional
-            Number of episodes used for the smoothing window (default 500).
+        Args:
+          window (int)=500: Moving average window
         """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
@@ -223,10 +199,8 @@ class AlgorithmAgent:
     def analyse_episode(self, window: int = 100) -> None:
         """Plot moving averages of rewards and training error for one episode.
 
-        Parameters
-        ----------
-        window : int, optional
-            Number of steps used for the smoothing window (default 100).
+        Args:
+          window (int)=500: Moving average window
         """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=2, figsize=(12, 5))
@@ -251,15 +225,12 @@ class AlgorithmAgent:
     def test_agent(self, num_episodes: int = 1000) -> str:
         """Test agent performance without learning or exploration.
 
-        Parameters
-        ----------
-        num_episodes : int, optional
-            Number of evaluation episodes (default 1000).
+        Args:
+          num_episodes(int, optional): Number of evaluation episodes (default 1000).
 
         Returns
         -------
-        str
-            Formatted summary of win rate, average reward, and standard deviation.
+        (str) message
         """
         total_rewards: list[float] = []
 

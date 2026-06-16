@@ -36,7 +36,7 @@ def _build_dummy_env() -> AntiPendulumEnv:
     AntiPendulumEnv
         Environment with discrete observation space.
     """
-    return AntiPendulumEnv(build_crane, discrete=QLearningAgent.DEFAULT_DISCRETE.copy())
+    return AntiPendulumEnv(build_crane, discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy())
 
 
 def main() -> None:

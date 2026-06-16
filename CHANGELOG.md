@@ -51,6 +51,7 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
   space types work correctly during inference.
 
 ### Fixed
+* Fixed general incompatibilities between the updated repository and changes in `eis`branch.
 * `ProximalPolicyOptimizationAgent.load()` now applies a `TimeLimit` wrapper (max 3000 steps),
   matching the training configuration. Without it, `play_ppo.py` ran indefinitely on a converged
   model whose near-zero reward never crossed the termination threshold.
@@ -77,6 +78,8 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
   vs training step as a PNG alongside the model after each training run.
 
 ### Changed
+* Removed unused reward factors in reward calculation
+* Adapted the y-size of plots, such that it fits also smaler screens without scrolling
 * `AntiPendulumEnv` parameter `size` renamed to `rail_limit`; `TrainingConfig.size` renamed to
   `rail_limit`; `--size` CLI flag renamed to `--rail-limit`. Semantics unchanged: half-span of
   the crane rail in metres (crane spans +-rail_limit).
