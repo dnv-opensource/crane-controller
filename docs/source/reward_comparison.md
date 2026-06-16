@@ -345,6 +345,52 @@ The two non-converging episodes appear as outliers in the settle-step and x\_vel
 *Figure 8. `hybrid_cv01_disc_s42` (discrete) — nine sweep metrics across ±10 m/s.
 All 100 episodes converge; x\_pos at machine-epsilon level throughout.*
 
+### 6.4  Episode trajectories
+
+The plots below show time-series for individual episodes: crane position, velocity,
+pendulum angle, pendulum angular velocity, crane acceleration, and reward — one panel
+per quantity, over the full episode.  They complement the sweep figures by showing *how*
+the agent moves, not just the final values.
+
+**A — Discrete, 1.0 m/s — fast bang-bang settle**
+
+![Episode: disc s42, start speed +1.0 m/s](_static/episode_disc_s42_v1p0.png)
+
+*Figure 9. `hybrid_cv01_disc_s42`, start speed +1.0 m/s, 250 steps.
+Settles at step 28.  Three-phase bang-bang: full brake → coast → done.*
+
+**B — Continuous, 5.0 m/s — smooth mid-range convergence**
+
+![Episode: cont s42, start speed +5.0 m/s](_static/episode_cont_s42_v5p0.png)
+
+*Figure 10. `hybrid_cv01_s42` (continuous), start speed +5.0 m/s, 200 steps.
+Settles at step 87, final position −1.4 cm.  Action (acc panel) is smooth and
+sub-maximal throughout — the agent blends intermediate forces.*
+
+**C — Discrete, 5.0 m/s — bang-bang contrast at same speed**
+
+![Episode: disc s42, start speed +5.0 m/s](_static/episode_disc_s42_v5p0.png)
+
+*Figure 11. `hybrid_cv01_disc_s42`, start speed +5.0 m/s, 200 steps.
+Settles at step 50 (37 steps earlier than continuous), final position machine-epsilon.
+Action is always ±0.1 or 0 — no intermediate values.*
+
+**D — Continuous, 9.0 m/s — non-converging failure**
+
+![Episode: cont s42, start speed +9.0 m/s](_static/episode_cont_s42_v9p0.png)
+
+*Figure 12. `hybrid_cv01_s42` (continuous), start speed +9.0 m/s, 400 steps.
+Does not settle within budget: `t_min_settle_step = 400` (budget exhausted).
+Final position +1.1 cm; crane continues oscillating at episode end.*
+
+**E — Discrete, 9.0 m/s — converges where continuous fails**
+
+![Episode: disc s42, start speed +9.0 m/s](_static/episode_disc_s42_v9p0.png)
+
+*Figure 13. `hybrid_cv01_disc_s42`, start speed +9.0 m/s, 200 steps.
+Settles at step 76, final position machine-epsilon — clean convergence at the
+same speed where the continuous policy fails to settle.*
+
 ---
 
 ## 7  Conclusion
