@@ -19,6 +19,7 @@ def test_smoke(crane: Callable[..., Crane], *, show: bool) -> None:
         render_mode="plot" if show else "none",
         reward_limit=-0.05,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+        continuous_actions=False,
     )
     agent = QLearningAgent(env, filename=None)
     agent.do_episodes(n_episodes=5, max_steps=200)
@@ -31,6 +32,7 @@ def test_q_analyse(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+        continuous_actions=False,
     )
     agent = QLearningAgent(env, filename=Path("q_trained.json"), use_trained=True)
     for k, v in agent.q_values.items():
@@ -55,6 +57,7 @@ def test_intervals(crane: Callable[..., Crane]):
         render_mode="none",
         reward_limit=-0.05,
         discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+        continuous_actions=False,
     )
 
     agent = QLearningAgent(env, filename=save_path, use_trained=False)

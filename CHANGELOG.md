@@ -6,8 +6,49 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
 ## [Unreleased]
 
 ### Added
+* Five new `RewardConfig` fields for a principled derivatives-based reward design:
+  `angle` (-theta^2), `angular_velocity` (-theta_dot^2), `crane_velocity` (-x_dot^2),
+  `crane_acceleration` (-x_ddot^2), `angular_acceleration` (-theta_ddot^2). All default to 0.0
+  for full backward compatibility with existing configs using `energy`.
+  Angular velocity uses pure theta_dot = `(cm_v[0] - origin_v[0]) / wire.length`,
+  excluding crane translation. Angular acceleration is computed via one-step
+  finite difference of theta_dot; zero on the first step after each episode reset.
+* `AntiPendulumEnv` continuous observation `obs[3]` changed from absolute load
+  x-velocity (`wire.cm_v[0]`) to pure angular velocity theta_dot (rad/s), making the
+  observation independent of crane translation velocity.
+* `experiments/derivatives_baseline.yaml`: starting config for the derivatives reward.
+* `experiments/hybrid_cv01.yaml`: validated hybrid config (energy + crane_velocity + position
+  return). Seeds 2718, 3141, 31415 achieve 6/6 OOD generalisation at start_speed=7.0.
+* `start_speed` field in `TrainingConfig` (default 1.0); wired through `train_ppo.py`
+  (`--start-speed`) and `play_ppo.py` (`--start-speed`). With `randomize_start=True` acts
+  as the upper bound of the per-episode speed sampling range `+-[min_speed, start_speed]`.
+* `randomize_start` field in `TrainingConfig`; wired through both scripts.
+  `play_ppo.py` pre-parses `--model-path` to auto-load `randomize_start` from the model
+  sidecar; `--randomize-start` / `--no-randomize-start` override it.
+* `RewardConfig`, `TrainingConfig`, and `ExperimentConfig` frozen dataclasses in new module
+  `src/crane_controller/experiment_config.py`. Replace the opaque `reward_fac` tuple with
+  named fields, eliminating the silent index-swap bug class.
+* YAML experiment config support in `train_ppo.py` via `--config PATH`.
+  Missing YAML keys fall back to `RewardConfig`/`TrainingConfig` defaults.
+* `--reward-fac ENERGY POSITIONAL TIME POSITION ACCELERATION` CLI override on `train_ppo.py`;
+  takes precedence over `--config`.
+* JSON sidecar (`*_meta.json`) written alongside every saved model by `train_ppo.py` and read
+  automatically by `play_ppo.py` — reward weights follow the model without manual flags.
+* `terminal_penalty` field in `RewardConfig`: one-time reward added on episode truncation
+  (OOB crash). Defaults to 0.0 (disabled). Used in `hybrid_cv01.yaml` as -5.0.
+* `seed`, `ent_coef`, `learning_rate`, `clip_range`, `n_steps` parameters on
+  `ProximalPolicyOptimizationAgent.__init__` and corresponding CLI flags in `train_ppo.py`.
 * `gamma` parameter on `ProximalPolicyOptimizationAgent` (default 0.99) and `--gamma` CLI flag in
   `train_ppo.py` to configure the PPO discount factor without editing source code.
+* `continuous_actions: bool` parameter on `AntiPendulumEnv` (default `False`). When `True`, the
+  action space is `Box([-1], [1])` and the action value is scaled by `acc` to produce crane
+  acceleration, enabling PPO to produce any acceleration in `[-acc, +acc]`. When `False` (default),
+  the action space remains `Discrete(3)` for full Q-agent backward compatibility.
+  `TrainingConfig.continuous_actions` (default `True`) and `--continuous-actions` /
+  `--no-continuous-actions` CLI flags in both `train_ppo.py` and `play_ppo.py` control this for
+  PPO workflows; Q-agent workflows pass `continuous_actions=False` explicitly.
+  `ppo_agent.do_one_episode()` updated to pass actions without casting to `int`, so both action
+  space types work correctly during inference.
 
 ### Fixed
 * `ProximalPolicyOptimizationAgent.load()` now applies a `TimeLimit` wrapper (max 3000 steps),
@@ -36,6 +77,12 @@ The changelog format is based on [Keep a Changelog](https://keepachangelog.com/e
   vs training step as a PNG alongside the model after each training run.
 
 ### Changed
+* `AntiPendulumEnv` parameter `size` renamed to `rail_limit`; `TrainingConfig.size` renamed to
+  `rail_limit`; `--size` CLI flag renamed to `--rail-limit`. Semantics unchanged: half-span of
+  the crane rail in metres (crane spans +-rail_limit).
+* `show_plot()` rewritten with 6 individual subplots (load angle, load speed + damping curve,
+  crane position + origin line, crane speed, rewards, x-acceleration), replacing the previous
+  `twinx()`-based layout that caused overlapping scales and colliding legends.
 * Moved `logging.basicConfig` to the top of `main()` in `train_ppo.py` and `play_ppo.py` so
   logging is configured before any application logic runs.
 * Refactored `ProximalPolicyOptimizationAgent` API to separate training and inference concerns:
