@@ -322,11 +322,13 @@ class ProximalPolicyOptimizationAgent:
         """
         cb = (
             EpRewardLogCallback(
-                total_timesteps, log_interval,
+                total_timesteps,
+                log_interval,
                 csv_path=csv_path,
                 max_episode_steps=self._max_episode_steps,
             )
-            if progress_bar else None
+            if progress_bar
+            else None
         )
         _ = self.model.learn(
             total_timesteps,
@@ -392,7 +394,7 @@ class ProximalPolicyOptimizationAgent:
             ep_reward += float(reward)
             if "t_min" in info:
                 t_min_trace.append(float(info["t_min"]))
-        self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined]
+        self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined, call-arg]
         env_u = self.env.unwrapped
         energy_final = 0.5 * float(env_u.wire.cm_v[0]) ** 2  # type: ignore[attr-defined]
         if env_u.continuous_actions:  # type: ignore[attr-defined]

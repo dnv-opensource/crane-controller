@@ -20,18 +20,18 @@ import matplotlib.ticker as mticker
 LOGGER = logging.getLogger(__name__)
 
 PANELS: list[tuple[str, str]] = [
-    ("rail_hit%↓",   "rail_hit_pct"),
-    ("rew/step↑",    "rew_per_step"),
-    ("ep_len↑",      "ep_len_mean"),
-    ("expl_var↑",    "explained_variance"),
-    ("value_loss↓",  "value_loss"),
-    ("entropy~",     "entropy_loss"),
-    ("approx_kl↓",   "approx_kl"),
-    ("clip_frac↓",   "clip_fraction"),
-    ("|θ̇|↓",        "mean_theta_dot_abs"),
-    ("|x|↓ (m)",     "mean_x_pos_abs"),
-    ("|xv|↓",        "mean_x_vel_abs"),
-    ("energy↓",      "mean_energy"),
+    ("rail_hit%↓", "rail_hit_pct"),
+    ("rew/step↑", "rew_per_step"),
+    ("ep_len↑", "ep_len_mean"),
+    ("expl_var↑", "explained_variance"),
+    ("value_loss↓", "value_loss"),
+    ("entropy~", "entropy_loss"),
+    ("approx_kl↓", "approx_kl"),
+    ("clip_frac↓", "clip_fraction"),
+    ("|θ̇|↓", "mean_theta_dot_abs"),
+    ("|x|↓ (m)", "mean_x_pos_abs"),
+    ("|xv|↓", "mean_x_vel_abs"),
+    ("energy↓", "mean_energy"),
 ]
 
 
@@ -72,7 +72,7 @@ def main() -> None:
     datasets: list[tuple[str, list[float], dict[str, list[float]]]] = []
     for csv_path in args.csvs:
         stem = Path(csv_path).stem
-        label = stem[:-4] if stem.endswith("_log") else stem
+        label = stem.removesuffix("_log")
         ts, cols = _load_csv(csv_path)
         datasets.append((label, ts, cols))
         LOGGER.info("Loaded %s  (%d rows)", label, len(ts))
@@ -81,7 +81,7 @@ def main() -> None:
     fmt = mticker.FuncFormatter(lambda x, _: f"{x:,.0f}")
 
     linestyles = ["-", "--", "-.", ":"]
-    for ax, (title, col_key) in zip(axes.flat, PANELS):
+    for ax, (title, col_key) in zip(axes.flat, PANELS, strict=True):
         for i, (label, ts, cols) in enumerate(datasets):
             ys = cols.get(col_key, [float("nan")] * len(ts))
             ax.plot(ts, ys, linewidth=1.5, label=label, linestyle=linestyles[i % len(linestyles)])
@@ -89,7 +89,7 @@ def main() -> None:
         ax.set_xlabel("steps", fontsize=8)
         ax.xaxis.set_major_formatter(fmt)
         ax.tick_params(labelsize=7)
-        ax.grid(True, alpha=0.3)
+        ax.grid(visible=True, alpha=0.3)
 
     if len(datasets) > 1:
         handles, labels = axes.flat[0].get_legend_handles_labels()
@@ -102,9 +102,7 @@ def main() -> None:
     if args.output:
         out_path = args.output
     else:
-        first_stem = Path(args.csvs[0]).stem
-        if first_stem.endswith("_log"):
-            first_stem = first_stem[:-4]
+        first_stem = Path(args.csvs[0]).stem.removesuffix("_log")
         out_path = str(Path(args.csvs[0]).parent / f"{first_stem}_training.png")
 
     fig.savefig(out_path, dpi=150, bbox_inches="tight")

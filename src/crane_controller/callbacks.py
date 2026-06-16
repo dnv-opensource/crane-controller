@@ -125,46 +125,42 @@ class EpRewardLogCallback(BaseCallback):
 
         t: int = self.num_timesteps  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
         buf = self.model.ep_info_buffer  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
-        if t - self._last_log >= self._log_interval and len(buf) > 0:
+        if t - self._last_log >= self._log_interval and buf is not None and len(buf) > 0:
             mean_rew = float(np.mean([ep["r"] for ep in buf]))
             mean_len = float(np.mean([ep["l"] for ep in buf]))
-            kl   = self._diag("train/approx_kl")
-            ev   = self._diag("train/explained_variance")
-            vl   = self._diag("train/value_loss")
-            ent  = self._diag("train/entropy_loss")
+            kl = self._diag("train/approx_kl")
+            ev = self._diag("train/explained_variance")
+            vl = self._diag("train/value_loss")
+            ent = self._diag("train/entropy_loss")
             clip = self._diag("train/clip_fraction")
-            pgl  = self._diag("train/policy_gradient_loss")
+            pgl = self._diag("train/policy_gradient_loss")
 
             # Family 1
-            line = (
-                f"[{t:>8,}/{self._total:,}]"
-                f"  ep_len_mean↑={mean_len:.0f}"
-                f"  rew/step↑={mean_rew / mean_len:+.3f}"
-            )
+            line = f"[{t:>8,}/{self._total:,}]  ep_len_mean↑={mean_len:.0f}  rew/step↑={mean_rew / mean_len:+.3f}"
 
             # Family 2
             if any(v is not None for v in (kl, ev, vl, ent, clip)):
                 parts: list[str] = []
                 if kl is not None:
-                    parts.append(f"kl↓={kl:.4f}")          # lower is healthier (<0.02 OK)
+                    parts.append(f"kl↓={kl:.4f}")  # lower is healthier (<0.02 OK)
                 if ev is not None:
-                    parts.append(f"expl_var↑={ev:.3f}")     # higher is healthier (>0.5 OK)
+                    parts.append(f"expl_var↑={ev:.3f}")  # higher is healthier (>0.5 OK)
                 if vl is not None:
-                    parts.append(f"value_loss↓={vl:.4f}")   # lower is healthier (<0.1 OK)
+                    parts.append(f"value_loss↓={vl:.4f}")  # lower is healthier (<0.1 OK)
                 if ent is not None:
-                    parts.append(f"entropy~={ent:.3f}")     # decays toward 0 over training
+                    parts.append(f"entropy~={ent:.3f}")  # decays toward 0 over training
                 if clip is not None:
                     parts.append(f"clip_frac↓={clip:.3f}")  # lower is healthier (<0.15 OK)
                 line += "  |  " + "  ".join(parts)
 
             # Family 3 — physical end-state means for survived episodes
             _sm = lambda s, n: s / n if n > 0 else float("nan")  # noqa: E731
-            t_min_m     = _sm(self._surv_t_min_sum,     self._surv_t_min_n)
-            x_pos_m     = _sm(self._surv_x_pos_sum,     self._surv_x_pos_n)
-            x_vel_m     = _sm(self._surv_x_vel_sum,     self._surv_x_vel_n)
-            energy_m    = _sm(self._surv_energy_sum,    self._surv_energy_n)
-            theta_dot_m   = _sm(self._surv_theta_dot_sum,  self._surv_theta_dot_n)
-            theta_dev_m   = _sm(self._surv_theta_dev_sum,  self._surv_theta_dev_n)
+            t_min_m = _sm(self._surv_t_min_sum, self._surv_t_min_n)
+            x_pos_m = _sm(self._surv_x_pos_sum, self._surv_x_pos_n)
+            x_vel_m = _sm(self._surv_x_vel_sum, self._surv_x_vel_n)
+            energy_m = _sm(self._surv_energy_sum, self._surv_energy_n)
+            theta_dot_m = _sm(self._surv_theta_dot_sum, self._surv_theta_dot_n)
+            theta_dev_m = _sm(self._surv_theta_dev_sum, self._surv_theta_dev_n)
 
             if self._ep_count > 0:
                 rail_pct = 100.0 * self._rail_hits / self._ep_count
@@ -183,24 +179,26 @@ class EpRewardLogCallback(BaseCallback):
 
             rail_pct_val = 100.0 * self._rail_hits / self._ep_count if self._ep_count > 0 else float("nan")
 
-            self._rows.append({
-                "t": float(t),
-                "ep_len_mean":          mean_len,
-                "rew_per_step":         mean_rew / mean_len,
-                "approx_kl":            kl   if kl   is not None else float("nan"),
-                "explained_variance":   ev   if ev   is not None else float("nan"),
-                "value_loss":           vl   if vl   is not None else float("nan"),
-                "entropy_loss":         ent  if ent  is not None else float("nan"),
-                "clip_fraction":        clip if clip is not None else float("nan"),
-                "policy_gradient_loss": pgl  if pgl  is not None else float("nan"),
-                "rail_hit_pct":         rail_pct_val,
-                "mean_t_min":           t_min_m,
-                "mean_x_pos_abs":       x_pos_m,
-                "mean_x_vel_abs":       x_vel_m,
-                "mean_energy":          energy_m,
-                "mean_theta_dot_abs":   theta_dot_m,
-                "mean_theta_dev":       theta_dev_m,
-            })
+            self._rows.append(
+                {
+                    "t": float(t),
+                    "ep_len_mean": mean_len,
+                    "rew_per_step": mean_rew / mean_len,
+                    "approx_kl": kl if kl is not None else float("nan"),
+                    "explained_variance": ev if ev is not None else float("nan"),
+                    "value_loss": vl if vl is not None else float("nan"),
+                    "entropy_loss": ent if ent is not None else float("nan"),
+                    "clip_fraction": clip if clip is not None else float("nan"),
+                    "policy_gradient_loss": pgl if pgl is not None else float("nan"),
+                    "rail_hit_pct": rail_pct_val,
+                    "mean_t_min": t_min_m,
+                    "mean_x_pos_abs": x_pos_m,
+                    "mean_x_vel_abs": x_vel_m,
+                    "mean_energy": energy_m,
+                    "mean_theta_dot_abs": theta_dot_m,
+                    "mean_theta_dev": theta_dev_m,
+                }
+            )
 
             # Reset per-interval counters
             self._ep_count = 0

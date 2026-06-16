@@ -5,7 +5,9 @@ Examples
 .. code-block:: bash
 
     # 3-panel comparison (two CSVs):
-    uv run python scripts/plot_sweep.py models/hybrid_cv01_s5775_play_results.csv models/sig_t_min_s5775_play_results.csv
+    uv run python scripts/plot_sweep.py \
+        models/hybrid_cv01_s5775_play_results.csv \
+        models/sig_t_min_s5775_play_results.csv
 
     # 9-panel single-model detail (one CSV):
     uv run python scripts/plot_sweep.py models/hybrid_cv01_s5775_play_results.csv
@@ -20,6 +22,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 LOGGER = logging.getLogger(__name__)
+
+_ZERO_SPEED_THRESHOLD = 1e-6
 
 
 def _load_csv(path: str) -> dict[str, list[float]]:
@@ -61,18 +65,18 @@ def _plot_comparison(datasets: list[tuple[str, dict[str, list[float]]]], out_pat
         ax[5].plot(speeds, acc, linewidth=1.5, label=label)
 
     titles = [
-        ("|x| final (cm)",          "start speed (m/s)", "cm"),
-        ("x_vel final (m/s)",        "start speed (m/s)", "m/s"),
-        ("settle step vs |speed|",   "|start speed| (m/s)", "step"),
-        ("theta final (rad)",        "start speed (m/s)", "rad"),
-        ("theta_dot final (rad/s)",  "start speed (m/s)", "rad/s"),
-        ("acc final (m/s²)",         "start speed (m/s)", "m/s²"),
+        ("|x| final (cm)", "start speed (m/s)", "cm"),
+        ("x_vel final (m/s)", "start speed (m/s)", "m/s"),
+        ("settle step vs |speed|", "|start speed| (m/s)", "step"),
+        ("theta final (rad)", "start speed (m/s)", "rad"),
+        ("theta_dot final (rad/s)", "start speed (m/s)", "rad/s"),
+        ("acc final (m/s²)", "start speed (m/s)", "m/s²"),
     ]
-    for axis, (title, xlabel, ylabel) in zip(ax, titles):
+    for axis, (title, xlabel, ylabel) in zip(ax, titles, strict=True):
         axis.set_title(title, fontsize=10)
         axis.set_xlabel(xlabel, fontsize=8)
         axis.set_ylabel(ylabel, fontsize=8)
-        axis.grid(True, alpha=0.3)
+        axis.grid(visible=True, alpha=0.3)
         axis.tick_params(labelsize=7)
 
     if len(datasets) > 1:
@@ -95,14 +99,13 @@ def _plot_detail(label: str, cols: dict[str, list[float]], out_path: str) -> Non
     ep_reward = cols.get("ep_reward", [])
     ep_steps = cols.get("ep_steps", [])
     rew_per_step = [
-        r / s if s and not math.isnan(s) else float("nan")
-        for r, s in zip(ep_reward, ep_steps)
+        r / s if s and not math.isnan(s) else float("nan") for r, s in zip(ep_reward, ep_steps, strict=True)
     ]
 
     energy_final = cols.get("energy_final", [])
     energy_frac = [
-        e / (0.5 * sp * sp) if abs(sp) > 1e-6 else float("nan")
-        for e, sp in zip(energy_final, speeds)
+        e / (0.5 * sp * sp) if abs(sp) > _ZERO_SPEED_THRESHOLD else float("nan")
+        for e, sp in zip(energy_final, speeds, strict=True)
     ]
 
     settle_step = cols.get("t_min_settle_step", [])
@@ -113,24 +116,24 @@ def _plot_detail(label: str, cols: dict[str, list[float]], out_path: str) -> Non
     thdot_f = cols.get("theta_dot_final", [])
 
     panels: list[tuple[str, list[float]]] = [
-        ("nocrash% ↑",    no_crash_pct),
-        ("rew/step ↑",    rew_per_step),
+        ("nocrash% ↑", no_crash_pct),
+        ("rew/step ↑", rew_per_step),
         ("energy_frac ↓", energy_frac),
         ("settle_step ↓", settle_step),
-        ("x_pos_m ↓",     x_pos_m),
-        ("x_vel_f",       x_vel_f),
-        ("x_acc_f",       x_acc_f),
-        ("theta_f",       theta_f),
-        ("thdot_f ↓",     thdot_f),
+        ("x_pos_m ↓", x_pos_m),
+        ("x_vel_f", x_vel_f),
+        ("x_acc_f", x_acc_f),
+        ("theta_f", theta_f),
+        ("thdot_f ↓", thdot_f),
     ]
 
     fig, axes = plt.subplots(3, 3, figsize=(15, 10))
     fig.suptitle(label, fontsize=12)
 
-    for ax, (title, ys) in zip(axes.flat, panels):
+    for ax, (title, ys) in zip(axes.flat, panels, strict=True):
         ax.plot(speeds, ys, linewidth=1.2, marker=".", markersize=2, alpha=0.8)
         ax.set_title(title, fontsize=9)
-        ax.grid(True, alpha=0.3)
+        ax.grid(visible=True, alpha=0.3)
         ax.tick_params(labelsize=7)
         ax.set_xlabel("start speed (m/s)", fontsize=7)
 
@@ -141,6 +144,7 @@ def _plot_detail(label: str, cols: dict[str, list[float]], out_path: str) -> Non
 
 
 def main() -> None:
+    """Plot speed-sweep results: 9-panel detail (1 CSV) or 6-panel comparison (2+ CSVs)."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     parser = argparse.ArgumentParser(description="Plot speed-sweep results from *_play_results.csv files.")
@@ -151,7 +155,7 @@ def main() -> None:
     datasets: list[tuple[str, dict[str, list[float]]]] = []
     for csv_path in args.csvs:
         stem = Path(csv_path).stem
-        label = stem[:-13] if stem.endswith("_play_results") else stem
+        label = stem.removesuffix("_play_results")
         cols = _load_csv(csv_path)
         datasets.append((label, cols))
         LOGGER.info("Loaded %s  (%d episodes)", label, len(cols.get("start_speed", [])))
@@ -161,18 +165,14 @@ def main() -> None:
         if args.output:
             out_path = args.output
         else:
-            stem = Path(args.csvs[0]).stem
-            if stem.endswith("_play_results"):
-                stem = stem[:-13]
+            stem = Path(args.csvs[0]).stem.removesuffix("_play_results")
             out_path = str(Path(args.csvs[0]).parent / f"{stem}_detail.png")
         _plot_detail(label, cols, out_path)
     else:
         if args.output:
             out_path = args.output
         else:
-            first_stem = Path(args.csvs[0]).stem
-            if first_stem.endswith("_play_results"):
-                first_stem = first_stem[:-13]
+            first_stem = Path(args.csvs[0]).stem.removesuffix("_play_results")
             out_path = str(Path(args.csvs[0]).parent / f"{first_stem}_sweep.png")
         _plot_comparison(datasets, out_path)
 
