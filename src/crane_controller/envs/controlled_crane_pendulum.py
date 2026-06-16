@@ -151,7 +151,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         if render_mode == "reward-tracking":
             self._reward_point = self._reward_plot_init()
         elif render_mode == "plot":
-            self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": [], "acc": [], "t_min": []}
+            self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": [], "acc": []}
 
         self.obeservation_space: spaces.Box | spaces.Discrete  # pyright: ignore[reportMissingTypeArgument]  # Discrete type arg not needed here
         # Continuous observations: crane position, crane velocity, wire polar angle, pure angular velocity theta_dot.
@@ -270,7 +270,7 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         """
         if not self.traces["l_v"]:
             return
-        fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7, 1, figsize=(16, 21), sharex=True)
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(16, 18), sharex=True)
         times = self.dt * np.arange(len(self.traces["c_x"]))
         damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
@@ -281,10 +281,8 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
         ax4.plot(times, self.traces["c_v"], label="crane speed", color="red")
         ax5.plot(times[: len(self.rewards)], self.rewards, label="rewards")
         ax6.plot(times, self.traces["acc"], label="x-acceleration", color="green")
-        ax7.plot(times[: len(self.traces["t_min"])], self.traces["t_min"], label="t_min", color="purple")
-        ax7.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
-        ax7.set_xlabel("time [s]")
-        for ax in (ax1, ax2, ax3, ax4, ax5, ax6, ax7):
+        ax6.set_xlabel("time [s]")
+        for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
             _ = ax.legend()
         _ = plt.suptitle(
             f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"  # pyright: ignore[reportUnknownMemberType]
@@ -411,7 +409,6 @@ class AntiPendulumEnv(gym.Env[AntiPendulumObs, int | np.ndarray]):
             self.traces["l_x"].append(self.wire.c_m[0])
             self.traces["l_v"].append(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
             self.traces["acc"].append(acc)
-            self.traces["t_min"].append(self._t_min_crane())
 
         return (obs, self.reward, err)  # pyright: ignore[reportUnknownMemberType]
 

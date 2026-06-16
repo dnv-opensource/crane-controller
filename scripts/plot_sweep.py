@@ -39,38 +39,44 @@ def _load_csv(path: str) -> dict[str, list[float]]:
 
 
 def _plot_comparison(datasets: list[tuple[str, dict[str, list[float]]]], out_path: str) -> None:
-    """3-panel head-to-head comparison across multiple models."""
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    """6-panel 2×3 head-to-head comparison across multiple models."""
+    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
+    ax = axes.flat
 
     for label, cols in datasets:
         speeds = cols.get("start_speed", [])
-        x_pos_cm = [v * 100 for v in cols.get("x_pos_final", [])]
-        t_min = cols.get("t_min_final", [])
-        settle = cols.get("t_min_settle_step", [])
         abs_speeds = [abs(s) for s in speeds]
+        x_pos_cm = [v * 100 for v in cols.get("x_pos_final", [])]
+        x_vel = cols.get("x_vel_final", [])
+        settle = cols.get("t_min_settle_step", [])
+        theta = cols.get("theta_final", [])
+        theta_dot = cols.get("theta_dot_final", [])
+        acc = cols.get("acc_final", [])
 
-        axes[0].plot(speeds, x_pos_cm, linewidth=1.5, label=label)
-        axes[1].plot(speeds, t_min, linewidth=1.5, label=label)
-        axes[2].plot(abs_speeds, settle, ".", markersize=4, alpha=0.7, label=label)
+        ax[0].plot(speeds, x_pos_cm, linewidth=1.5, label=label)
+        ax[1].plot(speeds, x_vel, linewidth=1.5, label=label)
+        ax[2].plot(abs_speeds, settle, ".", markersize=4, alpha=0.7, label=label)
+        ax[3].plot(speeds, theta, linewidth=1.5, label=label)
+        ax[4].plot(speeds, theta_dot, linewidth=1.5, label=label)
+        ax[5].plot(speeds, acc, linewidth=1.5, label=label)
 
-    axes[0].set_title("|x| final (cm)", fontsize=10)
-    axes[0].set_xlabel("start speed (m/s)", fontsize=8)
-    axes[0].set_ylabel("cm", fontsize=8)
-
-    axes[1].set_title("t_min final (s)", fontsize=10)
-    axes[1].set_xlabel("start speed (m/s)", fontsize=8)
-    axes[1].set_ylabel("s", fontsize=8)
-
-    axes[2].set_title("settle step vs |speed|", fontsize=10)
-    axes[2].set_xlabel("|start speed| (m/s)", fontsize=8)
-    axes[2].set_ylabel("step", fontsize=8)
-
-    for ax in axes:
-        ax.grid(True, alpha=0.3)
-        ax.tick_params(labelsize=7)
+    titles = [
+        ("|x| final (cm)",          "start speed (m/s)", "cm"),
+        ("x_vel final (m/s)",        "start speed (m/s)", "m/s"),
+        ("settle step vs |speed|",   "|start speed| (m/s)", "step"),
+        ("theta final (rad)",        "start speed (m/s)", "rad"),
+        ("theta_dot final (rad/s)",  "start speed (m/s)", "rad/s"),
+        ("acc final (m/s²)",         "start speed (m/s)", "m/s²"),
+    ]
+    for axis, (title, xlabel, ylabel) in zip(ax, titles):
+        axis.set_title(title, fontsize=10)
+        axis.set_xlabel(xlabel, fontsize=8)
+        axis.set_ylabel(ylabel, fontsize=8)
+        axis.grid(True, alpha=0.3)
+        axis.tick_params(labelsize=7)
 
     if len(datasets) > 1:
-        handles, labels = axes[0].get_legend_handles_labels()
+        handles, labels = axes[0, 0].get_legend_handles_labels()
         fig.legend(handles, labels, loc="upper right", fontsize=9, framealpha=0.8)
 
     suptitle = ", ".join(d[0] for d in datasets)

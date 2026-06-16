@@ -80,10 +80,11 @@ def main() -> None:
     fig, axes = plt.subplots(4, 3, figsize=(15, 12))
     fmt = mticker.FuncFormatter(lambda x, _: f"{x:,.0f}")
 
+    linestyles = ["-", "--", "-.", ":"]
     for ax, (title, col_key) in zip(axes.flat, PANELS):
-        for label, ts, cols in datasets:
+        for i, (label, ts, cols) in enumerate(datasets):
             ys = cols.get(col_key, [float("nan")] * len(ts))
-            ax.plot(ts, ys, linewidth=1.5, label=label)
+            ax.plot(ts, ys, linewidth=1.5, label=label, linestyle=linestyles[i % len(linestyles)])
         ax.set_title(title, fontsize=10)
         ax.set_xlabel("steps", fontsize=8)
         ax.xaxis.set_major_formatter(fmt)
