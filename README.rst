@@ -190,67 +190,46 @@ Run a trained agent visually. Both scripts accept ``--render-mode`` with the fol
 Pre-trained models
 """"""""""""""""""
 
-Six pre-trained PPO models are included in ``models/`` (trained with ``experiments/hybrid_cv01.yaml``,
-3M steps, 32 parallel envs). All achieve 6/6 OOD generalisation at ``start_speed=7.0``
-(7× the ``[0.1, 1.0]`` training range).
+Four pre-trained PPO models are included in ``models/`` (trained with ``experiments/hybrid_cv01.yaml``,
+3M steps, 32 parallel envs): two action-space variants (Discrete and Box/continuous) across two
+random seeds (42 and 5775). All generalise well beyond the training range across the full ±10 m/s
+speed sweep (see ``docs/source/reward_comparison.md`` for detailed analysis).
 
-+------------------------------------------+----------+
-| Model                                    | Actions  |
-+==========================================+==========+
-| ``ppo_hcv01_discrete_s42.zip``           | Discrete |
-+------------------------------------------+----------+
-| ``ppo_hcv01_discrete_s987.zip``          | Discrete |
-+------------------------------------------+----------+
-| ``ppo_hcv01_discrete_s5775.zip``         | Discrete |
-+------------------------------------------+----------+
-| ``ppo_hcv01_continuous_s42.zip``         | Box      |
-+------------------------------------------+----------+
-| ``ppo_hcv01_continuous_s987.zip``        | Box      |
-+------------------------------------------+----------+
-| ``ppo_hcv01_continuous_s5775.zip``       | Box      |
-+------------------------------------------+----------+
++------------------------------------------+----------+------+
+| Model                                    | Actions  | Seed |
++==========================================+==========+======+
+| ``hybrid_cv01_disc_s42.zip``             | Discrete | 42   |
++------------------------------------------+----------+------+
+| ``hybrid_cv01_disc_s5775.zip``           | Discrete | 5775 |
++------------------------------------------+----------+------+
+| ``hybrid_cv01_s42.zip``                  | Box      | 42   |
++------------------------------------------+----------+------+
+| ``hybrid_cv01_s5775.zip``               | Box      | 5775 |
++------------------------------------------+----------+------+
 
 Each model bundle requires three files: ``.zip`` (policy), ``_vecnorm.pkl`` (observation
 normalisation statistics), ``_meta.json`` (reward config + flags). The ``play_ppo.py``
 script locates the sidecar files automatically from ``--model-path``.
 
-OOD evaluation at ``start_speed=7.0`` (7× the training range, seed 827596):
-
-.. figure:: assets/ood_eval_discrete_1.png
-   :width: 80%
-   :alt: Discrete PPO OOD episode 1 at start_speed=7.0
-
-.. figure:: assets/ood_eval_discrete_2.png
-   :width: 80%
-   :alt: Discrete PPO OOD episode 2 at start_speed=7.0
-
-.. figure:: assets/ood_eval_continuous_1.png
-   :width: 80%
-   :alt: Continuous PPO OOD episode 1 at start_speed=7.0
-
-.. figure:: assets/ood_eval_continuous_2.png
-   :width: 80%
-   :alt: Continuous PPO OOD episode 2 at start_speed=7.0
-
 **PPO** (default render-mode: ``play-back``):
 
 .. code-block:: shell
 
-   uv run python scripts/play_ppo.py --model-path models/ppo_hcv01_discrete_s42.zip --episodes 3 --render-mode plot
-   uv run python scripts/play_ppo.py --model-path models/ppo_hcv01_continuous_s42.zip --episodes 3 --render-mode plot
+   uv run python scripts/play_ppo.py --model-path models/hybrid_cv01_disc_s42.zip --episodes 3 --render-mode plot
+   uv run python scripts/play_ppo.py --model-path models/hybrid_cv01_s42.zip --episodes 3 --render-mode plot
 
 OOD evaluation (randomised start speed, 7× training range):
 
 .. code-block:: shell
 
-   uv run python scripts/play_ppo.py --model-path models/ppo_hcv01_discrete_s42.zip \
+   uv run python scripts/play_ppo.py --model-path models/hybrid_cv01_disc_s42.zip \
        --episodes 6 --render-mode plot --randomize-start --start-speed 7.0
 
 **Q-learning** (default render-mode: ``plot``):
 
 .. code-block:: shell
 
-   uv run python scripts/play_q.py --model-path models/q_AntiPendulumEnv.json
+   uv run python scripts/play_q.py --model-path models/q_trained.json
    uv run python scripts/play_q.py --model-path models/q_trained.json --render-mode play-back --episodes 3
 
 Analysing
