@@ -1,0 +1,17 @@
+﻿crane\_controller.algorithm
+===========================
+
+.. automodule:: crane_controller.algorithm
+   :members:
+   :exclude-members: AlgorithmAgent,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      AlgorithmAgent
+   

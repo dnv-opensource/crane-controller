@@ -1,0 +1,13 @@
+﻿crane\_controller.crane\_factory
+================================
+
+.. automodule:: crane_controller.crane_factory
+   :members:
+
+
+   
+   .. rubric:: Functions
+   .. autosummary::
+   
+      build_crane
+   

@@ -1,0 +1,17 @@
+﻿crane\_controller.q\_agent
+==========================
+
+.. automodule:: crane_controller.q_agent
+   :members:
+   :exclude-members: QLearningAgent,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      QLearningAgent
+   

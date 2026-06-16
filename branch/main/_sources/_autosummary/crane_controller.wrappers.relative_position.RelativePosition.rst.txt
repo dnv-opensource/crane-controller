@@ -1,0 +1,46 @@
+RelativePosition
+================
+
+.. currentmodule:: crane_controller.wrappers.relative_position
+
+.. autoclass:: RelativePosition
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~RelativePosition.__init__
+      ~RelativePosition.class_name
+      ~RelativePosition.close
+      ~RelativePosition.get_wrapper_attr
+      ~RelativePosition.has_wrapper_attr
+      ~RelativePosition.observation
+      ~RelativePosition.render
+      ~RelativePosition.reset
+      ~RelativePosition.set_wrapper_attr
+      ~RelativePosition.step
+      ~RelativePosition.wrapper_spec
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~RelativePosition.action_space
+      ~RelativePosition.metadata
+      ~RelativePosition.np_random
+      ~RelativePosition.np_random_seed
+      ~RelativePosition.observation_space
+      ~RelativePosition.render_mode
+      ~RelativePosition.spec
+      ~RelativePosition.unwrapped
+   
+   

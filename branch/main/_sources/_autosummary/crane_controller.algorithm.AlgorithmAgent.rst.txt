@@ -1,0 +1,35 @@
+AlgorithmAgent
+==============
+
+.. currentmodule:: crane_controller.algorithm
+
+.. autoclass:: AlgorithmAgent
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~AlgorithmAgent.__init__
+      ~AlgorithmAgent.analyse_episode
+      ~AlgorithmAgent.analyse_training
+      ~AlgorithmAgent.do_episodes
+      ~AlgorithmAgent.do_strategies
+      ~AlgorithmAgent.get_action
+      ~AlgorithmAgent.test_agent
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~AlgorithmAgent.envs
+   
+   
