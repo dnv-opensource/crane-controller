@@ -166,7 +166,7 @@ class ProximalPolicyOptimizationAgent:
         env_kwargs : dict[str, Any] or None, optional
             Additional keyword arguments forwarded to the environment factory (default None).
 
-        Returns
+        Returns:
         -------
         ProximalPolicyOptimizationAgent
             Agent configured for inference with VecNormalize in evaluation mode.
@@ -218,7 +218,7 @@ class ProximalPolicyOptimizationAgent:
         max_episode_steps : int, optional
             Maximum steps per episode enforced via a TimeLimit wrapper (default 3000).
 
-        Returns
+        Returns:
         -------
         ProximalPolicyOptimizationAgent
             Agent configured for continued training with VecNormalize in training mode.
@@ -284,7 +284,7 @@ class ProximalPolicyOptimizationAgent:
         model_path : str
             Path to the model zip file.
 
-        Returns
+        Returns:
         -------
         Path
             Path to the ``<stem>_vecnorm.pkl`` statistics file alongside the model.
@@ -370,7 +370,7 @@ class ProximalPolicyOptimizationAgent:
         save_png : str or None, optional
             If set, save a 7-panel trajectory plot to this path (default None).
 
-        Returns
+        Returns:
         -------
         EpisodeResult
             Per-episode metrics including t_min stats, final crane state, and outcome.

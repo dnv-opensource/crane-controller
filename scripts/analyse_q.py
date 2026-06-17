@@ -7,7 +7,7 @@ The observation tuple has 5 dimensions::
 
     [energy, pos, speed, distance, sector]
 
-Examples
+Examples:
 --------
 .. code-block:: bash
 
@@ -31,7 +31,7 @@ LOGGER = logging.getLogger(__name__)
 def _build_dummy_env() -> AntiPendulumEnv:
     """Build a minimal env to satisfy the ``QLearningAgent`` constructor.
 
-    Returns
+    Returns:
     -------
     AntiPendulumEnv
         Environment with discrete observation space.

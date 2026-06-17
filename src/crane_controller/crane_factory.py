@@ -16,7 +16,7 @@ def build_crane(length: float = 10.0, mass: float = 1.0, q_factor: float = 50.0)
     q_factor : float, optional
         Quality factor controlling wire damping (default 50.0).
 
-    Returns
+    Returns:
     -------
     Crane
         Configured crane ready for simulation.

@@ -1,6 +1,6 @@
 """Plot speed-sweep results from one or more *_play_results.csv files.
 
-Examples
+Examples:
 --------
 .. code-block:: bash
 

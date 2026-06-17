@@ -27,7 +27,7 @@ class RelativePosition(gym.ObservationWrapper[dict[str, np.ndarray], object, np.
         observation : dict[str, np.ndarray]
             Dictionary with ``"agent"`` and ``"target"`` position arrays.
 
-        Returns
+        Returns:
         -------
         np.ndarray
             Relative position vector (target minus agent).

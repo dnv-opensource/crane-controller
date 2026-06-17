@@ -33,7 +33,7 @@ class ReacherRewardWrapper(gym.Wrapper[object, object, object, object]):
         action : object
             Action to perform.
 
-        Returns
+        Returns:
         -------
         tuple[object, float, bool, bool, dict[str, float]]
             ``(observation, reward, terminated, truncated, info)``.

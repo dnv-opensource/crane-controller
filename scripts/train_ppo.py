@@ -1,6 +1,6 @@
 """Train a PPO agent on the AntiPendulumEnv.
 
-Examples
+Examples:
 --------
 .. code-block:: bash
 

@@ -33,19 +33,6 @@ class EpRewardLogCallback(BaseCallback):
     If *csv_path* is given, all rows are written to a CSV file at the end of
     training for post-training analysis and plotting. The CSV also includes
     ``policy_gradient_loss`` which is omitted from the terminal line.
-
-    Parameters
-    ----------
-    total_timesteps : int
-        Total training timesteps (used for the progress label).
-    log_interval : int
-        Minimum timesteps between log lines (default 50 000).
-    csv_path : str or None
-        Path to write a CSV log file at the end of training (default None).
-    max_episode_steps : int
-        TimeLimit cap passed to the environment (default 1000). Used to
-        distinguish rail hits (ep_len < max_episode_steps) from survived
-        episodes (ep_len >= max_episode_steps).
     """
 
     def __init__(
@@ -55,6 +42,16 @@ class EpRewardLogCallback(BaseCallback):
         csv_path: str | None = None,
         max_episode_steps: int = 1000,
     ) -> None:
+        """Initialize callbacks for use in PPO Agent.
+
+        Args:
+            total_timesteps: Total training timesteps (used for the progress label).
+            log_interval: Minimum timesteps between log lines (default 50 000).
+            csv_path: Path to write a CSV log file at the end of training (default None).
+            max_episode_steps: TimeLimit cap passed to the environment (default 1000). Used to
+                distinguish rail hits (ep_len < max_episode_steps) from survived
+                episodes (ep_len >= max_episode_steps).
+        """
         super().__init__(verbose=0)  # pyright: ignore[reportCallIssue]
         self._total = total_timesteps
         self._log_interval = log_interval

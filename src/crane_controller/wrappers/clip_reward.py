@@ -37,7 +37,7 @@ class ClipReward(gym.RewardWrapper[object, object]):
         reward : SupportsFloat
             Raw reward from the wrapped environment.
 
-        Returns
+        Returns:
         -------
         np.ndarray
             Single-element array with the clipped reward.

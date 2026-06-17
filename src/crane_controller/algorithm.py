@@ -13,10 +13,7 @@ from tqdm import tqdm
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from crane_controller.envs.controlled_crane_pendulum import (
-        AntiPendulumEnv,
-        AntiPendulumObs,
-    )
+    from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +30,14 @@ def _get_moving_avgs(
     """Compute moving averages to smooth noisy data.
 
     Args:
-      values(Sequence[float] | np.ndarray): Raw data series to smooth.
-      window(int): Number of elements in the averaging window.
-      convolution_mode({"valid", "same"}): Convolution mode passed to `numpy.convolve`.
-      values: Sequence[float] | np.ndarray:
-      window: int:
-      convolution_mode: Literal["valid":
-      "same"]:
+      values: Raw data series to smooth.
+      window: Number of elements in the averaging window.
+      convolution_mode: Convolution mode passed to `numpy.convolve`.
+      values: The base values for moving average calculation
+      window: window size as int
+      convolution_mode: type of moving average, "valid" or "same"
 
-    Returns
+    Returns:
     -------
     Moving average as np array
     """
@@ -60,7 +56,7 @@ class AlgorithmAgent:
         """Initialize the algorithmic agent.
 
         Args:
-            env (AntiPendulumEnv): The environment to be controlled.
+            env: The environment to be controlled.
         """
         self.env = env
         assert type(self.env).__name__ in AlgorithmAgent.envs, f"Environment {type(self.env).__name__} not listed."
@@ -68,18 +64,17 @@ class AlgorithmAgent:
         self.training_error: list[float] = []
         self.strategy: tuple[int, int, int, int] = (1, 1, 1, 1)
 
-    def get_action(self, obs: AntiPendulumObs) -> int:
+    def get_action(self, obs: tuple[int, ...] | np.ndarray) -> int:
         """Choose an action based on load position and speed.
 
         The algorithmic strategy is coded as ``self.strategy`` and the
         observation slots 0, 3, 4 are ignored.
 
         Args:
-          obs(AntiPendulumObs): Current observation from the environment.
+          obs: Current observation from the environment.
 
-        Returns
-        -------
-          int: An allowed action from the action space.
+        Returns:
+          An allowed action from the action space as int.
 
 
         """
@@ -95,7 +90,7 @@ class AlgorithmAgent:
             return self.strategy[2]
         if obs[1] == 1 and obs[2] == 1:
             return self.strategy[3]
-        raise ValueError("There should not be other choices {obs}") from None
+        raise ValueError(f"There should not be other choices {obs}") from None
 
     def do_strategies(self, max_steps: int = 5000) -> None:
         """Evaluate all strategy permutations.
@@ -111,7 +106,7 @@ class AlgorithmAgent:
         Observations 0, 3 and 4 are ignored.
 
         Args:
-          max_steps (int)=5000: Maximum steps per episodes
+          max_steps: Maximum steps per episodes
         """
         rewards: list[float] = []
         for self.strategy in product(range(3), range(3), range(3), range(3)):
@@ -134,9 +129,9 @@ class AlgorithmAgent:
         """Run training episodes.
 
         Args:
-          n_episodes (int)=1000: Number of episodes to run
-          show (int)=0: Show mode (default: no show)
-          max_steps (int)=1000: max steps per episodes
+          n_episodes: Number of episodes to run
+          show: Show mode (default: no show)
+          max_steps: max steps per episodes
         """
         for _episode in tqdm(range(n_episodes)):
             # Start a new episode
@@ -164,7 +159,7 @@ class AlgorithmAgent:
         """Plot moving averages of episode rewards, lengths, and training error.
 
         Args:
-          window (int)=500: Moving average window
+          window: Moving average window
         """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
@@ -200,7 +195,7 @@ class AlgorithmAgent:
         """Plot moving averages of rewards and training error for one episode.
 
         Args:
-          window (int)=500: Moving average window
+          window: Moving average window
         """
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=2, figsize=(12, 5))
@@ -228,7 +223,7 @@ class AlgorithmAgent:
         Args:
           num_episodes(int, optional): Number of evaluation episodes (default 1000).
 
-        Returns
+        Returns:
         -------
         (str) message
         """

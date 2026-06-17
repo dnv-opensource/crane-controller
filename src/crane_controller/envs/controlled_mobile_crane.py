@@ -135,7 +135,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         options : dict[str, object] or None, optional
             Additional reset options (default None).
 
-        Returns
+        Returns:
         -------
         tuple[dict[str, npt.NDArray[np.int_]], dict[str, float]]
             ``(observation, info)`` with agent/target locations and distance.
@@ -168,7 +168,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
         action : int
             Action index from ``{0, 1, 2, 3}`` selecting a movement direction.
 
-        Returns
+        Returns:
         -------
         tuple[dict[str, npt.NDArray[np.int_]], int, bool, bool, dict[str, float]]
             ``(observation, reward, terminated, truncated, info)``.
@@ -191,7 +191,7 @@ class ControlledCraneEnv(gym.Env[CraneObs, int]):
     def render(self) -> npt.NDArray[np.uint8] | None:  # NDArray is compatible with RenderFrame
         """Render the current environment state.
 
-        Returns
+        Returns:
         -------
         npt.NDArray[np.uint8] or None
             Pixel array in ``"data"`` mode, ``None`` otherwise.
