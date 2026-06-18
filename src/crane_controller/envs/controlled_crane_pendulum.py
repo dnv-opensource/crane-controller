@@ -115,12 +115,12 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             conf: Configuration parameters as dataclass. See AntiPendulumConfig.
         """
         self.crane_maker = crane
-        self.conf = AntiPendulumConfig if conf is None else conf
+        self.conf = AntiPendulumConfig() if conf is None else conf
         self.crane: Crane = crane()
         self.wire: Wire = self.crane.boom_by_name("wire")  # type: ignore[assignment]  # Wire is a sub-class of Boom
         assert isinstance(self.wire, Wire), "Need a crane wire!"
-        assert self.conf.render_mode in AntiPendulumEnv.metadata["render_modes"], (
-            f"render_mode: {self.conf.render_mode}"  # type: ignore[operator]  # metadata values are typed as object
+        assert self.conf.render_mode in AntiPendulumEnv.metadata["render_modes"], ( # type: ignore[operator]  # metadata values are typed as object
+            f"render_mode: {self.conf.render_mode}"
         )
         self.reward_fac = self.conf.reward_fac if self.conf.reward_fac is not None else RewardConfig()
         self.reward_stats: list[list[float]] = []
@@ -206,8 +206,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             try:
                 return 0.5 * self.discrete["speed"][-1] ** 2
             except KeyError as _err2:
-                logger.exception("'energy' or 'speed not part of discretization, => maximum value not defined.")
-                return float("inf")
+                return 0.5 * AntiPendulumEnv.DISCRETE["phase"]["speed"] ** 2 # type: ignore[operator]  # metadata values are typed as object
 
     @property
     def distance_max(self) -> float:
@@ -218,8 +217,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             try:
                 return self.discrete["c-pos"][-1]
             except KeyError as _err2:
-                logger.exception("'distance' or 'c-pos' not part of discretization. => maximum value not defined.")
-                return float("inf")
+                return AntiPendulumEnv.DISCRETE["phase"]["c-pos"][-1]
 
     @property
     def speed_max(self) -> float:
@@ -390,6 +388,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             + rc.time * (-self.time)
             + rc.position * position
             + rc.acceleration * acc_penalty
+            + rc.crane_velocity * self.crane.velocity[0] ** 2
         )
 
         if len(self.discrete):

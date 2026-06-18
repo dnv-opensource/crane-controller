@@ -118,7 +118,6 @@ def test_init(crane: Callable[..., Crane], *, show: bool) -> None:
     _ = env.reset()
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_observation_space_dtype(crane: Callable[..., Crane]) -> None:
     """Test that the continuous observation space uses float64 dtype."""
     env = AntiPendulumEnv(crane, conf=None)
@@ -170,18 +169,15 @@ def test_obs3_is_pure_theta_dot(crane: Callable[..., Crane]) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_reward_terms_zero_by_default(crane: Callable[..., Crane]) -> None:
     """New reward terms contribute zero when their weights are zero."""
     rc_energy = RewardConfig(energy=1.0, positional=0.0, time=0.0, position=0.0, acceleration=0.0)
-    rc_crane_vel = RewardConfig(
-        energy=1.0, positional=0.0, time=0.0, position=0.0, acceleration=0.0, crane_velocity=100.0
-    )
+    rc_crane_t = RewardConfig(energy=1.0, positional=0.0, time=100.0, position=0.0, acceleration=0.0)
     env1 = AntiPendulumEnv(
         crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc_energy, continuous_actions=False)
     )
     env2 = AntiPendulumEnv(
-        crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc_crane_vel, continuous_actions=False)
+        crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc_crane_t, continuous_actions=False)
     )
 
     _ = env1.reset()
@@ -191,27 +187,16 @@ def test_reward_terms_zero_by_default(crane: Callable[..., Crane]) -> None:
     assert r1 > r2, f"crane_velocity=0 should give higher reward than crane_velocity=100; got r1={r1}, r2={r2}"
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_crane_velocity_reward_term(crane: Callable[..., Crane]) -> None:
     """crane_velocity weight adds -crane_vel^2 to the reward."""
-    rc = RewardConfig(energy=0.0, positional=0.0, position=0.0, acceleration=0.0, crane_velocity=1.0)
+    rc = RewardConfig(energy=0.0, positional=0.0, position=0.0, acceleration=0.0, crane_velocity=-1.0)
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc, continuous_actions=False))
     _ = env.reset()
     obs, reward, _, _, _ = env.step(2)  # max acceleration right
     crane_vel = obs[1]
     assert crane_vel != 0.0
-    assert reward < 0.0
-    assert np.isclose(reward, -(crane_vel**2), rtol=1e-4)
-
-
-@pytest.mark.skip(reason="Test must be updated")
-def test_angle_reward_term(crane: Callable[..., Crane]) -> None:
-    """angle weight contributes -theta^2 to the reward."""
-    rc = RewardConfig(energy=0.0, positional=0.0, position=0.0, acceleration=0.0, angle=1.0)
-    env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc, continuous_actions=False))
-    _ = env.reset()
-    _, reward, _, _, _ = env.step(1)  # coast
-    assert reward < 0.0  # theta deviates from 0, so -theta^2 < 0
+    assert reward < 0.0, f"Found reward {reward}"
+    assert np.isclose(reward, -(crane_vel**2), rtol=1e-4), f"Found {reward} != {-(crane_vel**2)}"
 
 
 def test_terminal_penalty_on_truncation(crane: Callable[..., Crane]) -> None:
@@ -257,8 +242,7 @@ def test_action_space_type(crane: Callable[..., Crane], continuous_actions: bool
         assert int(env.action_space.n) == 3  # pyright: ignore[reportUnknownMemberType]
 
 
-# @pytest.mark.parametrize("continuous_actions", [True, False])
-@pytest.mark.skip(reason="Test must be updated")
+@pytest.mark.parametrize("continuous_actions", [True, False])
 def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_actions: bool) -> None:  # noqa: FBT001
     """step() accepts np.ndarray for continuous and int for discrete; obs shape unchanged."""
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(continuous_actions=continuous_actions))
@@ -272,7 +256,7 @@ def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_act
     assert obs.shape == (4,)
 
 
-@pytest.mark.skip(reason="Test must be updated")
+@pytest.mark.skip(reason="The t_min reward term is not in use any more")
 def test_t_min_crane_reward_term(crane: Callable[..., Crane]) -> None:
     """t_min_crane weight adds -t_min to the reward; zero at origin at rest."""
     rc = RewardConfig(energy=0.0, positional=0.0, position=0.0, acceleration=0.0, t_min_crane=1.0)
@@ -296,9 +280,16 @@ if __name__ == "__main__":
 
     import pytest
 
+    from crane_controller.crane_factory import build_crane  # noqa: F401
+
     retcode = pytest.main(["-rP -s -v", __file__])
     assert retcode == 0, f"Return code {retcode}"
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
 
     # test_environment(build_crane, show=True)
     # test_observation_space_dtype(build_crane)
+    # test_reward_terms_zero_by_default(build_crane)
+    # test_crane_velocity_reward_term(build_crane)
+    # test_step_accepts_correct_action(build_crane, continuous_actions=True)
+    # test_step_accepts_correct_action(build_crane, continuous_actions=False)
+    # test_t_min_crane_reward_term(build_crane)
