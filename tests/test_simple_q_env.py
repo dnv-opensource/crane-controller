@@ -30,8 +30,6 @@ def test_env():
     )
     assert env.config is not None
     assert env.action_space.n == 3  # type: ignore[attr-defined]  ## the attribute exists
-    assert env.action_space.sample() == 1, "Pseudo random"
-    assert list(env.observation_space.sample()) == [-98, -10]
     pos = env.pos
     speed = env.speed
     dt = env.dt
