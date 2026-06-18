@@ -81,7 +81,7 @@ class RewardConfig:
         d : dict[str, object]
             Mapping of field names to weight values. Unknown keys are ignored.
 
-        Returns
+        Returns:
         -------
         RewardConfig
             Populated instance.
@@ -186,7 +186,7 @@ class TrainingConfig:
         d : dict[str, object]
             Mapping of field names to values. Unknown keys are ignored.
 
-        Returns
+        Returns:
         -------
         TrainingConfig
             Populated instance.
@@ -243,7 +243,7 @@ class ExperimentConfig:
             Path to record as the origin; takes precedence over the key in ``d``
             (default None).
 
-        Returns
+        Returns:
         -------
         ExperimentConfig
             Populated instance.
@@ -271,12 +271,12 @@ def load_experiment_config(config_path: str | Path | None) -> ExperimentConfig:
         Path to the YAML config file. Returns an all-default
         :class:`ExperimentConfig` when ``None``.
 
-    Returns
+    Returns:
     -------
     ExperimentConfig
         Loaded configuration; missing YAML keys fall back to dataclass defaults.
 
-    Raises
+    Raises:
     ------
     FileNotFoundError
         When ``config_path`` is not ``None`` but the file does not exist.
@@ -300,7 +300,7 @@ def _meta_path(model_path: str | Path) -> Path:
     model_path : str or Path
         Path to the model ``.zip`` file.
 
-    Returns
+    Returns:
     -------
     Path
         Sibling file with the same stem and ``_meta.json`` suffix.
@@ -319,7 +319,7 @@ def save_training_sidecar(model_path: str | Path, config: ExperimentConfig) -> P
     config : ExperimentConfig
         Experiment configuration to serialise.
 
-    Returns
+    Returns:
     -------
     Path
         Path of the written sidecar file.
@@ -339,12 +339,12 @@ def load_training_sidecar(model_path: str | Path) -> ExperimentConfig:
     model_path : str or Path
         Path to the model ``.zip`` file.
 
-    Returns
+    Returns:
     -------
     ExperimentConfig
         Configuration stored in the sidecar.
 
-    Raises
+    Raises:
     ------
     FileNotFoundError
         When the sidecar file does not exist alongside the model.

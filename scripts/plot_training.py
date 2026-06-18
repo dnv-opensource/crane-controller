@@ -1,6 +1,6 @@
 """Plot training curves from one or more *_log.csv files produced by EpRewardLogCallback.
 
-Examples
+Examples:
 --------
 .. code-block:: bash
 

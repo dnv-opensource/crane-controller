@@ -1,6 +1,6 @@
 """Train a Q-learning agent on the AntiPendulumEnv.
 
-Examples
+Examples:
 --------
 .. code-block:: bash
 
@@ -58,7 +58,7 @@ def main() -> None:
         start_speed=args.v0,
         render_mode="plot" if args.dry_run else "none",
         reward_limit=args.reward_limit,
-        discrete=QLearningAgent.DEFAULT_DISCRETE.copy(),
+        discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy(),
     )
 
     if args.dry_run:

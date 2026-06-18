@@ -30,7 +30,7 @@ class DiscreteActions(gym.ActionWrapper[object, int, np.ndarray]):
         action : int
             Discrete action index.
 
-        Returns
+        Returns:
         -------
         np.ndarray
             Corresponding continuous action from the lookup table.

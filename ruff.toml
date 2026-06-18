@@ -186,7 +186,7 @@ raises-require-match-for = [
 ]
 
 [lint.pydocstyle]
-convention = "numpy"
+convention = "google"
 
 [format]
 docstring-code-format = true
