@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import dataclasses
 import logging
 from pathlib import Path
@@ -360,6 +361,7 @@ class ProximalPolicyOptimizationAgent:
         self,
         seed: int = 1,
         save_png: str | None = None,
+        save_step_csv: str | None = None,
     ) -> EpisodeResult:
         """Run one episode on the non-vectorised, trained environment.
 
@@ -369,6 +371,8 @@ class ProximalPolicyOptimizationAgent:
             Random seed for the environment reset (default 1).
         save_png : str or None, optional
             If set, save a 7-panel trajectory plot to this path (default None).
+        save_step_csv : str or None, optional
+            If set, write per-step theta/theta_dot/state trace to this CSV path (default None).
 
         Returns:
         -------
@@ -383,6 +387,7 @@ class ProximalPolicyOptimizationAgent:
         ep_steps = 0
         ep_reward = 0.0
         t_min_trace: list[float] = []
+        step_rows: list[dict[str, float]] = []
         info: dict[str, float | int] = {}
         last_action: np.ndarray | int = 0
         while not terminated and not truncated:
@@ -394,6 +399,20 @@ class ProximalPolicyOptimizationAgent:
             ep_reward += float(reward)
             if "t_min" in info:
                 t_min_trace.append(float(info["t_min"]))
+            if save_step_csv is not None:
+                step_rows.append({
+                    "step": ep_steps,
+                    "theta": float(info.get("theta", nan)),
+                    "theta_dot": float(info.get("theta_dot", nan)),
+                    "x_pos": float(info.get("x_pos", nan)),
+                    "x_vel": float(info.get("x_vel", nan)),
+                    "reward": float(reward),
+                })
+        if save_step_csv and step_rows:
+            with Path(save_step_csv).open("w", newline="") as fh:
+                writer = csv.DictWriter(fh, fieldnames=list(step_rows[0]))
+                writer.writeheader()
+                writer.writerows(step_rows)
         self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined, call-arg]
         env_u = self.env.unwrapped
         energy_final = 0.5 * float(env_u.wire.cm_v[0]) ** 2  # type: ignore[attr-defined]

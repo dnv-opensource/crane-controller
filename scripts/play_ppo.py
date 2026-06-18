@@ -181,6 +181,13 @@ def main() -> None:
         default=False,
         help=f"Run over speeds {SWEEP_SPEEDS} instead of --start-speed.",
     )
+    _ = parser.add_argument(
+        "--save-step-csv",
+        "--no-save-step-csv",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Write per-step theta/theta_dot trace to {stem}_step_trace.csv (single episode only, default False).",
+    )
     args = parser.parse_args()
 
     mep = args.max_episode_steps if args.max_episode_steps is not None else config.training.max_episode_steps
@@ -214,7 +221,10 @@ def main() -> None:
             png_path: str | None = None
             if args.save_png:
                 png_path = str(Path(args.model_path).parent / f"{stem}_play_ss{speed:+.1f}_ep{episode + 1}.png")
-            result = agent.do_one_episode(seed=episode + 1, save_png=png_path)
+            step_csv_path: str | None = None
+            if args.save_step_csv and not args.speed_sweep:
+                step_csv_path = str(Path(args.model_path).parent / f"{stem}_step_trace.csv")
+            result = agent.do_one_episode(seed=episode + 1, save_png=png_path, save_step_csv=step_csv_path)
             result.start_speed = speed  # override wire-CM value with the explicitly set speed
             LOGGER.info(
                 "  steps=%d  rew=%.2f  no_crash=%s  t_min=[%.2f→%.2f@%d]  x_pos=%+.4fm  theta=%.3f",
@@ -229,6 +239,8 @@ def main() -> None:
             )
             if png_path is not None:
                 LOGGER.info("  PNG: %s", png_path)
+            if step_csv_path is not None:
+                LOGGER.info("  Step trace CSV: %s", step_csv_path)
             all_results.append(result)
 
     if args.save_csv and all_results:
