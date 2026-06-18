@@ -262,24 +262,6 @@ class ExperimentConfig:
         )
 
 
-@dataclass(kw_only=True, frozen=True, slots=True)
-class QLearningConfig:
-    """Hyperparameters for Q-learning.
-
-    Args:
-        learning_rate (float) = 0.1: learning rate (how much q-update vs. use old),
-        epsilon_decay (float)=1e-4: transition from initial to final epsilon
-        final_epsilon: float = 0.1,
-        discount_factor (float)=0.95: Q-learning discound factor
-
-    """
-
-    learning_rate: float = 0.1
-    epsilon_decay: float = 1e-4
-    final_epsilon: float = 0.1
-    discount_factor: float = 0.95
-
-
 def load_experiment_config(config_path: str | Path | None) -> ExperimentConfig:
     """Load an experiment config from a YAML file.
 

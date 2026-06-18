@@ -119,7 +119,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         self.crane: Crane = crane()
         self.wire: Wire = self.crane.boom_by_name("wire")  # type: ignore[assignment]  # Wire is a sub-class of Boom
         assert isinstance(self.wire, Wire), "Need a crane wire!"
-        assert self.conf.render_mode in AntiPendulumEnv.metadata["render_modes"], ( # type: ignore[operator]  # metadata values are typed as object
+        assert self.conf.render_mode in AntiPendulumEnv.metadata["render_modes"], (  # type: ignore[operator]  # metadata values are typed as object
             f"render_mode: {self.conf.render_mode}"
         )
         self.reward_fac = self.conf.reward_fac if self.conf.reward_fac is not None else RewardConfig()
@@ -206,7 +206,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             try:
                 return 0.5 * self.discrete["speed"][-1] ** 2
             except KeyError as _err2:
-                return 0.5 * AntiPendulumEnv.DISCRETE["phase"]["speed"] ** 2 # type: ignore[operator]  # metadata values are typed as object
+                return 0.5 * AntiPendulumEnv.DISCRETE["phase"]["speed"] ** 2  # type: ignore[operator]  # metadata values are typed as object
 
     @property
     def distance_max(self) -> float:
@@ -594,12 +594,12 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         )
         self.wire.boom[1:] = cartesian_to_spherical(self.wire.direction)[1:]
         self.wire._c_m = self.wire.origin + self.wire.direction * self.wire.length  # noqa: SLF001
-        self.wire.cm_v = speed if isinstance(speed, np.ndarray) else np.array((w_speed, 0, 0), float)
         self.wire.cm_acc = np.array((0, 0, 0), float)
         if isinstance(w_speed, np.ndarray) or float(w_speed) > EPS:
             z_fac = -self.wire.direction[0] / self.wire.direction[2]  # ensure orthogonality of speed to direction
             self.wire.cm_v = w_speed * np.array((1, 0, z_fac), float) if isinstance(w_speed, float) else w_speed
-        self.wire.calc_statics_dynamics(None)
+        else:
+            self.wire.cm_v = w_speed if isinstance(w_speed, np.ndarray) else np.array((w_speed, 0, 0), float)
 
     def get_parameters(self) -> dict[str, Any]:
         """Return the environment parameter settings as dict."""

@@ -11,9 +11,64 @@ from py_crane.crane import Crane
 
 from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, AntiPendulumEnv, _level
 from crane_controller.experiment_config import RewardConfig
-from crane_controller.q_agent import QLearningAgent
+from crane_controller.q_agent import QLearningAgent, QLearningConfig
 
 logger = logging.getLogger(__name__)
+
+
+def test_levels(crane: Callable[..., Crane]) -> None:
+    def check(val: float, expected: int) -> None:
+        assert _level(val, env.discrete["energy"]) == expected, f"Level {val} =? {_level(val, env.discrete['energy'])}"
+
+    env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(discrete="energy"))
+    assert list(env.discrete.keys()) == ["energy", "distance", "pos", "speed", "c-pos", "c-speed", "avg-acc"], (
+        f"Expected the 'energy' discretization. found {list(env.discrete.keys())}"
+    )
+    check(0, 0)
+    check(-1e-10, -1)
+    check(1e-10, 0)
+    check(0.014, 0)
+    check(0.015, 1)
+    check(0.3, 1)
+    check(0.4, 2)
+    check(1.4, 2)
+    check(1.5, 3)
+    check(5.9, 3)
+    check(6.0, 4)
+    check(13.1, 4)
+    check(13.2, 5)
+    check(98, 5)
+    check(99, -1)  # marks 'outside range' level
+    check(float("inf"), -1)
+
+
+def test_intervals(crane: Callable[..., Crane]):
+    """Test that learning / saving / resuming learning works:"""
+    save_path = Path.cwd() / "q_interval_training.json"
+    env = AntiPendulumEnv(
+        crane,
+        conf=AntiPendulumConfig(
+            start_speed=-1.0,
+            render_mode="none",
+            reward_limit=-0.05,
+            discrete="energy",
+            continuous_actions=False,
+        ),
+    )
+
+    q_conf = QLearningConfig(learning_rate=0.1, epsilon_decay=1e-4, final_epsilon=0.1, discount_factor=0.95)
+    agent = QLearningAgent(env, conf=q_conf, filename=save_path, use_file="w")
+    for i in range(10):
+        _ = env.reset(seed=i + 1)
+        agent.do_episodes(n_episodes=10, max_steps=100, show=0)
+        if i != 0:
+            assert agent.previous_steps == (i - 1) * 10, f"Found {i}, {agent.previous_steps}"
+            assert agent.epsilon_decay == q_conf.epsilon_decay, "Keeps unchanged"
+            assert np.isclose(agent.epsilon, 1.0 - (i + 1) * 10 * q_conf.epsilon_decay), (
+                f"{i}. Found {agent.epsilon} != {1.0 - (i + 1) * 10 * 0.0001}"
+            )
+            agent = QLearningAgent(env, conf=q_conf, filename=save_path, use_file="rw")
+    logger.info(f"Model saved to {save_path}")
 
 
 def test_smoke(crane: Callable[..., Crane], *, show: bool) -> None:
@@ -31,7 +86,6 @@ def test_smoke(crane: Callable[..., Crane], *, show: bool) -> None:
     agent.do_episodes(n_episodes=5, max_steps=200)
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_q_analyse(crane: Callable[..., Crane], *, show: bool) -> None:
     models = Path(__file__).parent.resolve().parent / "models"
     assert (models / "q_trained.json").exists(), "Expect a file 'q_trained.json' in the models directory. Not found"
@@ -59,56 +113,7 @@ def test_q_analyse(crane: Callable[..., Crane], *, show: bool) -> None:
             logger.info(f"averages: {acc}")
 
 
-@pytest.mark.skip(reason="Test must be updated")
-def test_intervals(crane: Callable[..., Crane]):
-    """Test that learning / saving / resuming learning works:"""
-    save_path = Path.cwd() / "q_interval_training.json"
-    env = AntiPendulumEnv(
-        crane,
-        conf=AntiPendulumConfig(
-            start_speed=-1.0,
-            render_mode="none",
-            reward_limit=-0.05,
-            discrete="energy",
-            continuous_actions=False,
-        ),
-    )
-
-    agent = QLearningAgent(env, filename=save_path, use_file="w")
-    for i in range(10):
-        _ = env.reset(seed=i + 1)
-        agent.do_episodes(n_episodes=2, max_steps=100)
-        if i == 0:
-            agent = QLearningAgent(env, filename=save_path, use_file="rw")
-    logger.info(f"Model saved to {save_path}")
-
-
-@pytest.mark.skip(reason="Test must be updated")
-def test_levels(crane: Callable[..., Crane]) -> None:
-    def check(val: float, expected: int) -> None:
-        assert _level(val, env.discrete["energy"]) == expected, f"Level {val} =? {_level(val, env.discrete['energy'])}"
-
-    env = AntiPendulumEnv(crane)
-    logger.info(env.discrete)
-    check(0, 0)
-    check(-1e-10, -1)
-    check(1e-10, 0)
-    check(0.014, 0)
-    check(0.015, 1)
-    check(0.3, 1)
-    check(0.4, 2)
-    check(1.4, 2)
-    check(1.5, 3)
-    check(5.9, 3)
-    check(6.0, 4)
-    check(13.1, 4)
-    check(13.2, 5)
-    check(98, 5)
-    check(99, 6)
-    check(float("inf"), 6)
-
-
-@pytest.mark.skip(reason="Test must be updated")
+@pytest.mark.parametrize("discretization", ["energy", "phase"])
 def test_discretization(crane: Callable[..., Crane], *, show: bool, discretization: str) -> None:
     """Test the discretization with respect to yielding unique rewards."""
     env = AntiPendulumEnv(
@@ -122,6 +127,8 @@ def test_discretization(crane: Callable[..., Crane], *, show: bool, discretizati
         ),
     )
     env.reset()
+    if discretization == "phase":  # not yet implemented
+        return
     _agent = QLearningAgent(env)
     for e in range(len(env.discrete["energy"]) - 1):
         for s in range(len(env.discrete["speed"]) - 1):
@@ -151,7 +158,6 @@ def test_discretization(crane: Callable[..., Crane], *, show: bool, discretizati
                         logger.info(f"angle:{e}, speed:{s}, c_pos:{c_p}, c_speed:{c_s}: {action_sum}")
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_state(crane: Callable[..., Crane], *, show: bool) -> None:  # noqa: PLR0915
     """Set state and calculate reward."""
 
@@ -199,7 +205,7 @@ def test_state(crane: Callable[..., Crane], *, show: bool) -> None:  # noqa: PLR
 
     env.set_state(pos=0.0, speed=0.0, direction=0.0, w_speed=0.0)
     for _i in range(10):
-        assert np.allclose(get_state()[0], (0, 0, 0, 0))
+        assert np.allclose(get_state()[0], (0, 0, 0, 0)), f"Found {get_state()[1]}"
         env.step(1)  # check that nothing moves
 
     env.step(0)
@@ -209,15 +215,15 @@ def test_state(crane: Callable[..., Crane], *, show: bool) -> None:  # noqa: PLR
     assert get_state()[0][3] > 0.08
 
     # env.reset()
-    env.set_state(1.0, 2.0, 0.0, 0.0)
+    env.set_state(pos=1.0, speed=2.0, direction=0.0, w_speed=0.0)
     assert np.allclose(get_state()[0], (1.0, 2.0, 0, 0)), f"Found {get_state()[0]}"
     env.step(1)
-    assert np.allclose(get_state()[0], (3.0, 2.0, 5.532267250195097, -1.7318224679112262)), f"Found {get_state()[0]}"
+    assert np.allclose(get_state()[0], (3.0, 2.0, 2.9008725322834694, -0.9094835038309382)), f"Found {get_state()[0]}"
 
     env.set_state(0.0, 0.0, np.radians(10), -2.0)
     assert np.allclose(get_state()[0], (0.0, 0.0, 10, -2)), f"Found {get_state()[0]}"
     env.step(1)
-    assert np.allclose(get_state()[0], (0.0, 0.0, 1.0274015154955907, -0.8379044477976203)), f"Found {get_state()[0]}"
+    assert np.allclose(get_state()[0], (0.0, 0.0, 3.7286798707705713, -0.002822627692914995)), f"Found {get_state()[0]}"
     # logger.info(f"State: {get_state()[1]}")
     # check_step( 1, obs=(0, 0, 0, 0, 0, 0, 0, 1, 1), reward=0, terminated=True, truncated=False)
     # env.set_state(pos=18.0, speed=0.0, direction=0.0, w_speed=0.0)
@@ -250,12 +256,11 @@ def test_state(crane: Callable[..., Crane], *, show: bool) -> None:  # noqa: PLR
     logger.info(f"reward:{reward}, avg:{reward_sum / s}")
     logger.info(f"pos:{env.crane.position}, speed:{env.crane.velocity}, dir:{env.wire.direction}, v_w:{env.wire.cm_v}")
     for k, v in agent.q_values.items():
-        logger.info(k, v)
+        logger.info(f"key:{k}, value:{v}")
     # env.set_state(pos=18.0, speed=0.0, direction=0.0, w_speed=0.0)
     # logger.info( env.step(2))
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_state2(crane: Callable[..., Crane], *, show: bool) -> None:
     """Set state and calculate reward."""
 
@@ -313,10 +318,9 @@ def test_state2(crane: Callable[..., Crane], *, show: bool) -> None:
         env.set_state(pos=0.0, speed=0.0, direction=np.radians(3.0), w_speed=1.5)
         env.step(a)
         # env.step(1)
-        logger.info(a, get_state()[1], env._get_obs())
+        logger.info(f"a:{a}, state:{get_state()[1]}, obs:{env._get_obs()}")
 
 
-@pytest.mark.skip(reason="Test must be updated")
 def test_update_q_values(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,
@@ -358,15 +362,16 @@ if __name__ == "__main__":
 
     from crane_controller.crane_factory import build_crane  # noqa: F401
 
+    logging.basicConfig(level=logging.INFO)
     retcode = pytest.main(["-rP -s -v", __file__])
     assert retcode == 0, f"Return code {retcode}"
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
 
     # test_levels(build_crane)
+    # test_intervals(build_crane)
     # test_smoke(build_crane, show=True)
     # test_q_analyse(build_crane, show=True)
-    # test_intervals(build_crane)
+    # test_discretization(build_crane, show=True, discretization='energy')
     # test_state(build_crane, show=True)
     # test_state2(build_crane, show=True)
     # test_update_q_values(build_crane, show=True)
-    # test_discretization(build_crane, show=True, discretization='energy')

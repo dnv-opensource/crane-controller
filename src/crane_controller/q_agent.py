@@ -7,14 +7,13 @@ import json
 import logging
 from ast import literal_eval
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-
-from crane_controller.experiment_config import QLearningConfig
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -27,23 +26,22 @@ SHOW_TRAINING_SUMMARY = 1
 SHOW_EPISODE_ANALYSIS = 2
 
 
-def _get_moving_avgs(
-    values: Sequence[float] | np.ndarray,
-    window: int,
-    convolution_mode: Literal["valid", "same"],
-) -> np.ndarray:
-    """Compute moving averages to smooth noisy data.
+@dataclass(kw_only=True, frozen=True, slots=True)
+class QLearningConfig:
+    """Hyperparameters for Q-learning.
 
     Args:
-      values(Sequence[float] | np.ndarray): Raw data series to smooth.
-      window(int): Number of elements in the averaging window.
-      convolution_mode(valid", "same"}): Convolution mode passed to `numpy.convolve`.
+        learning_rate (float) = 0.1: learning rate (how much q-update vs. use old),
+        epsilon_decay (float)=1e-4: transition from initial to final epsilon
+        final_epsilon: float = 0.1,
+        discount_factor (float)=0.95: Q-learning discound factor
 
-    Returns:
-    -------
-    Moving average as np array
     """
-    return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
+
+    learning_rate: float = 0.1
+    epsilon_decay: float = 1e-4
+    final_epsilon: float = 0.1
+    discount_factor: float = 0.95
 
 
 class QLearningAgent:
@@ -51,7 +49,7 @@ class QLearningAgent:
 
     Args:
         env: The environment instance to use
-        q_param: configuration of Q-learning, or use default values
+        conf: configuration of Q-learning, or use default values
         filename: Optional file name (json file) to use as basis / save results
         use_file: How to use the file (if provided). 'r', 'w' or 'rw'
         strategy: Strategy to use:
@@ -62,7 +60,7 @@ class QLearningAgent:
     def __init__(
         self,
         env: gym.Env[tuple[int, ...] | np.ndarray, int],
-        q_params: QLearningConfig | None = None,
+        conf: QLearningConfig | None = None,
         filename: Path | None = None,
         use_file: str = "r",
         strategy: str = "default",
@@ -72,17 +70,18 @@ class QLearningAgent:
         See the class docstring for parameter descriptions.
         """
         self.env = env
+        self.conf = QLearningConfig() if conf is None else conf
         self.filename = Path(filename) if filename is not None else None
         self.use_file = use_file
         self.q_values: defaultdict[tuple[int, ...], np.ndarray]
 
-        self.q_params = q_params if isinstance(q_params, QLearningConfig) else QLearningConfig()
-        self.epsilon = 1.0
-        self.epsilon_decay = self.q_params.epsilon_decay  # default value. May be changed when reading from file
+        self.epsilon = 1.0  # default value. May be changed when reading pre-trained data
+        self.epsilon_decay = self.conf.epsilon_decay  # default value. May be changed when reading from file
 
         # Track learning progress
+        self.num_rnd = 0
         self.training_error: list[float] = []
-        self.previous_steps = 0
+        self.previous_steps: int  # number of previously run steps when reading pre-trained data
         self.strategy = strategy
 
     def analyse_q(self, obs: tuple[int, ...] | np.ndarray) -> None:
@@ -157,12 +156,12 @@ class QLearningAgent:
         # What's the best we could do from the next state? Zero if episode terminated.
         future_q_value = (not terminated) * np.max(self.q_values[next_obs])  # type: ignore[index]
         # What should the Q-value be? (Bellman equation)
-        target = reward + self.q_params.discount_factor * future_q_value
+        target = reward + self.conf.discount_factor * future_q_value
         # How wrong was our current estimate?
         temporal_difference = target - self.q_values[obs][action]  # type: ignore[index]
         # Update our estimate in the direction of the error. Learning rate controls how big steps we take
         # When no previous knowledge, avoid slow learning
-        lr = 1 if self.q_values[obs][action] == 0.0 else self.q_params.learning_rate  # type: ignore[index]
+        lr = 1 if self.q_values[obs][action] == 0.0 else self.conf.learning_rate  # type: ignore[index]
         self.q_values[obs][action] = (1 - lr) * self.q_values[obs][action] + lr * temporal_difference  # type: ignore[index]
 
         # Track learning progress (useful for debugging)
@@ -180,9 +179,10 @@ class QLearningAgent:
         """
         if "r" in self.use_file and self.filename is not None and self.filename.exists():
             self.q_values = self.read_dumped(self.filename)
-            logger.info("Starting %s episodes, using pre-trained values from %s", n_episodes, self.filename)
+            logger.info(f"Starting #{n_episodes} with {self.previous_steps} trained values from file {self.filename}")
         else:  # start from scratch
             self.q_values = defaultdict(lambda: np.array((0.0,) * self.env.action_space.n, float))  # type: ignore[attr-defined,type-var]
+            self.previous_steps = 0
             logger.info("Starting new training with %s episodes.", n_episodes)
 
     def do_episodes(self, n_episodes: int = 1000, max_steps: int = 5000, show: int = 0) -> None:
@@ -234,18 +234,19 @@ class QLearningAgent:
                 rewards[1].extend([np.log(-x) - log_r0 for x in self.env.rewards])  # type: ignore[attr-defined] ## extended class
             total_steps += nsteps
             # Reduce exploration rate (agent becomes less random over time):
-            self.epsilon = max(self.q_params.final_epsilon, self.epsilon - self.epsilon_decay)
-        if show == SHOW_TRAINING_SUMMARY:
-            self.analyse_training()
+            self.epsilon = max(self.conf.final_epsilon, self.epsilon - self.epsilon_decay)
         if self.filename and "w" in self.use_file:
             self.dump_results(self.filename, n_episodes, total_steps, start_time, num_terminated, num_truncated)
         logger.info(f"Episodes:{n_episodes}, terminated:{num_terminated}, truncated:{num_truncated}")
         logger.info(f"Steps:{total_steps}, revised actions:{err_act}, random actions:{self.num_rnd}")
         logger.info(f"Term:{num_terminated}, trunc:{num_truncated}, tau:{np.average(tau)} +/-{np.std(tau)}")
 
-        _, ax = plt.subplots(1, 1)
-        ax.plot(rewards[0], rewards[1], ".")
-        plt.show()
+        if show == SHOW_TRAINING_SUMMARY:
+            self.analyse_training()
+
+            _, ax = plt.subplots(1, 1)
+            ax.plot(rewards[0], rewards[1], ".")
+            plt.show()
 
     def dump_results(
         self,
@@ -288,10 +289,10 @@ class QLearningAgent:
                 "use_file": self.use_file,
                 "episodes": str(episodes),
                 "steps": str(steps + self.previous_steps),
-                "learning_rate": str(self.q_params.learning_rate),
-                "discount_factor": str(self.q_params.discount_factor),
+                "learning_rate": str(self.conf.learning_rate),
+                "discount_factor": str(self.conf.discount_factor),
                 "epsilon-decay": str(self.epsilon_decay),
-                "final-epsilon": str(self.q_params.final_epsilon),
+                "final-epsilon": str(self.conf.final_epsilon),
                 "epsilon": str(self.epsilon),
                 "#terminated": n_terminated,
                 "#truncated": n_truncated,
@@ -330,7 +331,7 @@ class QLearningAgent:
                 from_dump = json.load(_f)
             self.previous_steps = int(from_dump["q_agent"]["steps"])
             self.epsilon = float(from_dump["q_agent"].get("epsilon", 1.0))
-            self.epsilon_decay = float(from_dump["q_agent"].get("epsilon", 1e-4))
+            self.epsilon_decay = float(from_dump["q_agent"].get("epsilon_decay", 1e-4))
             assert "q_values" in from_dump, f"Key 'q_values' not found in file {filename}"
             for k, v in from_dump["q_values"].items():
                 q_values.update({literal_eval(k): np.array(v) if isinstance(v, list) else v})
@@ -438,3 +439,22 @@ class QLearningAgent:
         msg += f"Average Reward: {average_reward:.3f}\n"
         msg += f"Standard Deviation: {np.std(total_rewards):.3f}\n"
         return msg
+
+
+def _get_moving_avgs(
+    values: Sequence[float] | np.ndarray,
+    window: int,
+    convolution_mode: Literal["valid", "same"],
+) -> np.ndarray:
+    """Compute moving averages to smooth noisy data.
+
+    Args:
+      values(Sequence[float] | np.ndarray): Raw data series to smooth.
+      window(int): Number of elements in the averaging window.
+      convolution_mode(valid", "same"}): Convolution mode passed to `numpy.convolve`.
+
+    Returns:
+    -------
+    Moving average as np array
+    """
+    return np.convolve(np.asarray(values, dtype=float).flatten(), np.ones(window), mode=convolution_mode) / window
