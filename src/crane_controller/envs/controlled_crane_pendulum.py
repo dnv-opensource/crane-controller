@@ -169,9 +169,13 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         self.nsuccess: int = 0
         self.reward = 0.0  # a basic reward (pendulum energy + distance measure)
         self._prev_theta_dot: float | None = None
-        _natural_period_s = 2.0 * np.pi * np.sqrt(self.wire.length / 9.81)
-        self._dwell_steps_required = max(1, round(_natural_period_s / self.conf.dt))
-        self._dwell_counter = 0
+        # Dwell requirement expressed in physical time (seconds), not step count — keeps the
+        # settling criterion's meaning invariant to dt. (Previously this was rounded to an
+        # integer step count at init time, which silently distorts the achieved dwell duration
+        # as dt grows — e.g. dt=4s with a 6.34s period rounds to 2 steps = 8s actual dwell,
+        # a 26% overshoot from rounding alone.)
+        self._dwell_time_required_s = 2.0 * np.pi * np.sqrt(self.wire.length / 9.81)
+        self._dwell_time_s = 0.0
 
         if self.conf.continuous_actions:
             self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)  # type: ignore[assignment]
@@ -533,7 +537,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             self.wire.cm_v[0] = self.conf.start_speed  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         self.initial_speed = float(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         self._prev_theta_dot = None
-        self._dwell_counter = 0
+        self._dwell_time_s = 0.0
         _obs, self.reward, _ = self._get_obs()
         if self.conf.render_mode == "play-back":
             self._append_playback(0.0)
@@ -572,8 +576,8 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         theta = float(self.wire.boom[1])
         theta_dot = (float(self.wire.cm_v[0]) - float(self.wire.origin_v[0])) / float(self.wire.length)  # pyright: ignore[reportUnknownMemberType]
         in_goal_set = self._in_goal_set(self.crane.position[0], self.crane.velocity[0], theta, theta_dot)
-        self._dwell_counter = self._dwell_counter + 1 if in_goal_set else 0
-        settled = self._dwell_counter >= self._dwell_steps_required
+        self._dwell_time_s = self._dwell_time_s + self.conf.dt if in_goal_set else 0.0
+        settled = self._dwell_time_s >= self._dwell_time_required_s
         if truncated and self.reward_fac.terminal_penalty != 0.0:
             self.reward += self.reward_fac.terminal_penalty
         if self.conf.render_mode != "none":
@@ -591,7 +595,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             self.nsuccess += 1
         info = self._get_info(self.reward, self.steps)
         info["settled"] = settled
-        info["dwell_counter"] = self._dwell_counter
+        info["dwell_time_s"] = self._dwell_time_s
         if truncated > 0:
             info["crash"] = True
             info["crash_cause"] = _CRASH_CAUSE_BY_INDEX.get(truncated, "unknown")
