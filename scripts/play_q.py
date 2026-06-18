@@ -12,7 +12,7 @@ import argparse
 import logging
 
 from crane_controller.crane_factory import build_crane
-from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
 
 LOGGER = logging.getLogger(__name__)
@@ -31,11 +31,13 @@ def main() -> None:
 
     env = AntiPendulumEnv(
         build_crane,
-        start_speed=args.v0,
-        render_mode=args.render_mode,
-        discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy(),
+        conf=AntiPendulumConfig(
+            start_speed=args.v0,
+            render_mode=args.render_mode,
+            discrete="energy",
+        ),
     )
-    agent = QLearningAgent(env, trained=(args.model_path, True))
+    agent = QLearningAgent(env, filename=args.model_path, use_file="r")
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     for episode in range(args.episodes):

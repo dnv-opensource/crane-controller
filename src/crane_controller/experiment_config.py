@@ -44,7 +44,8 @@ class RewardConfig:
         Uses pure angular velocity ``(cm_v[0] - origin_v[0]) / wire.length``,
         excluding crane translation.
     crane_velocity : float
-        Weight for the squared crane velocity penalty ``-x_dot^2`` (default 0.0).
+        Weight for the squared crane velocity term ``+x_dot^2`` (default 0.0).
+        Positive values reward crane velocity; use a negative value to penalise it.
     crane_acceleration : float
         Weight for the squared crane acceleration penalty ``-x_ddot^2`` (default 0.0).
         Equals the control action squared (acc = action * self.acc).

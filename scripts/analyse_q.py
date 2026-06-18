@@ -22,7 +22,7 @@ import logging
 import numpy as np
 
 from crane_controller.crane_factory import build_crane
-from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, AntiPendulumEnv
 from crane_controller.q_agent import QLearningAgent
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def _build_dummy_env() -> AntiPendulumEnv:
     AntiPendulumEnv
         Environment with discrete observation space.
     """
-    return AntiPendulumEnv(build_crane, discrete=AntiPendulumEnv.DEFAULT_DISCRETE.copy())
+    return AntiPendulumEnv(build_crane, conf=AntiPendulumConfig(discrete="energy"))
 
 
 def main() -> None:
@@ -53,7 +53,7 @@ def main() -> None:
     args = parser.parse_args()
 
     env = _build_dummy_env()
-    agent = QLearningAgent(env, trained=(args.model_path, True))
+    agent = QLearningAgent(env, filename=args.model_path, use_file="r")
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 

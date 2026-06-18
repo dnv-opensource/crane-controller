@@ -11,7 +11,7 @@ from crane_controller.q_agent import QLearningAgent
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.skip(reason="Test must be updated")
+
 def test_env():
     env = SimpleTestEnv(
         config=Config(
@@ -50,7 +50,7 @@ def test_env():
     assert abs(stats[0] - stats[1]) / stats[2] < 0.05, f"stats: {stats}"
 
 
-@pytest.mark.skip(reason="Test must be updated")
+
 def test_smoke(*, show: bool) -> None:
     env = SimpleTestEnv(
         config=Config(
@@ -71,7 +71,7 @@ def test_smoke(*, show: bool) -> None:
     agent.do_episodes(n_episodes=5, max_steps=200)
 
 
-@pytest.mark.skip(reason="Test must be updated")
+
 def test_q_analyse(env: gym.Env[tuple[int, ...] | np.ndarray, int], *, show: bool) -> None:
     agent = QLearningAgent(env, filename=Path("q_trained.json"), use_file="r")
     agent.q_values = agent.read_dumped()

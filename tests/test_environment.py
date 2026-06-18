@@ -256,23 +256,6 @@ def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_act
     assert obs.shape == (4,)
 
 
-@pytest.mark.skip(reason="The t_min reward term is not in use any more")
-def test_t_min_crane_reward_term(crane: Callable[..., Crane]) -> None:
-    """t_min_crane weight adds -t_min to the reward; zero at origin at rest."""
-    rc = RewardConfig(energy=0.0, positional=0.0, position=0.0, acceleration=0.0, t_min_crane=1.0)
-    env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc, continuous_actions=False))
-    _ = env.reset()
-    # Displace crane so t_min > 0
-    env.crane.position[0] = 1.0
-    env.crane.velocity[0] = 0.0
-    _, reward, _, _, _ = env.step(1)  # coast — minimal physics change
-    assert reward < 0.0, f"Expected negative reward from t_min penalty, got {reward}"
-    # At origin at rest t_min = 0 → contribution is exactly 0
-    env.crane.position[0] = 0.0
-    env.crane.velocity[0] = 0.0
-    t_min = env._t_min_crane()  # type: ignore[reportPrivateUsage]
-    assert t_min == 0.0, f"Expected t_min=0 at origin at rest, got {t_min}"
-
 
 if __name__ == "__main__":
     import os

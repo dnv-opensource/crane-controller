@@ -10,7 +10,7 @@ reward:
   terminal_penalty: -5.0
   angle: 0.0
   angular_velocity: 0.0
-  crane_velocity: 0.1
+  crane_velocity: -0.1
   crane_acceleration: 0.0
   angular_acceleration: 0.0
   t_min_crane: 0.01

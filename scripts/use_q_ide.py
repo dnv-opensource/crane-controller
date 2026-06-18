@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from crane_controller.crane_factory import build_crane
-from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, AntiPendulumEnv
 from crane_controller.envs.simple_test_env import SimpleTestEnv
 from crane_controller.experiment_config import RewardConfig
 from crane_controller.q_agent import QLearningAgent
@@ -72,20 +72,22 @@ def do_use(conf: Config | dict[str, Any] | None = None) -> None:
     _conf = Config() if conf is None else (Config(**conf) if isinstance(conf, dict) else conf)
     env = AntiPendulumEnv(
         build_crane,
-        start_speed=_conf.v0,
-        randomize_start=_conf.randomize_start,
-        seed=_conf.seed,
-        dt=_conf.dt,
-        render_mode=_conf.render,
-        discrete=_conf.discretization,
-        reward_fac=_conf.rc,
-        reward_limit=_conf.r_limit,
-        discount=_conf.discount,
+        conf=AntiPendulumConfig(
+            start_speed=_conf.v0,
+            randomize_start=_conf.randomize_start,
+            seed=_conf.seed,
+            dt=_conf.dt,
+            render_mode=_conf.render,
+            discrete=_conf.discretization,
+            reward_fac=_conf.rc,
+            reward_limit=_conf.r_limit,
+            discount=_conf.discount,
+        ),
     )
 
-    filename = _conf.file
+    filename = Path(_conf.file) if _conf.file is not None else None
     if filename is not None:
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+        filename.parent.mkdir(parents=True, exist_ok=True)
     agent = QLearningAgent(env, filename=filename, use_file=_conf.use_file, strategy=_conf.strategy)
     LOGGER.info(f"DISCRETE: {agent.env.discrete}")
     agent.do_episodes(n_episodes=_conf.episodes, max_steps=_conf.steps, show=0)
@@ -110,7 +112,7 @@ def simple_env(episodes: int, render: str, file: str, use: str, r_limit: float |
         dt=1.0,
         render_mode=render,
     )
-    agent = QLearningAgent(env, filename=file, use_file=use)
+    agent = QLearningAgent(env, filename=Path(file), use_file=use)
     agent.do_episodes(n_episodes=episodes, max_steps=steps)
 
 
