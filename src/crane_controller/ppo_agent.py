@@ -56,6 +56,8 @@ class EpisodeResult:
     terminated: bool
     truncated: bool
     no_crash: bool
+    outcome: str  # "crash", "settled", or "timeout" — mutually exclusive, exhaustive
+    crash_cause: str | None  # e.g. "position"; None unless outcome == "crash"
     t_min_start: float
     t_min_min: float
     t_min_final: float
@@ -382,13 +384,13 @@ class ProximalPolicyOptimizationAgent:
         obs, reset_info = self.env.reset(seed=seed)
         nan = float("nan")
         start_speed: float = self.env.unwrapped.initial_speed  # type: ignore[attr-defined]
-        t_min_start_val: float = float(reset_info.get("t_min", nan))
+        t_min_start_val: float = float(reset_info.get("t_min", nan))  # type: ignore[arg-type]
         terminated = truncated = False
         ep_steps = 0
         ep_reward = 0.0
         t_min_trace: list[float] = []
         step_rows: list[dict[str, float]] = []
-        info: dict[str, float | int] = {}
+        info: dict[str, float | int | bool | str | None] = {}
         last_action: np.ndarray | int = 0
         while not terminated and not truncated:
             norm_obs = self.vec_env.normalize_obs(np.asarray(obs))
@@ -398,14 +400,14 @@ class ProximalPolicyOptimizationAgent:
             ep_steps += 1
             ep_reward += float(reward)
             if "t_min" in info:
-                t_min_trace.append(float(info["t_min"]))
+                t_min_trace.append(float(info["t_min"]))  # type: ignore[arg-type]
             if save_step_csv is not None:
                 step_rows.append({
                     "step": ep_steps,
-                    "theta": float(info.get("theta", nan)),
-                    "theta_dot": float(info.get("theta_dot", nan)),
-                    "x_pos": float(info.get("x_pos", nan)),
-                    "x_vel": float(info.get("x_vel", nan)),
+                    "theta": float(info.get("theta", nan)),  # type: ignore[arg-type]
+                    "theta_dot": float(info.get("theta_dot", nan)),  # type: ignore[arg-type]
+                    "x_pos": float(info.get("x_pos", nan)),  # type: ignore[arg-type]
+                    "x_vel": float(info.get("x_vel", nan)),  # type: ignore[arg-type]
                     "reward": float(reward),
                 })
         if save_step_csv and step_rows:
@@ -420,6 +422,13 @@ class ProximalPolicyOptimizationAgent:
             acc_final = float(np.asarray(last_action).flat[0]) * float(env_u.conf.acc)  # type: ignore[attr-defined]
         else:
             acc_final = float(env_u.action_to_acc[int(last_action)])  # type: ignore[attr-defined]
+        if info.get("crash", False):
+            _outcome = "crash"
+        elif info.get("settled", False):
+            _outcome = "settled"
+        else:
+            _outcome = "timeout"
+        _crash_cause: str | None = info.get("crash_cause")  # type: ignore[assignment]
         return EpisodeResult(
             start_speed=start_speed,
             ep_steps=ep_steps,
@@ -427,13 +436,15 @@ class ProximalPolicyOptimizationAgent:
             terminated=terminated,
             truncated=truncated,
             no_crash=not info.get("crash", False),
+            outcome=_outcome,
+            crash_cause=_crash_cause,
             t_min_start=t_min_start_val,
             t_min_min=min(t_min_trace) if t_min_trace else nan,
             t_min_final=t_min_trace[-1] if t_min_trace else nan,
             t_min_mean_last100=float(np.mean(t_min_trace[-100:])) if t_min_trace else nan,
             t_min_settle_step=_t_min_settle(t_min_trace),
-            x_pos_final=float(info.get("x_pos", nan)),
-            x_vel_final=float(info.get("x_vel", nan)),
+            x_pos_final=float(info.get("x_pos", nan)),  # type: ignore[arg-type]
+            x_vel_final=float(info.get("x_vel", nan)),  # type: ignore[arg-type]
             theta_final=float(obs[2]),
             theta_dot_final=float(obs[3]),
             energy_final=energy_final,

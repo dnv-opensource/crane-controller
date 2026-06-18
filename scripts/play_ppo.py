@@ -40,6 +40,7 @@ def _save_sweep_png(results: list[EpisodeResult], stem: str, out_dir: Path) -> N
     xs = sorted(buckets)
 
     nocrash_pct = [100.0 * sum(r.no_crash for r in buckets[sp]) / len(buckets[sp]) for sp in xs]
+    settled_pct = [100.0 * sum(r.outcome == "settled" for r in buckets[sp]) / len(buckets[sp]) for sp in xs]
     rew_per_step = [statistics.mean(r.ep_reward / r.ep_steps for r in buckets[sp]) for sp in xs]
     energy_frac = [statistics.mean(r.energy_final / (0.5 * sp**2) for r in buckets[sp]) for sp in xs]
     settle_step = [statistics.mean(r.t_min_settle_step for r in buckets[sp]) for sp in xs]
@@ -47,10 +48,10 @@ def _save_sweep_png(results: list[EpisodeResult], stem: str, out_dir: Path) -> N
     x_vel_f = [statistics.mean(r.x_vel_final for r in buckets[sp]) for sp in xs]
     x_acc_f = [statistics.mean(r.acc_final for r in buckets[sp]) for sp in xs]
     theta_f = [statistics.mean(r.theta_final for r in buckets[sp]) for sp in xs]
-    thdot_f = [statistics.mean(r.theta_dot_final for r in buckets[sp]) for sp in xs]
 
     panels: list[tuple[str, list[float]]] = [
         ("nocrash%↑", nocrash_pct),
+        ("settled%↑", settled_pct),
         ("rew/step↑", rew_per_step),
         ("energy_frac↓", energy_frac),
         ("settle_step↓", settle_step),
@@ -58,7 +59,6 @@ def _save_sweep_png(results: list[EpisodeResult], stem: str, out_dir: Path) -> N
         ("x_vel_f", x_vel_f),
         ("x_acc_f", x_acc_f),
         ("theta_f", theta_f),
-        ("thdot_f↓", thdot_f),
     ]
 
     fig, axes = plt.subplots(3, 3, figsize=(15, 10))
@@ -84,7 +84,7 @@ def _log_sweep_table(results: list[EpisodeResult], stem: str, model_path: str) -
     for r in results:
         buckets[r.start_speed].append(r)
     header = (
-        f"{'speed':>6}  {'n':>3}  {'nocrash%':>8}  {'rew/step':>9}  {'energy_frac':>11}"
+        f"{'speed':>6}  {'n':>3}  {'nocrash%':>8}  {'settled%':>8}  {'rew/step':>9}  {'energy_frac':>11}"
         f"  {'settle_step':>10}  {'x_pos_m':>8}  {'x_vel_f':>7}  {'x_acc_f':>7}"
         f"  {'theta_f':>7}  {'thdot_f':>7}"
     )
@@ -93,6 +93,7 @@ def _log_sweep_table(results: list[EpisodeResult], stem: str, model_path: str) -
         group = buckets[speed]
         n = len(group)
         nocrash_pct = 100.0 * sum(r.no_crash for r in group) / n
+        settled_pct = 100.0 * sum(r.outcome == "settled" for r in group) / n
         rew_per_step_mean = statistics.mean(r.ep_reward / r.ep_steps for r in group)
         energy_frac_mean = statistics.mean(r.energy_final / (0.5 * r.start_speed**2) for r in group)
         settle_mean = statistics.mean(r.t_min_settle_step for r in group)
@@ -102,10 +103,11 @@ def _log_sweep_table(results: list[EpisodeResult], stem: str, model_path: str) -
         theta_mean = statistics.mean(r.theta_final for r in group)
         thdot_mean = statistics.mean(r.theta_dot_final for r in group)
         LOGGER.info(
-            "%6.1f  %3d  %7.0f%%  %+9.4f  %11.4f  %10.0f  %8.4f  %7.4f  %7.4f  %7.3f  %7.4f",
+            "%6.1f  %3d  %7.0f%%  %7.0f%%  %+9.4f  %11.4f  %10.0f  %8.4f  %7.4f  %7.4f  %7.3f  %7.4f",
             speed,
             n,
             nocrash_pct,
+            settled_pct,
             rew_per_step_mean,
             energy_frac_mean,
             settle_mean,
@@ -226,11 +228,12 @@ def main() -> None:
                 step_csv_path = str(Path(args.model_path).parent / f"{stem}_step_trace.csv")
             result = agent.do_one_episode(seed=episode + 1, save_png=png_path, save_step_csv=step_csv_path)
             result.start_speed = speed  # override wire-CM value with the explicitly set speed
+            outcome_str = result.outcome + (f"/{result.crash_cause}" if result.crash_cause else "")
             LOGGER.info(
-                "  steps=%d  rew=%.2f  no_crash=%s  t_min=[%.2f→%.2f@%d]  x_pos=%+.4fm  theta=%.3f",
+                "  steps=%d  rew=%.2f  outcome=%s  t_min=[%.2f→%.2f@%d]  x_pos=%+.4fm  theta=%.3f",
                 result.ep_steps,
                 result.ep_reward,
-                result.no_crash,
+                outcome_str,
                 result.t_min_start,
                 result.t_min_final,
                 result.t_min_settle_step,

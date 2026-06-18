@@ -62,6 +62,8 @@ class EpRewardLogCallback(BaseCallback):
         # Per-interval episode counters (reset after each log line)
         self._ep_count: int = 0
         self._rail_hits: int = 0
+        self._settled_count: int = 0
+        self._crash_cause_counts: dict[str, int] = {}
         self._surv_t_min_sum: float = 0.0
         self._surv_t_min_n: int = 0
         self._surv_x_pos_sum: float = 0.0
@@ -94,7 +96,12 @@ class EpRewardLogCallback(BaseCallback):
                     ep_steps: int = int(info.get("steps", 0))  # pyright: ignore[reportUnknownMemberType]
                     if ep_steps < self._max_episode_steps:
                         self._rail_hits += 1
-                    else:
+                    if info.get("settled", False):  # pyright: ignore[reportUnknownMemberType]
+                        self._settled_count += 1
+                    cause = info.get("crash_cause")  # pyright: ignore[reportUnknownMemberType]
+                    if cause:
+                        self._crash_cause_counts[cause] = self._crash_cause_counts.get(cause, 0) + 1
+                    if ep_steps >= self._max_episode_steps:
                         t_min = info.get("t_min")  # pyright: ignore[reportUnknownMemberType]
                         x_pos = info.get("x_pos")  # pyright: ignore[reportUnknownMemberType]
                         x_vel = info.get("x_vel")  # pyright: ignore[reportUnknownMemberType]
@@ -161,9 +168,11 @@ class EpRewardLogCallback(BaseCallback):
 
             if self._ep_count > 0:
                 rail_pct = 100.0 * self._rail_hits / self._ep_count
+                settled_pct = 100.0 * self._settled_count / self._ep_count
                 _f = lambda v, fmt, u="": "---" if np.isnan(v) else f"{v:{fmt}}{u}"  # noqa: E731
                 line += (
                     f"  |  rail_hit%↓={rail_pct:.0f}%"
+                    f"  settled%↑={settled_pct:.0f}%"
                     f"  t_min↓={_f(t_min_m, '.3f', 's')}"
                     f"  |x|↓={_f(x_pos_m, '.4f', 'm')}"
                     f"  |xv|↓={_f(x_vel_m, '.4f')}"
@@ -171,10 +180,14 @@ class EpRewardLogCallback(BaseCallback):
                     f"  |ω|↓={_f(theta_dot_m, '.4f')}"
                     f"  |θ-π|↓={_f(theta_dev_m, '.4f')}"
                 )
+                if self._crash_cause_counts:
+                    cause_str = " ".join(f"{k[:3]}:{v}" for k, v in sorted(self._crash_cause_counts.items()))
+                    line += f"  [crash:{cause_str}]"
 
             tqdm.write(line)
 
             rail_pct_val = 100.0 * self._rail_hits / self._ep_count if self._ep_count > 0 else float("nan")
+            settled_pct_val = 100.0 * self._settled_count / self._ep_count if self._ep_count > 0 else float("nan")
 
             self._rows.append(
                 {
@@ -188,6 +201,7 @@ class EpRewardLogCallback(BaseCallback):
                     "clip_fraction": clip if clip is not None else float("nan"),
                     "policy_gradient_loss": pgl if pgl is not None else float("nan"),
                     "rail_hit_pct": rail_pct_val,
+                    "settled_pct": settled_pct_val,
                     "mean_t_min": t_min_m,
                     "mean_x_pos_abs": x_pos_m,
                     "mean_x_vel_abs": x_vel_m,
@@ -200,6 +214,8 @@ class EpRewardLogCallback(BaseCallback):
             # Reset per-interval counters
             self._ep_count = 0
             self._rail_hits = 0
+            self._settled_count = 0
+            self._crash_cause_counts = {}
             self._surv_t_min_sum = 0.0
             self._surv_t_min_n = 0
             self._surv_x_pos_sum = 0.0
