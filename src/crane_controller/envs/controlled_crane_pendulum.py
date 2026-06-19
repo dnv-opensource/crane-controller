@@ -53,6 +53,8 @@ class AntiPendulumConfig:
         continuous_actions: If True, the action space is ``Box([-1], [1])`` and an action value
             in ``[-1, 1]`` is scaled by ``acc`` to produce the crane acceleration.
             If False, the action space is ``Discrete(3)`` with mapping``0=-acc, 1=0, 2=+acc`` (Q-agent compatible).
+        length: the length of the crane wire (and the pedestal)
+        q_factor: the damping factor of the pendulum action
     """
 
     acc: float = 0.1
@@ -67,6 +69,8 @@ class AntiPendulumConfig:
     reward_fac: RewardConfig | None = None
     continuous_actions: bool = False
     discount: float = 0.8
+    length: float = 10.0
+    q_factor: float = 50.0
 
 
 class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
@@ -117,7 +121,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         self.crane_maker = crane
         self.conf = AntiPendulumConfig() if conf is None else conf
         self.render_mode: str | None = self.conf.render_mode  # gymnasium convention: expose as direct attribute
-        self.crane: Crane = crane()
+        self.crane: Crane = crane(length=self.conf.length, q_factor=self.conf.q_factor)
         self.wire: Wire = self.crane.boom_by_name("wire")  # type: ignore[assignment]  # Wire is a sub-class of Boom
         assert isinstance(self.wire, Wire), "Need a crane wire!"
         assert self.conf.render_mode in AntiPendulumEnv.metadata["render_modes"], (  # type: ignore[operator]  # metadata values are typed as object
