@@ -387,14 +387,19 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         position = -abs(self.crane.position[0])
         acc_penalty = -abs(acc)
         rc = self.reward_fac
-        self.reward = (
-            rc.energy * energy
-            + rc.positional * positional
-            + rc.time * (-self.time)
-            + rc.position * position
-            + rc.acceleration * acc_penalty
-            + rc.crane_velocity * self.crane.velocity[0] ** 2
-        )
+        self.reward = rc.energy * energy
+        if rc.positional != 0.0:
+            self.reward += rc.positional * positional
+        if rc.time != 0.0:
+            self.reward += rc.time * (-self.time)
+        if rc.position != 0.0:
+            self.reward += rc.position * position
+        if rc.acceleration != 0.0:
+            self.reward += rc.acceleration * acc_penalty
+        if rc.crane_velocity != 0.0:
+            self.reward += rc.crane_velocity * self.crane.velocity[0] ** 2
+        if rc.t_min_crane != 0.0:
+            self.reward += rc.t_min_crane * self._t_min_crane()
 
         if len(self.discrete):
             self.obs, truncate = self._get_discrete_obs(energy, acc)
