@@ -256,7 +256,6 @@ def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_act
     assert obs.shape == (4,)
 
 
-
 if __name__ == "__main__":
     import os
     from pathlib import Path
