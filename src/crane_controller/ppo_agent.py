@@ -397,8 +397,8 @@ class ProximalPolicyOptimizationAgent:
         self.env.unwrapped.render(save_path=save_png)  # type: ignore[attr-defined, call-arg]
         env_u = self.env.unwrapped
         energy_final = 0.5 * float(env_u.wire.cm_v[0]) ** 2  # type: ignore[attr-defined]
-        if env_u.continuous_actions:  # type: ignore[attr-defined]
-            acc_final = float(np.asarray(last_action).flat[0]) * float(env_u.acc)  # type: ignore[attr-defined]
+        if env_u.conf.continuous_actions:  # type: ignore[attr-defined]
+            acc_final = float(np.asarray(last_action).flat[0]) * float(env_u.conf.acc)  # type: ignore[attr-defined]
         else:
             acc_final = float(env_u.action_to_acc[int(last_action)])  # type: ignore[attr-defined]
         return EpisodeResult(

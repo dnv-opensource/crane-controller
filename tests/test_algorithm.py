@@ -10,7 +10,9 @@ from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, 
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.skip(reason="Test needs to be updated")
+@pytest.mark.skip(
+    reason="AlgorithmAgent uses obs[1]/obs[2] for pos/speed; 'energy' discretization moved them to obs[2]/obs[3]"
+)
 def test_algorithm_strategies(
     crane: Callable[..., Crane],
     *,
@@ -29,7 +31,9 @@ def test_algorithm_strategies(
     agent.do_strategies(max_steps=5000 if show else 10)
 
 
-@pytest.mark.skip(reason="Test needs to be updated.")
+@pytest.mark.skip(
+    reason="AlgorithmAgent uses obs[1]/obs[2] for pos/speed; 'energy' discretization moved them to obs[2]/obs[3]"
+)
 def test_algorithm(crane: Callable[..., Crane], *, show: bool) -> None:
     env = AntiPendulumEnv(
         crane,

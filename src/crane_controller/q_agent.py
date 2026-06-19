@@ -228,7 +228,8 @@ class QLearningAgent:
             num_truncated += int(trunc)
             if _episode >= n_episodes - 100:
                 log_r0 = np.log(-self.env.rewards[0])  # type: ignore[attr-defined] ## extended class
-                _t = [-i * self.env.conf.dt / (np.log(-r) - log_r0) for i, r in enumerate(self.env.rewards[1:])]  # type: ignore[attr-defined] ## extended class
+                _env_dt = getattr(getattr(self.env, "conf", self.env), "dt", 1.0)
+                _t = [-i * _env_dt / (np.log(-r) - log_r0) for i, r in enumerate(self.env.rewards[1:])]  # type: ignore[attr-defined] ## extended class
                 tau.append(np.average(_t))
                 rewards[0].extend(list(range(len(self.env.rewards))))  # type: ignore[attr-defined] ## extended class
                 rewards[1].extend([np.log(-x) - log_r0 for x in self.env.rewards])  # type: ignore[attr-defined] ## extended class
