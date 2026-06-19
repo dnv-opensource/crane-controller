@@ -228,12 +228,11 @@ def main() -> None:
                 step_csv_path = str(Path(args.model_path).parent / f"{stem}_step_trace.csv")
             result = agent.do_one_episode(seed=episode + 1, save_png=png_path, save_step_csv=step_csv_path)
             result.start_speed = speed  # override wire-CM value with the explicitly set speed
-            outcome_str = result.outcome + (f"/{result.crash_cause}" if result.crash_cause else "")
             LOGGER.info(
                 "  steps=%d  rew=%.2f  outcome=%s  t_min=[%.2f→%.2f@%d]  x_pos=%+.4fm  theta=%.3f",
                 result.ep_steps,
                 result.ep_reward,
-                outcome_str,
+                result.outcome + (f"/{result.crash_cause}" if result.crash_cause else ""),
                 result.t_min_start,
                 result.t_min_final,
                 result.t_min_settle_step,
