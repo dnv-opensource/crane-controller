@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from crane_controller.crane_factory import build_crane
-from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, AntiPendulumEnv
 from crane_controller.experiment_config import load_training_sidecar
 from crane_controller.ppo_agent import EpisodeResult, ProximalPolicyOptimizationAgent
 
@@ -191,13 +191,15 @@ def main() -> None:
         model_path=args.model_path,
         env_kwargs={
             "crane": build_crane,
-            "start_speed": speeds[0],
-            "randomize_start": args.randomize_start,
-            "render_mode": args.render_mode,
-            "reward_fac": config.reward,
-            "rail_limit": config.training.rail_limit,
-            "reward_limit": config.training.reward_limit,
-            "continuous_actions": args.continuous_actions,
+            "conf": AntiPendulumConfig(
+                start_speed=speeds[0],
+                randomize_start=args.randomize_start,
+                render_mode=args.render_mode,
+                reward_fac=config.reward,
+                rail_limit=config.training.rail_limit,
+                reward_limit=config.training.reward_limit,
+                continuous_actions=args.continuous_actions,
+            ),
         },
         max_episode_steps=mep,
     )
@@ -206,7 +208,7 @@ def main() -> None:
     all_results: list[EpisodeResult] = []
 
     for speed in speeds:
-        agent.env.unwrapped.start_speed = speed  # type: ignore[attr-defined]
+        agent.env.unwrapped.conf = dataclasses.replace(agent.env.unwrapped.conf, start_speed=speed)  # type: ignore[attr-defined]
         for episode in range(args.episodes):
             LOGGER.info("Episode %s/%s  speed=%+.1f", episode + 1, args.episodes, speed)
             png_path: str | None = None

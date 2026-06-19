@@ -116,6 +116,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         """
         self.crane_maker = crane
         self.conf = AntiPendulumConfig() if conf is None else conf
+        self.render_mode: str | None = self.conf.render_mode  # gymnasium convention: expose as direct attribute
         self.crane: Crane = crane()
         self.wire: Wire = self.crane.boom_by_name("wire")  # type: ignore[assignment]  # Wire is a sub-class of Boom
         assert isinstance(self.wire, Wire), "Need a crane wire!"

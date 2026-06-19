@@ -18,7 +18,7 @@ import logging
 from pathlib import Path
 
 from crane_controller.crane_factory import build_crane
-from crane_controller.envs.controlled_crane_pendulum import AntiPendulumEnv
+from crane_controller.envs.controlled_crane_pendulum import AntiPendulumConfig, AntiPendulumEnv
 from crane_controller.experiment_config import (
     ExperimentConfig,
     RewardConfig,
@@ -185,8 +185,7 @@ def main() -> None:  # noqa: PLR0915
             n_envs=1,
             env_kwargs={
                 "crane": build_crane,
-                "start_speed": -1.0,
-                "render_mode": "reward-tracking",
+                "conf": AntiPendulumConfig(start_speed=-1.0, render_mode="reward-tracking"),
             },
         )
         agent.do_training(1000, progress_bar=False)
@@ -229,13 +228,15 @@ def main() -> None:  # noqa: PLR0915
             model_path=args.resume_from,
             env_kwargs={
                 "crane": build_crane,
-                "start_speed": args.start_speed,
-                "randomize_start": args.randomize_start,
-                "render_mode": args.render_mode,
-                "reward_fac": resume_config.reward,
-                "rail_limit": args.rail_limit,
-                "reward_limit": resume_config.training.reward_limit,
-                "continuous_actions": args.continuous_actions,
+                "conf": AntiPendulumConfig(
+                    start_speed=args.start_speed,
+                    randomize_start=args.randomize_start,
+                    render_mode=args.render_mode,
+                    reward_fac=resume_config.reward,
+                    rail_limit=args.rail_limit,
+                    reward_limit=resume_config.training.reward_limit,
+                    continuous_actions=args.continuous_actions,
+                ),
             },
             save_path=args.save_path,
             n_envs=args.n_envs,
@@ -254,13 +255,15 @@ def main() -> None:  # noqa: PLR0915
             n_envs=args.n_envs,
             env_kwargs={
                 "crane": build_crane,
-                "start_speed": args.start_speed,
-                "randomize_start": args.randomize_start,
-                "render_mode": args.render_mode,
-                "reward_fac": experiment_config.reward,
-                "rail_limit": experiment_config.training.rail_limit,
-                "reward_limit": experiment_config.training.reward_limit,
-                "continuous_actions": args.continuous_actions,
+                "conf": AntiPendulumConfig(
+                    start_speed=args.start_speed,
+                    randomize_start=args.randomize_start,
+                    render_mode=args.render_mode,
+                    reward_fac=experiment_config.reward,
+                    rail_limit=experiment_config.training.rail_limit,
+                    reward_limit=experiment_config.training.reward_limit,
+                    continuous_actions=args.continuous_actions,
+                ),
             },
             save_path=args.save_path,
             gamma=args.gamma,
