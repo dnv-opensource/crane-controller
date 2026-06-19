@@ -6,7 +6,6 @@ See end of the file, commented out code.
 """
 
 import logging
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -22,57 +21,7 @@ MODELS = Path(__file__).parent.resolve().parent / "models"
 USE_DISCRETE2 = 2
 
 
-@dataclass(kw_only=True, frozen=True, slots=True)
-class Config:
-    """Data for experiments performed in this module.
-
-    Args:
-        v0: start speed of load in x-direction. 0: Pendulum mode, >/< 0 same/random start at every episode
-        randomize_start: Optionally randomize the start speed within +/- v0. Default: False
-        render: render mode of environment
-        file: Optional definition of model-save file
-        use_file: How 'file' is used (if exists): 'r', 'w', 'rw'
-        episodes: nnumber of episodes run in the training
-        steps: number of steps per episodes (if not terminated or truncated)
-        dt: step-size per time step
-        r_fac: optional weight factors (RewardConfig) for reward
-        r_limit: optional reward limit
-        disc: discount rate of acceleration history to include in observation
-        learning_rate: optionally change the learning rate
-        seed: optionally change the start seed
-
-    """
-
-    # AntiPendulumConfig
-    acc: float = 0.1
-    start_speed: float = 1.0
-    randomize_start: bool = False
-    render_mode: str = "none"
-    rail_limit: float = 10.0
-    seed: int | None = 43
-    reward_limit: float | None = None
-    dt: float = 1.0
-    discrete: dict[str, tuple[float | int, ...]] | str = "none"
-    reward_fac: RewardConfig | None = None
-    continuous_actions: bool = False
-    discount: float = 0.8
-    # agent
-    learning_rate: float = 0.1
-    epsilon_decay: float = 1e-4
-    final_epsilon: float = 0.1
-    discount_factor: float = 0.95
-    # additional for do_episodes
-    file: str | None = None
-    use_file: str = "r"
-    episodes: int = 10000
-    steps: int = 1000
-    strategy: str = "default"
-    eps: float = 1e-10
-    if reward_fac is None:
-        reward_fac = RewardConfig(energy=1.0, positional=1.0, crane_velocity=0.5)
-
-
-def do_use(conf: Config | dict[str, Any]) -> None:
+def do_use(conf: dict[str, Any]) -> None:
     """Perform training on the (Anti-)Pendulum environment using q-learning.
 
     Args:
@@ -102,7 +51,7 @@ def do_use(conf: Config | dict[str, Any]) -> None:
         final_epsilon=conf.get("final_epsilon", _a_conf.final_epsilon),
         discount_factor=conf.get("discount_factor", _a_conf.discount_factor),
     )
-    filename = conf.get("file", None)
+    filename = conf.get("file")
     if filename is not None:
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
     agent = QLearningAgent(
