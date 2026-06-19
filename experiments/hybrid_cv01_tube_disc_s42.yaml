@@ -1,0 +1,35 @@
+# hybrid_cv01_tube — discrete-action variant, seed 42.
+# Identical reward weights and training hyperparameters to hybrid_cv01_tube_s42
+# (continuous), with continuous_actions=false to use Discrete(3) action space
+# {full-brake, coast, full-throttle}. Direct comparison run to check whether
+# bang-bang control produces a materially different outcome distribution.
+reward:
+  energy: 1.0
+  positional: 0.0
+  time: 0.0
+  position: 0.1
+  acceleration: 0.0
+  terminal_penalty: -5.0
+  goal_tube_reward: 0.5
+  angle: 0.0
+  angular_velocity: 0.0
+  crane_velocity: -0.1
+  crane_acceleration: 0.0
+  angular_acceleration: 0.0
+  t_min_crane: 0.0
+training:
+  steps: 3000000
+  n_envs: 32
+  gamma: 0.99
+  save_path: models/hybrid_cv01_tube_disc_s42.zip
+  seed: 42
+  ent_coef: 0.0
+  learning_rate: 0.0003
+  clip_range: 0.2
+  n_steps: 4096
+  randomize_start: true
+  rail_limit: 2.0
+  start_speed: 1.0
+  continuous_actions: false
+  reward_limit: 50.0
+  max_episode_steps: 1000

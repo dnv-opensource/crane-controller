@@ -580,6 +580,8 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         settled = self._dwell_time_s >= self._dwell_time_required_s
         if truncated and self.reward_fac.terminal_penalty != 0.0:
             self.reward += self.reward_fac.terminal_penalty
+        if in_goal_set and self.reward_fac.goal_tube_reward != 0.0:
+            self.reward += self.reward_fac.goal_tube_reward
         if self.conf.render_mode != "none":
             self.rewards.append(float(self.reward))
 

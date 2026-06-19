@@ -1,0 +1,38 @@
+# hybrid_cv01 + per-step goal-tube reward.
+# Adds goal_tube_reward=0.5 to the hybrid_cv01 baseline, providing an explicit
+# per-step positive signal when the 4D goal set is occupied. Symmetric counterpart
+# to terminal_penalty=-5.0: across the ~6-step dwell period, accumulates ~+3.0,
+# comparable in magnitude to but smaller than the crash penalty.
+# All other weights and training hyperparameters identical to hybrid_cv01.
+# First retraining run: seed=42, steps=3_000_000, for direct comparison with
+# the s42 sweep results already on the turing-tuning branch.
+reward:
+  energy: 1.0
+  positional: 0.0
+  time: 0.0
+  position: 0.1
+  acceleration: 0.0
+  terminal_penalty: -5.0
+  goal_tube_reward: 0.5
+  angle: 0.0
+  angular_velocity: 0.0
+  crane_velocity: -0.1
+  crane_acceleration: 0.0
+  angular_acceleration: 0.0
+  t_min_crane: 0.0
+training:
+  steps: 3000000
+  n_envs: 32
+  gamma: 0.99
+  save_path: models/hybrid_cv01_tube_s42.zip
+  seed: 42
+  ent_coef: 0.0
+  learning_rate: 0.0003
+  clip_range: 0.2
+  n_steps: 4096
+  randomize_start: true
+  rail_limit: 2.0
+  start_speed: 1.0
+  continuous_actions: true
+  reward_limit: 50.0
+  max_episode_steps: 1000

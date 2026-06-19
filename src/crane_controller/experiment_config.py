@@ -37,6 +37,18 @@ class RewardConfig:
         One-time reward added on truncation (out-of-bounds crash).  Set to a
         negative value to penalise early episode termination; 0.0 disables it
         (default 0.0).
+    goal_tube_reward : float
+        Per-step reward added every step the full 4D state lies inside the
+        goal set (|x| < GOAL_EPS_X, |x_dot| < GOAL_EPS_X_DOT,
+        |theta - pi| < GOAL_EPS_THETA, |theta_dot| < GOAL_EPS_THETA_DOT).
+        Positive values reward the policy for reaching and staying in the
+        settled state; under discounting (gamma=0.99), earlier settling
+        accumulates more reward than later settling, giving an implicit
+        speed-of-settling preference without any additional machinery.
+        0.0 disables the term (default 0.0 — no change to existing configs).
+        Symmetric counterpart to terminal_penalty: terminal_penalty penalises
+        crashing (a one-time event); goal_tube_reward rewards settling
+        (a per-step flow during the dwell period and beyond).
     angle : float
         Weight for the squared pendulum angle penalty ``-theta^2`` (default 0.0).
     angular_velocity : float
@@ -66,6 +78,7 @@ class RewardConfig:
     position: float = 0.005
     acceleration: float = 0.01
     terminal_penalty: float = 0.0
+    goal_tube_reward: float = 0.0
     angle: float = 0.0
     angular_velocity: float = 0.0
     crane_velocity: float = 0.0
@@ -95,6 +108,7 @@ class RewardConfig:
             position=float(d.get("position", defaults.position)),  # type: ignore[arg-type]
             acceleration=float(d.get("acceleration", defaults.acceleration)),  # type: ignore[arg-type]
             terminal_penalty=float(d.get("terminal_penalty", defaults.terminal_penalty)),  # type: ignore[arg-type]
+            goal_tube_reward=float(d.get("goal_tube_reward", defaults.goal_tube_reward)),  # type: ignore[arg-type]
             angle=float(d.get("angle", defaults.angle)),  # type: ignore[arg-type]
             angular_velocity=float(d.get("angular_velocity", defaults.angular_velocity)),  # type: ignore[arg-type]
             crane_velocity=float(d.get("crane_velocity", defaults.crane_velocity)),  # type: ignore[arg-type]
