@@ -22,8 +22,8 @@ class EpRewardLogCallback(BaseCallback):
 
     - Family 1: policy performance (ep_len_mean, rew/step)
     - Family 2: PPO diagnostics (kl, expl_var, value_loss, entropy, clip_frac)
-    - Family 3: task quality — rail crash rate plus mean physical end-states for survived episodes:
-        - rail_hit%   truncated before max_episode_steps (crane hit the rail)
+    - Family 3: task quality — crash rate plus mean physical end-states across all episodes:
+        - crash%      episodes where the crane crashed (explicit crash signal from env)
         - t_min       mean minimum-time-to-stop at episode end (s)
         - |x|         mean absolute crane position at episode end (m)
         - |xv|        mean absolute crane velocity at episode end
@@ -48,9 +48,7 @@ class EpRewardLogCallback(BaseCallback):
             total_timesteps: Total training timesteps (used for the progress label).
             log_interval: Minimum timesteps between log lines (default 50 000).
             csv_path: Path to write a CSV log file at the end of training (default None).
-            max_episode_steps: TimeLimit cap passed to the environment (default 1000). Used to
-                distinguish rail hits (ep_len < max_episode_steps) from survived
-                episodes (ep_len >= max_episode_steps).
+            max_episode_steps: TimeLimit cap passed to the environment (default 1000).
         """
         super().__init__(verbose=0)  # pyright: ignore[reportCallIssue]
         self._total = total_timesteps
@@ -61,7 +59,7 @@ class EpRewardLogCallback(BaseCallback):
         self._rows: list[dict[str, float]] = []
         # Per-interval episode counters (reset after each log line)
         self._ep_count: int = 0
-        self._rail_hits: int = 0
+        self._crash_count: int = 0
         self._settled_count: int = 0
         self._crash_cause_counts: dict[str, int] = {}
         self._surv_t_min_sum: float = 0.0
@@ -93,39 +91,37 @@ class EpRewardLogCallback(BaseCallback):
             for done, info in zip(dones, infos, strict=False):
                 if done:
                     self._ep_count += 1
-                    ep_steps: int = int(info.get("steps", 0))  # pyright: ignore[reportUnknownMemberType]
-                    if ep_steps < self._max_episode_steps:
-                        self._rail_hits += 1
+                    if info.get("crash", False):  # pyright: ignore[reportUnknownMemberType]
+                        self._crash_count += 1
                     if info.get("settled", False):  # pyright: ignore[reportUnknownMemberType]
                         self._settled_count += 1
                     cause = info.get("crash_cause")  # pyright: ignore[reportUnknownMemberType]
                     if cause:
                         self._crash_cause_counts[cause] = self._crash_cause_counts.get(cause, 0) + 1
-                    if ep_steps >= self._max_episode_steps:
-                        t_min = info.get("t_min")  # pyright: ignore[reportUnknownMemberType]
-                        x_pos = info.get("x_pos")  # pyright: ignore[reportUnknownMemberType]
-                        x_vel = info.get("x_vel")  # pyright: ignore[reportUnknownMemberType]
-                        energy = info.get("energy")  # pyright: ignore[reportUnknownMemberType]
-                        theta_dot = info.get("theta_dot")  # pyright: ignore[reportUnknownMemberType]
-                        if t_min is not None:
-                            self._surv_t_min_sum += float(t_min)
-                            self._surv_t_min_n += 1
-                        if x_pos is not None:
-                            self._surv_x_pos_sum += abs(float(x_pos))
-                            self._surv_x_pos_n += 1
-                        if x_vel is not None:
-                            self._surv_x_vel_sum += abs(float(x_vel))
-                            self._surv_x_vel_n += 1
-                        if energy is not None:
-                            self._surv_energy_sum += float(energy)
-                            self._surv_energy_n += 1
-                        if theta_dot is not None:
-                            self._surv_theta_dot_sum += abs(float(theta_dot))
-                            self._surv_theta_dot_n += 1
-                        theta = info.get("theta")  # pyright: ignore[reportUnknownMemberType]
-                        if theta is not None:
-                            self._surv_theta_dev_sum += abs(float(theta) - np.pi)
-                            self._surv_theta_dev_n += 1
+                    t_min = info.get("t_min")  # pyright: ignore[reportUnknownMemberType]
+                    x_pos = info.get("x_pos")  # pyright: ignore[reportUnknownMemberType]
+                    x_vel = info.get("x_vel")  # pyright: ignore[reportUnknownMemberType]
+                    energy = info.get("energy")  # pyright: ignore[reportUnknownMemberType]
+                    theta_dot = info.get("theta_dot")  # pyright: ignore[reportUnknownMemberType]
+                    if t_min is not None:
+                        self._surv_t_min_sum += float(t_min)
+                        self._surv_t_min_n += 1
+                    if x_pos is not None:
+                        self._surv_x_pos_sum += abs(float(x_pos))
+                        self._surv_x_pos_n += 1
+                    if x_vel is not None:
+                        self._surv_x_vel_sum += abs(float(x_vel))
+                        self._surv_x_vel_n += 1
+                    if energy is not None:
+                        self._surv_energy_sum += float(energy)
+                        self._surv_energy_n += 1
+                    if theta_dot is not None:
+                        self._surv_theta_dot_sum += abs(float(theta_dot))
+                        self._surv_theta_dot_n += 1
+                    theta = info.get("theta")  # pyright: ignore[reportUnknownMemberType]
+                    if theta is not None:
+                        self._surv_theta_dev_sum += abs(float(theta) - np.pi)
+                        self._surv_theta_dev_n += 1
 
         t: int = self.num_timesteps  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
         buf = self.model.ep_info_buffer  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
@@ -167,11 +163,11 @@ class EpRewardLogCallback(BaseCallback):
             theta_dev_m = _sm(self._surv_theta_dev_sum, self._surv_theta_dev_n)
 
             if self._ep_count > 0:
-                rail_pct = 100.0 * self._rail_hits / self._ep_count
+                crash_pct = 100.0 * self._crash_count / self._ep_count
                 settled_pct = 100.0 * self._settled_count / self._ep_count
                 _f = lambda v, fmt, u="": "---" if np.isnan(v) else f"{v:{fmt}}{u}"  # noqa: E731
                 line += (
-                    f"  |  rail_hit%↓={rail_pct:.0f}%"
+                    f"  |  crash%↓={crash_pct:.0f}%"
                     f"  settled%↑={settled_pct:.0f}%"
                     f"  t_min↓={_f(t_min_m, '.3f', 's')}"
                     f"  |x|↓={_f(x_pos_m, '.4f', 'm')}"
@@ -186,7 +182,7 @@ class EpRewardLogCallback(BaseCallback):
 
             tqdm.write(line)
 
-            rail_pct_val = 100.0 * self._rail_hits / self._ep_count if self._ep_count > 0 else float("nan")
+            crash_pct_val = 100.0 * self._crash_count / self._ep_count if self._ep_count > 0 else float("nan")
             settled_pct_val = 100.0 * self._settled_count / self._ep_count if self._ep_count > 0 else float("nan")
 
             self._rows.append(
@@ -200,7 +196,7 @@ class EpRewardLogCallback(BaseCallback):
                     "entropy_loss": ent if ent is not None else float("nan"),
                     "clip_fraction": clip if clip is not None else float("nan"),
                     "policy_gradient_loss": pgl if pgl is not None else float("nan"),
-                    "rail_hit_pct": rail_pct_val,
+                    "crash_pct": crash_pct_val,
                     "settled_pct": settled_pct_val,
                     "mean_t_min": t_min_m,
                     "mean_x_pos_abs": x_pos_m,
@@ -213,7 +209,7 @@ class EpRewardLogCallback(BaseCallback):
 
             # Reset per-interval counters
             self._ep_count = 0
-            self._rail_hits = 0
+            self._crash_count = 0
             self._settled_count = 0
             self._crash_cause_counts = {}
             self._surv_t_min_sum = 0.0
