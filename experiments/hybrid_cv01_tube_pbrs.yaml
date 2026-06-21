@@ -1,0 +1,40 @@
+# hybrid_cv01_tube + PBRS restructuring of dense reward terms (Option 2).
+# Replaces the raw per-step energy, position, and crane_velocity penalties
+# with the potential-based shaping reward F(s,s') = γΦ(s') − Φ(s), where
+# Φ(s) = energy_weight*(−gz−½v²) + position_weight*(−|x|) + crane_velocity_weight*(ẋ²).
+# Weights are IDENTICAL to hybrid_cv01_tube — this is a structural verification
+# retrain, not a tuning run. Expected result: same or better 4D settling performance.
+# Policy-invariance guarantee (Ng, Harada & Russell 1999) applies: any policy
+# optimal under this shaped reward is also optimal under the original.
+# γ=0.99 hardcoded in the PBRS computation — must match training gamma here.
+reward:
+  energy: 1.0
+  positional: 0.0
+  time: 0.0
+  position: 0.1
+  acceleration: 0.0
+  terminal_penalty: -5.0
+  goal_tube_reward: 0.5
+  pbrs: true
+  angle: 0.0
+  angular_velocity: 0.0
+  crane_velocity: -0.1
+  crane_acceleration: 0.0
+  angular_acceleration: 0.0
+  t_min_crane: 0.0
+training:
+  steps: 3000000
+  n_envs: 32
+  gamma: 0.99
+  save_path: models/hybrid_cv01_tube_pbrs_s42.zip
+  seed: 42
+  ent_coef: 0.0
+  learning_rate: 0.0003
+  clip_range: 0.2
+  n_steps: 4096
+  randomize_start: true
+  rail_limit: 2.0
+  start_speed: 1.0
+  continuous_actions: true
+  reward_limit: 50.0
+  max_episode_steps: 1000

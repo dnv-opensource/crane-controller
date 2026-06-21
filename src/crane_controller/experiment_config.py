@@ -49,6 +49,13 @@ class RewardConfig:
         Symmetric counterpart to terminal_penalty: terminal_penalty penalises
         crashing (a one-time event); goal_tube_reward rewards settling
         (a per-step flow during the dwell period and beyond).
+    pbrs : bool
+        If True, the energy, position, and crane_velocity reward terms are
+        applied as potential-based reward shaping F(s,s') = γΦ(s') − Φ(s)
+        rather than as raw per-step penalties. The set of optimal policies is
+        preserved under this transformation (Ng, Harada & Russell 1999).
+        The positional, time, acceleration, and other terms are unaffected.
+        Default False — preserves existing behaviour for all current configs.
     angle : float
         Weight for the squared pendulum angle penalty ``-theta^2`` (default 0.0).
     angular_velocity : float
@@ -79,6 +86,7 @@ class RewardConfig:
     acceleration: float = 0.01
     terminal_penalty: float = 0.0
     goal_tube_reward: float = 0.0
+    pbrs: bool = False
     angle: float = 0.0
     angular_velocity: float = 0.0
     crane_velocity: float = 0.0
@@ -109,6 +117,7 @@ class RewardConfig:
             acceleration=float(d.get("acceleration", defaults.acceleration)),  # type: ignore[arg-type]
             terminal_penalty=float(d.get("terminal_penalty", defaults.terminal_penalty)),  # type: ignore[arg-type]
             goal_tube_reward=float(d.get("goal_tube_reward", defaults.goal_tube_reward)),  # type: ignore[arg-type]
+            pbrs=bool(d.get("pbrs", defaults.pbrs)),
             angle=float(d.get("angle", defaults.angle)),  # type: ignore[arg-type]
             angular_velocity=float(d.get("angular_velocity", defaults.angular_velocity)),  # type: ignore[arg-type]
             crane_velocity=float(d.get("crane_velocity", defaults.crane_velocity)),  # type: ignore[arg-type]

@@ -1,10 +1,11 @@
-# hybrid_cv01 + goal-tube reward, discrete (bang-bang) action space.
-# goal_tube_reward=0.1 — smaller than continuous (0.5) to avoid bang-bang
-# boundary exploitation. terminal_penalty=-5.0 unchanged.
+# hybrid_cv01 + goal-tube reward config, discrete (bang-bang) action space.
+# goal_tube_reward=0.0 — tube reward disabled for discrete variant.
+# The pre-tube discrete baseline was already 100% settled; adding goal_tube_reward=0.1
+# introduced a high-speed crash regression (7.6% crash rate) by pulling the policy
+# toward x=0 in a way the bang-bang action space could not always honour without
+# overshooting to the negative rail. Discrete variant uses baseline reward structure.
+# terminal_penalty=-5.0 unchanged.
 # No early termination — episodes run to max_episode_steps or crash.
-# This is the critical difference from the earlyt variants: the policy
-# trains on full 1000-step episodes, ensuring it sees long-horizon
-# recovery behavior needed for generalization to high start speeds.
 reward:
   energy: 1.0
   positional: 0.0
@@ -12,7 +13,7 @@ reward:
   position: 0.1
   acceleration: 0.0
   terminal_penalty: -5.0
-  goal_tube_reward: 0.1
+  goal_tube_reward: 0.0
   angle: 0.0
   angular_velocity: 0.0
   crane_velocity: -0.1

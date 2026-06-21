@@ -176,6 +176,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         # a 26% overshoot from rounding alone.)
         self._dwell_time_required_s = 2.0 * np.pi * np.sqrt(self.wire.length / 9.81)
         self._dwell_time_s = 0.0
+        self._phi_prev: float = 0.0  # Φ(s) from previous step, for PBRS shaping
 
         if self.conf.continuous_actions:
             self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)  # type: ignore[assignment]
@@ -405,17 +406,33 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         position = -abs(self.crane.position[0])
         acc_penalty = -abs(acc)
         rc = self.reward_fac
-        self.reward = rc.energy * energy
-        for rc_fac, rc_base in {
-            rc.positional: positional,
-            rc.time: (-self.time),
-            rc.position: position,
-            rc.acceleration: acc_penalty,
-            rc.crane_velocity: self.crane.velocity[0] ** 2,
-            rc.t_min_crane: self._t_min_crane(),
-        }.items():
-            if rc_fac != 0.0:
-                self.reward += rc_fac * rc_base
+        if rc.pbrs:
+            # Potential-based reward shaping: F(s,s') = γΦ(s') − Φ(s).
+            # Replaces raw per-step energy, position, and crane_velocity terms.
+            # γ=0.99 hardcoded — must match training gamma in the experiment config.
+            phi_next = self._compute_phi()
+            self.reward = 0.99 * phi_next - self._phi_prev
+            self._phi_prev = phi_next
+            for rc_fac, rc_base in {
+                rc.positional: positional,
+                rc.time: (-self.time),
+                rc.acceleration: acc_penalty,
+                rc.t_min_crane: self._t_min_crane(),
+            }.items():
+                if rc_fac != 0.0:
+                    self.reward += rc_fac * rc_base
+        else:
+            self.reward = rc.energy * energy
+            for rc_fac, rc_base in {
+                rc.positional: positional,
+                rc.time: (-self.time),
+                rc.position: position,
+                rc.acceleration: acc_penalty,
+                rc.crane_velocity: self.crane.velocity[0] ** 2,
+                rc.t_min_crane: self._t_min_crane(),
+            }.items():
+                if rc_fac != 0.0:
+                    self.reward += rc_fac * rc_base
 
         if len(self.discrete):
             self.obs, truncate = self._get_discrete_obs(energy, acc)
@@ -443,6 +460,27 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             and abs(x_dot) < GOAL_EPS_X_DOT
             and abs(theta - np.pi) < GOAL_EPS_THETA
             and abs(theta_dot) < GOAL_EPS_THETA_DOT
+        )
+
+    def _compute_phi(self) -> float:
+        """Compute the potential Φ(s) for PBRS shaping.
+
+        Φ(s) = energy_weight * (−gz_load − ½v_load²)
+              + position_weight * (−|x|)
+              + crane_velocity_weight * (−ẋ²)
+
+        The shaping reward F(s,s') = γΦ(s') − Φ(s) replaces the raw per-step
+        application of these terms when pbrs=True. Potential-based shaping
+        preserves the set of optimal policies (Ng, Harada & Russell 1999).
+        """
+        rc = self.reward_fac
+        energy = 9.81 * self.wire.end[2] + 0.5 * np.dot(self.wire.cm_v, self.wire.cm_v)  # pyright: ignore[reportUnknownMemberType]
+        if self.conf.start_speed != 0.0:  # anti-pendulum mode
+            energy = -energy
+        return float(
+            rc.energy * energy
+            + rc.position * (-abs(self.crane.position[0]))
+            + rc.crane_velocity * (self.crane.velocity[0] ** 2)
         )
 
     def _t_min_crane(self) -> float:
@@ -538,6 +576,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         self.initial_speed = float(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         self._prev_theta_dot = None
         self._dwell_time_s = 0.0
+        self._phi_prev = self._compute_phi()
         _obs, self.reward, _ = self._get_obs()
         if self.conf.render_mode == "play-back":
             self._append_playback(0.0)
