@@ -7,6 +7,10 @@
 # Policy-invariance guarantee (Ng, Harada & Russell 1999) applies: any policy
 # optimal under this shaped reward is also optimal under the original.
 # γ=0.99 hardcoded in the PBRS computation — must match training gamma here.
+# goal_tube_reward=0.75: derived from episode parameters (c=5.0, γ=0.99, T_dwell=7)
+# such that b × S_dwell = 0.75 × 6.79 = 5.10 > 5.0 = crash penalty at all t.
+# This makes crashing strictly economically dominated by settling for all t in
+# [0, T_ep − T_dwell], without reference to empirical settling timing.
 reward:
   energy: 1.0
   positional: 0.0
@@ -14,7 +18,7 @@ reward:
   position: 0.1
   acceleration: 0.0
   terminal_penalty: -5.0
-  goal_tube_reward: 0.5
+  goal_tube_reward: 0.75
   pbrs: true
   angle: 0.0
   angular_velocity: 0.0
