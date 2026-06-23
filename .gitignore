@@ -170,6 +170,10 @@ models/*_vecnorm.pkl
 !models/ppo_hcv01_*.zip
 !models/ppo_hcv01_*_vecnorm.pkl
 !models/ppo_hcv01_*_meta.json
+!models/hybrid_cv01_s42.zip
+!models/hybrid_cv01_s42_meta.json
+!models/hybrid_cv01_disc_s42.zip
+!models/hybrid_cv01_disc_s42_meta.json
 
 # Q-agent test artifacts
 tests/test_working_directory/*.json
