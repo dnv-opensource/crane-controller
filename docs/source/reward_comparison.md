@@ -322,23 +322,23 @@ step vs |speed|.  Bottom row: final pendulum angle (rad), final pendulum angular
 | Metric | cont | disc |
 |---|---|---|
 | Crash-free episodes | 100/100 | 100/100 |
-| Non-converging | 4 (−9.0, −3.4, +3.4, +9.0 m/s) | **0** |
-| Mean \|x\_pos\| | 1.43 cm | **≈ 0 cm** (machine ε) |
-| Settle-step range | 29–1 000 steps | **6–81 steps** |
-| Mean settle step | 109.4 | **47.8** |
+| Non-converging | 0 | **0** |
+| Mean \|x\_pos\| | 0.55 cm | **≈ 0 cm** (machine ε) |
+| Settle-step range | 25–835 steps† | **6–129 steps** |
+| Mean settle step | 122.1 | **74.0** |
 
-The discrete variant eliminates all non-converging episodes present in the continuous policy
-and achieves machine-epsilon position for all 100 speeds — consistent with disc s5775.
-Settle-step behaviour is nearly identical across seeds (6–87 for s5775 disc, 6–81 for s42
-disc), indicating that the bang-bang solution is well-determined by the physics rather than
-the specific training trajectory.
+Both variants achieve zero non-converging episodes.  The discrete variant continues to achieve
+machine-epsilon position for all 100 speeds.  Three outlier settle steps appear in the
+continuous policy (0.8, 1.2, and 3.4 m/s), with speed 1.2 producing an anomalously late
+settle (step 835) and elevated final position (4.9 cm); the remaining 97 episodes converge
+within 25–216 steps.
 
 ### 6.3  Detailed sweep metrics
 
 ![hybrid_cv01_s42 continuous — detailed sweep](_static/hybrid_cv01_s42_detail.png)
 
 *Figure 7. `hybrid_cv01_s42` continuous — nine sweep metrics across ±10 m/s.
-The two non-converging episodes appear as outliers in the settle-step and x\_vel panels.*
+Three anomalous settle-step outliers (0.8, 1.2, 3.4 m/s) are visible in the settle-step panel; speed 1.2 also shows elevated final position.*
 
 ![hybrid_cv01_disc_s42 — detailed sweep](_static/hybrid_cv01_disc_s42_detail.png)
 
@@ -375,21 +375,20 @@ sub-maximal throughout — the agent blends intermediate forces.*
 Settles at step 50 (37 steps earlier than continuous), final position machine-epsilon.
 Action is always ±0.1 or 0 — no intermediate values.*
 
-**D — Continuous, 9.0 m/s — non-converging failure**
+**D — Continuous, 9.0 m/s — convergence**
 
 ![Episode: cont s42, start speed +9.0 m/s](_static/episode_cont_s42_v9p0.png)
 
 *Figure 12. `hybrid_cv01_s42` (continuous), start speed +9.0 m/s, 400 steps.
-Does not settle within budget: `t_min_settle_step = 400` (budget exhausted).
-Final position +1.1 cm; crane continues oscillating at episode end.*
+Settles at step 148, final position 0.51 cm.  Previously non-converging in an earlier
+training run; the retrained model handles +9.0 m/s cleanly.*
 
-**E — Discrete, 9.0 m/s — converges where continuous fails**
+**E — Discrete, 9.0 m/s — bang-bang at high speed**
 
 ![Episode: disc s42, start speed +9.0 m/s](_static/episode_disc_s42_v9p0.png)
 
 *Figure 13. `hybrid_cv01_disc_s42`, start speed +9.0 m/s, 200 steps.
-Settles at step 76, final position machine-epsilon — clean convergence at the
-same speed where the continuous policy fails to settle.*
+Settles at step 76, final position machine-epsilon.*
 
 ---
 
@@ -401,12 +400,11 @@ same speed where the continuous policy fails to settle.*
 |---|---|---|---|---|
 | Time to crash-free | 850 k steps | **800 k steps** | 900 k steps | 1 000 k steps |
 | EV at 3 M | 0.928 | **0.979** | 0.886 | 0.931 |
-| Final position | 0.64 cm | **≈ 0 cm** | 1.43 cm | **≈ 0 cm** |
-| Settle range | 28–143 s | **6–87 s** | 29–1 000 s† | **6–81 s** |
-| Non-converging | 0 | **0** | 4\* | **0** |
+| Final position | 0.64 cm | **≈ 0 cm** | 0.55 cm | **≈ 0 cm** |
+| Settle range | 28–143 s | **6–87 s** | 25–835 s† | **6–129 s** |
+| Non-converging | 0 | **0** | 0 | **0** |
 
-\* 4 episodes exceed budget (speeds −9.0, −3.4, +3.4, +9.0 m/s).
-† settle range includes the 4 non-converging episodes.
+† three outlier speeds (0.8, 1.2, 3.4 m/s) account for the elevated ceiling.
 
 ### 7.2  Training consistency
 
@@ -418,7 +416,7 @@ steps) is the only instability observed, and only in the continuous variant.
 
 ### 7.3  Seed robustness
 
-Performance degrades modestly across seeds (0.64 → 1.46 cm position, both 100% crash-free
+Performance degrades modestly across seeds (0.64 → 0.55 cm position, both 100% crash-free
 for continuous).  The multi-term reward constrains the value landscape tightly, leaving
 little room for seed-specific failure modes.
 
@@ -433,11 +431,8 @@ speed in both seeds.  With a continuous action space the agent can settle at sub
 intermediate forces; with `Discrete(3)` it must commit to a bang-bang sequence that lands
 precisely at $x = 0$, which the dense position-penalty term directly rewards.
 
-Mean settle step roughly halves: 95.6 → 49.2 s (s5775) and 113.4 → 47.8 s (s42).
-The converged settle ranges are nearly identical across seeds (6–87 s and 6–81 s), indicating
-the bang-bang solution is determined by the physics rather than by the specific training
-trajectory.  The discrete variant also eliminates the non-converging episodes that appear in
-continuous s42 (4 speeds fail to settle within the 1 000-step budget).
+Mean settle step: 95.6 → 49.2 s (s5775) and 122.1 → 74.0 s (s42).
+The converged settle ranges are 6–87 s (s5775) and 6–129 s (s42) for discrete.
 
 ---
 

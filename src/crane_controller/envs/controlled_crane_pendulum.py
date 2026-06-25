@@ -291,7 +291,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         ax6.plot(times, self.traces["acc"], label="x-acceleration", color="green")
         ax6.set_xlabel("time [s]")
         for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
-            _ = ax.legend()
+            _ = ax.legend(loc="upper right")
         _ = plt.suptitle(
             f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"
         )
