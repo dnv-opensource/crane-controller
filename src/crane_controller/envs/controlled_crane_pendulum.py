@@ -282,7 +282,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         damping = self.traces["l_v"][0] * np.exp(-times / (2 * self.wire.damping_time))
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
         ax2.plot(times, self.traces["l_v"], label="load speed", color="red")
-        ax2.plot(times,  damping, label="natural damping +", color="green", linestyle="--")
+        ax2.plot(times, damping, label="natural damping +", color="green", linestyle="--")
         ax2.plot(times, -damping, label="natural damping −", color="green", linestyle="--")
         ax3.plot(times, self.traces["c_x"], label="crane pos", color="blue")
         ax3.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7, label="origin")
