@@ -1,0 +1,31 @@
+# Pinned seed-42 discrete model for reward_comparison.md reproducibility.
+# Identical to hybrid_cv01_s42.yaml except continuous_actions: false.
+reward:
+  energy: 1.0
+  positional: 0.0
+  time: 0.0
+  position: 0.1
+  acceleration: 0.0
+  terminal_penalty: -5.0
+  angle: 0.0
+  angular_velocity: 0.0
+  crane_velocity: -0.1
+  crane_acceleration: 0.0
+  angular_acceleration: 0.0
+  t_min_crane: 0.0
+training:
+  steps: 3000000
+  n_envs: 32
+  gamma: 0.99
+  save_path: models/hybrid_cv01_disc_s42.zip
+  seed: 42
+  ent_coef: 0.0
+  learning_rate: 0.0003
+  clip_range: 0.2
+  n_steps: 4096
+  randomize_start: true
+  rail_limit: 2.0
+  start_speed: 1.0
+  continuous_actions: false
+  reward_limit: 50.0
+  max_episode_steps: 1000

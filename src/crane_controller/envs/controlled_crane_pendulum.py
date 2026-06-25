@@ -279,10 +279,11 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             return
         fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(16, 10), sharex=True)
         times = self.conf.dt * np.arange(len(self.traces["c_x"]))
-        damping = self.traces["l_v"][0] * np.exp(-times / self.wire.damping_time)
+        damping = self.traces["l_v"][0] * np.exp(-times / (2 * self.wire.damping_time))
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
         ax2.plot(times, self.traces["l_v"], label="load speed", color="red")
-        ax2.plot(times, damping, label="damping", color="green")
+        ax2.plot(times, damping, label="natural damping +", color="green", linestyle="--")
+        ax2.plot(times, -damping, label="natural damping −", color="green", linestyle="--")
         ax3.plot(times, self.traces["c_x"], label="crane pos", color="blue")
         ax3.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7, label="origin")
         ax4.plot(times, self.traces["c_v"], label="crane speed", color="red")
@@ -290,7 +291,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         ax6.plot(times, self.traces["acc"], label="x-acceleration", color="green")
         ax6.set_xlabel("time [s]")
         for ax in (ax1, ax2, ax3, ax4, ax5, ax6):
-            _ = ax.legend()
+            _ = ax.legend(loc="upper right")
         _ = plt.suptitle(
             f"Detailed plot of episode {episode}, reward:{self.reward}, start_speed:{self.initial_speed:.3f}"
         )
