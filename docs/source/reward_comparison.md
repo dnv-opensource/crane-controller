@@ -168,14 +168,14 @@ value\_loss↓ (row 2 col 2), |x|↓ (bottom row).*
 
 | Metric | cont | disc |
 |---|---|---|
-| rail\_hit → 0% (permanent) | 850 k steps | **800 k steps** |
+| rail\_hit → 0% (permanent) | 850 k steps | **850 k steps** |
 | ep\_len hits maximum (1 000) | 1.2 M steps | **850 k steps** |
 | Value instabilities | 1 minor (1.35 M: EV → 0.019) | **none** |
-| Explained variance at 3 M | 0.928 | **0.979** |
-| Mean \|x\| at 3 M (training log) | 0.022 m | **≈ 0 m** |
+| Explained variance at 3 M | 0.925 | **0.954** |
+| Mean \|x\| at 3 M (training log) | 0.027 m | **≈ 0 m** |
 
-The discrete variant eliminates crashes 50 k steps earlier and never produces an instability
-event.  Its final EV (0.979) is the highest of the two s5775 variants.
+Both variants eliminate crashes at 850 k steps.  The discrete variant never produces an instability
+event.  Its final EV (0.954) is the highest of the two s5775 variants.
 
 ### 4.2  Phase 1 — Survival (0 – 700 k steps)
 
@@ -186,7 +186,7 @@ crash.  Physical metrics are not meaningful here because all episodes end in cra
 ### 4.3  Phase 2 — Crash elimination
 
 `hybrid_cv01` eliminates crashes decisively: rail_hit_pct falls from 100% to 0% by
-**850 k steps** (continuous) / **800 k steps** (discrete) and never returns.  The explicit
+**850 k steps** (continuous) / **850 k steps** (discrete) and never returns.  The explicit
 position-penalty terms give the agent a direct incentive to stay away from the rail at
 every step.
 
@@ -207,8 +207,8 @@ The discrete variant produces no such event.
 ### 4.5  Phase 4 — Convergence (1.5 M → 3 M)
 
 Explained variance climbs monotonically in both variants.  Policy becomes increasingly
-deterministic (entropy_loss → 0).  The discrete variant converges to EV = 0.979 vs
-EV = 0.928 for continuous — a more precisely calibrated critic with less residual
+deterministic (entropy_loss → 0).  The discrete variant converges to EV = 0.954 vs
+EV = 0.925 for continuous — a more precisely calibrated critic with less residual
 uncertainty in the value estimates.
 
 **Why does EV matter?**  The actor (policy) is updated using gradients derived partly from
@@ -236,9 +236,9 @@ step vs |speed|.  Bottom row: final pendulum angle (rad), final pendulum angular
 |---|---|---|
 | Crash-free episodes | 100/100 | 100/100 |
 | Non-converging | 0 | **0** |
-| Mean \|x\_pos\| | 0.64 cm | **≈ 0 cm** (machine ε) |
-| Settle-step range | 28–143 steps | **6–87 steps** |
-| Mean settle step | 95.6 | **49.2** |
+| Mean \|x\_pos\| | 0.695 cm | **≈ 0 cm** (machine ε) |
+| Settle-step range | 34–167 steps | **7–126 steps** |
+| Mean settle step | 118.6 | **71.8** |
 
 ### 5.2  Robustness across the speed range
 
@@ -399,9 +399,9 @@ Settles at step 76, final position machine-epsilon.*
 | Metric | s5775 · cont | s5775 · disc | s42 · cont | s42 · disc |
 |---|---|---|---|---|
 | Time to crash-free | 850 k steps | **800 k steps** | 900 k steps | 1 000 k steps |
-| EV at 3 M | 0.928 | **0.979** | 0.886 | 0.931 |
-| Final position | 0.64 cm | **≈ 0 cm** | 0.55 cm | **≈ 0 cm** |
-| Settle range | 28–143 s | **6–87 s** | 25–835 s† | **6–129 s** |
+| EV at 3 M | 0.925 | **0.954** | 0.886 | 0.931 |
+| Final position | 0.695 cm | **≈ 0 cm** | 0.55 cm | **≈ 0 cm** |
+| Settle range | 34–167 s | **7–126 s** | 25–835 s† | **6–129 s** |
 | Non-converging | 0 | **0** | 0 | **0** |
 
 † three outlier speeds (0.8, 1.2, 3.4 m/s) account for the elevated ceiling.
@@ -416,7 +416,7 @@ steps) is the only instability observed, and only in the continuous variant.
 
 ### 7.3  Seed robustness
 
-Performance degrades modestly across seeds (0.64 → 0.55 cm position, both 100% crash-free
+Performance degrades modestly across seeds (0.695 → 0.55 cm position, both 100% crash-free
 for continuous).  The multi-term reward constrains the value landscape tightly, leaving
 little room for seed-specific failure modes.
 
@@ -431,8 +431,8 @@ speed in both seeds.  With a continuous action space the agent can settle at sub
 intermediate forces; with `Discrete(3)` it must commit to a bang-bang sequence that lands
 precisely at $x = 0$, which the dense position-penalty term directly rewards.
 
-Mean settle step: 95.6 → 49.2 s (s5775) and 122.1 → 74.0 s (s42).
-The converged settle ranges are 6–87 s (s5775) and 6–129 s (s42) for discrete.
+Mean settle step: 118.6 → 71.8 s (s5775) and 122.1 → 74.0 s (s42).
+The converged settle ranges are 7–126 s (s5775) and 6–129 s (s42) for discrete.
 
 ---
 
