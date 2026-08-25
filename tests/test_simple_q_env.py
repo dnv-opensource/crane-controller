@@ -67,7 +67,7 @@ def test_smoke(*, show: bool) -> None:
 @pytest.mark.skip(reason="needs 'env' fixture and pre-trained q_trained.json; run manually via __main__")
 def test_q_analyse(env: gym.Env[tuple[int, ...] | np.ndarray, int], *, show: bool) -> None:
     agent = QLearningAgent(env, filename=Path("q_trained.json"), use_file="r")
-    agent.q_values = agent.read_dumped()
+    _conf, agent.q_values = agent.read_dumped(Path("q_trained.json"))
     for k, v in agent.q_values.items():
         assert len(k) == 5, len(v) == 3
     for pos in (0, 1):

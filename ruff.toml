@@ -48,6 +48,7 @@ ignore = [
     # # "N816",  # Variable in global scope should not be mixedCase  (uncomment if you want to allow mixedCase variable names in global scope)
 
     # Ruff lint rules considered as too strict and hence ignored
+    "CPY001",  # copyright notice required on all files
     "FIX002",  # Line contains TODO, consider resolving the issue
     "TD003",   # Missing issue link on the line following a TODO
     "S101",    # Use of assert detected

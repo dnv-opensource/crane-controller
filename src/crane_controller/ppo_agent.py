@@ -110,7 +110,7 @@ class ProximalPolicyOptimizationAgent:
         producing more stable gradient estimates for long-horizon tasks.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913,PLR0917
         self,
         env: Callable[..., AntiPendulumEnv],
         n_envs: int = 4,
@@ -320,6 +320,7 @@ class ProximalPolicyOptimizationAgent:
             Path to write a CSV log file with per-interval metrics at the end
             of training (default None).
         """
+        self.env.reset(options={"init": True})
         cb = (
             EpRewardLogCallback(
                 total_timesteps,
@@ -375,7 +376,7 @@ class ProximalPolicyOptimizationAgent:
         EpisodeResult
             Per-episode metrics including t_min stats, final crane state, and outcome.
         """
-        obs, reset_info = self.env.reset(seed=seed)
+        obs, reset_info = self.env.reset(seed=seed, options={"init": True})
         nan = float("nan")
         start_speed: float = self.env.unwrapped.initial_speed  # type: ignore[attr-defined]
         t_min_start_val: float = float(reset_info.get("t_min", nan))

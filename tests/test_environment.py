@@ -97,7 +97,7 @@ def test_init(crane: Callable[..., Crane], *, show: bool) -> None:
     rnd_r = env.np_random.random()
     assert rnd_u == 5.07092974820154, f"Returns pseudo-random numbers when seed is given. Got {rnd_u} for seed 1"
     assert rnd_r == 0.9504636963259353, f"Returns pseudo-random numbers when seed is given. Got {rnd_r} for seed 1"
-    obs, inf = env.reset(seed=1)
+    obs, inf = env.reset(seed=1, options={"init": True})
     # obs[3] is now pure theta_dot = cm_v[0] / wire.length (crane at rest so origin_v=0)
     assert len(obs) == 4
     assert np.isclose(obs[3], 1.0 / env.wire.length), f"Expected theta_dot=1/length, got obs[3]={obs[3]}"
@@ -111,7 +111,7 @@ def test_init(crane: Callable[..., Crane], *, show: bool) -> None:
     assert not truncated
     rewards: list[float] = []
     for _ in range(100):
-        obs, reward, terminated, truncated, _ = env.step(int(env.np_random.integers(-1, 2)))
+        obs, reward, terminated, truncated, _ = env.step(int(env.np_random.integers(0, 3)))
         rewards.append(reward)
     if show:
         show_figure(times=np.linspace(0, 100, 100), traces={"rewards": rewards})
@@ -127,7 +127,7 @@ def test_observation_space_dtype(crane: Callable[..., Crane]) -> None:
 def test_observations_are_float(crane: Callable[..., Crane]) -> None:
     """Test that observations preserve sub-integer precision after a physics step."""
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(continuous_actions=False))
-    _ = env.reset()
+    _ = env.reset(options={"init": True})
     obs, _, _, _, _ = env.step(1)  # one physics step produces fractional values
     assert isinstance(obs, np.ndarray)
     assert obs.dtype == np.float64
@@ -155,7 +155,7 @@ def test_rail_limit_stored(crane: Callable[..., Crane]) -> None:
 def test_obs3_is_pure_theta_dot(crane: Callable[..., Crane]) -> None:
     """obs[3] equals (cm_v[0] - origin_v[0]) / wire.length, not absolute velocity."""
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(start_speed=1.0, randomize_start=False))
-    obs, _ = env.reset()
+    obs, _ = env.reset(options={"init": True})
     wire = env.wire
     assert isinstance(wire, Wire)
     expected = (wire.cm_v[0] - wire.origin_v[0]) / wire.length  # pyright: ignore[reportUnknownMemberType]
@@ -180,8 +180,8 @@ def test_reward_terms_zero_by_default(crane: Callable[..., Crane]) -> None:
         crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc_crane_t, continuous_actions=False)
     )
 
-    _ = env1.reset()
-    _ = env2.reset()
+    _ = env1.reset(options={"init": True})
+    _ = env2.reset(options={"init": True})
     _, r1, _, _, _ = env1.step(2)
     _, r2, _, _, _ = env2.step(2)
     assert r1 > r2, f"crane_velocity=0 should give higher reward than crane_velocity=100; got r1={r1}, r2={r2}"
@@ -191,7 +191,7 @@ def test_crane_velocity_reward_term(crane: Callable[..., Crane]) -> None:
     """crane_velocity weight adds -crane_vel^2 to the reward."""
     rc = RewardConfig(energy=0.0, positional=0.0, position=0.0, acceleration=0.0, crane_velocity=-1.0)
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(start_speed=1.0, reward_fac=rc, continuous_actions=False))
-    _ = env.reset()
+    _ = env.reset(options={"init": True})
     obs, reward, _, _, _ = env.step(2)  # max acceleration right
     crane_vel = obs[1]
     assert crane_vel != 0.0
@@ -205,7 +205,7 @@ def test_terminal_penalty_on_truncation(crane: Callable[..., Crane]) -> None:
     env = AntiPendulumEnv(
         crane, conf=AntiPendulumConfig(start_speed=1.0, rail_limit=0.15, reward_fac=rc, continuous_actions=False)
     )
-    _ = env.reset()
+    _ = env.reset(options={"init": True})
     got_truncation = False
     for _ in range(50):
         _, reward, _, truncated, _ = env.step(2)
@@ -235,8 +235,8 @@ def test_action_space_type(crane: Callable[..., Crane], continuous_actions: bool
     if continuous_actions:
         assert isinstance(env.action_space, spaces.Box)
         assert env.action_space.shape == (1,)
-        assert float(env.action_space.low[0]) == -1.0
-        assert float(env.action_space.high[0]) == 1.0
+        assert abs(env.action_space.low[0] + 0.1) < 1e-7, f"Found {env.action_space.low[0]}"
+        assert abs(env.action_space.high[0] - 0.1) < 1e-7, f"Found {env.action_space.high[0]}"
     else:
         assert isinstance(env.action_space, spaces.Discrete)
         assert int(env.action_space.n) == 3  # pyright: ignore[reportUnknownMemberType]
@@ -246,7 +246,7 @@ def test_action_space_type(crane: Callable[..., Crane], continuous_actions: bool
 def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_actions: bool) -> None:  # noqa: FBT001
     """step() accepts np.ndarray for continuous and int for discrete; obs shape unchanged."""
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(continuous_actions=continuous_actions))
-    _ = env.reset()
+    _ = env.reset(options={"init": True})
     if continuous_actions:
         action: int | np.ndarray = np.array([0.5], dtype=np.float32)
     else:
@@ -256,22 +256,33 @@ def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_act
     assert obs.shape == (4,)
 
 
+def test_discrete_observations(crane: Callable[..., Crane], *, show: bool):
+    """Test the transitions with respect to categories in the discrete observation space."""
+    env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(continuous_actions=False, discrete="phase"))
+    _ = env.reset(options={"init": True})
+    env.analyse_observation((9, 3, 2, 5, 5), show=show)
+
+
 if __name__ == "__main__":
     import os
     from pathlib import Path
 
     import pytest
 
-    from crane_controller.crane_factory import build_crane  # noqa: F401
-
     retcode = pytest.main(["-rP -s -v", __file__])
     assert retcode == 0, f"Return code {retcode}"
     os.chdir(Path(__file__).parent.absolute() / "test_working_directory")
 
     # test_environment(build_crane, show=True)
+    # test_init(build_crane, show=True)
+    # test_observations_are_float(build_crane)
+    # test_obs3_is_pure_theta_dot(build_crane)
     # test_observation_space_dtype(build_crane)
     # test_reward_terms_zero_by_default(build_crane)
     # test_crane_velocity_reward_term(build_crane)
+    # test_terminal_penalty_on_truncation()
+    # test_action_space_type(build_crane, continuous_actions=True)
     # test_step_accepts_correct_action(build_crane, continuous_actions=True)
     # test_step_accepts_correct_action(build_crane, continuous_actions=False)
     # test_t_min_crane_reward_term(build_crane)
+    # test_discrete_observations(build_crane, show=True)
