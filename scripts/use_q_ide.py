@@ -81,7 +81,7 @@ def analyse_all(episodes: int = 1000, r_limit: float = -0.01) -> None:
     rows: list[str] = [header]
     for file in MODELS.glob("q_anti-pendulum*.json"):
         LOGGER.info(f"Analyse {file.name}")
-        txt = analyse_trained(file.name, episodes, r_limit, show=False)
+        txt = analyse_trained(file.name, episodes, r_limit=r_limit, show=False)
         rows.append(txt)
     for r in rows:
         LOGGER.info(r)
