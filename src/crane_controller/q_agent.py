@@ -478,8 +478,8 @@ class QLearningAgent:
         # Smooth over the given episode window
         _, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
-        lengths = [row[0] for row in self.env.reward_stats]  # type: ignore[attr-defined] ## extended class
-        rewards = [row[1] for row in self.env.reward_stats]  # type: ignore[attr-defined] ## extended class
+        lengths = self.env.reward_stats["steps"]  # type: ignore[attr-defined] ## extended class
+        rewards = self.env.reward_stats["reward"]  # type: ignore[attr-defined] ## extended class
 
         # Episode rewards (win/loss performance)
         axs[0].set_title("Episode rewards")
