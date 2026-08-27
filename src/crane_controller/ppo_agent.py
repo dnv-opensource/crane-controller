@@ -243,31 +243,30 @@ class ProximalPolicyOptimizationAgent:
         instance.env = instance.vec_env.venv.envs[0]  # type: ignore[attr-defined]
         return instance
 
-    def _save_reward_plot(self, save_path: str) -> None:
-        """Save a scatter plot of training rewards to a PNG file alongside the model.
+    def _save_reward_plot(self, save_path: str, callback: EpRewardLogCallback | None) -> None:
+        """Save a line plot of mean reward-per-step over training to a PNG file.
 
-        Collects ``reward_stats`` from all vectorized environments and saves a
-        scatter plot of episode rewards vs training step to ``<save_path>.png``.
-        Does nothing if no episodes completed during training.
+        Uses the per-interval rows collected by ``callback`` during training (the same
+        data written to ``csv_path``), independent of any environment-side bookkeeping.
+        Does nothing if no callback was used or no interval was logged.
 
         Parameters
         ----------
         save_path : str
             Path to the saved model zip file. The plot is written to the same
             location with a ``.png`` extension.
+        callback : EpRewardLogCallback or None
+            The callback used during training, or None if progress_bar was False.
         """
-        reward_stats: list[list[float]] = []
-        for env in self.vec_env.venv.envs:  # type: ignore[attr-defined]
-            reward_stats.extend(env.unwrapped.reward_stats)  # type: ignore[attr-defined]
-        if not reward_stats:
-            logger.warning("No episode reward stats found; skipping reward plot")
+        if callback is None or not callback.rows:
+            logger.warning("No training-interval stats collected; skipping reward plot")
             return
-        steps = [r[0] for r in reward_stats]
-        rewards = [r[1] for r in reward_stats]
+        steps = [row["t"] for row in callback.rows]
+        rewards = [row["rew_per_step"] for row in callback.rows]
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.scatter(steps, rewards, s=10, alpha=0.6, color="steelblue")
+        ax.plot(steps, rewards, color="steelblue")
         ax.set_xlabel("Training step")
-        ax.set_ylabel("Final reward")
+        ax.set_ylabel("Mean reward per step")
         ax.set_title(f"Training rewards - {Path(save_path).stem}")
         fig.tight_layout()
         plot_path = str(Path(save_path).with_suffix(".png"))
@@ -340,7 +339,7 @@ class ProximalPolicyOptimizationAgent:
         if self.save_path is not None and self.env.render_mode != "play-back":
             self.model.save(self.save_path)
             self.vec_env.save(str(self._stats_path(self.save_path)))
-            self._save_reward_plot(self.save_path)
+            self._save_reward_plot(self.save_path, cb)
 
     def evaluate(self, n_episodes: int = 10) -> None:
         """Evaluate the trained policy and log results.
