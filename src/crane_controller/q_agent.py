@@ -364,14 +364,6 @@ class QLearningAgent:
         q_agent["num_terminated"] = self.conf.num_terminated + n_terminated
         q_agent["num_truncated"] = self.conf.num_truncated + n_truncated
 
-        if len(self.env.reward_stats) > QLearningAgent.STAT_LEN:  # type: ignore[attr-defined]
-            _len = QLearningAgent.STAT_LEN
-            q_agent.update(
-                {
-                    "reward-trend": float(np.average(self.env.reward_stats[-_len:][1])),  # type: ignore[attr-defined] ## extended class
-                    "reward-std": float(np.average(self.env.reward_stats[-_len:][2])),  # type: ignore[attr-defined] ## extended class
-                }
-            )
         content = {
             "environment": self.env.get_parameters(),  # type: ignore[attr-defined]
             "q_agent": q_agent,
