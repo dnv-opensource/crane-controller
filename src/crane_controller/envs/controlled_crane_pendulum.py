@@ -655,7 +655,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             self.wire.cm_v = w_speed * np.array((1, 0, z_fac), float) if isinstance(w_speed, float) else w_speed
         else:
             if isinstance(w_speed, np.ndarray) and np.dot(w_speed, self.wire.direction) > EPS:
-                raise ValueError("Speed {w_speed} is not orthogonal to the wire {self.wire.direction}") from None
+                raise ValueError(f"Speed {w_speed} is not orthogonal to the wire {self.wire.direction}") from None
             self.wire.cm_v = w_speed if isinstance(w_speed, np.ndarray) else np.array((w_speed, 0, 0), float)
         return self._get_obs()
 
