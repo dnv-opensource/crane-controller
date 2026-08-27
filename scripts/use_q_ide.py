@@ -25,7 +25,7 @@ RELAX_LIMIT = 100
 
 
 def analyse_trained(
-    filename: str, episodes: int, *, r_limit: float|None = None, randomize_start: bool = False, show: bool = False
+    filename: str, episodes: int, *, r_limit: float | None = None, randomize_start: bool = False, show: bool = False
 ) -> str:
     """Perform the analysis for the report on one trained data set, providing a string on results.
 

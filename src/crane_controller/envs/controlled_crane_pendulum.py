@@ -111,7 +111,7 @@ class AntiPendulumConfig:
     reward_limit: float | None = None
     dt: float = 1.0
     discrete: str = "none"
-    discretization: dict[str, tuple[float,...]] | None = None
+    discretization: dict[str, tuple[float, ...]] | None = None
     reward_fac: RewardConfig | None = None
     continuous_actions: bool = False
     discount: float = 0.8
