@@ -25,7 +25,7 @@ RELAX_LIMIT = 100
 
 
 def analyse_trained(
-    filename: str, episodes: int, r_limit: float = -0.01, *, randomize_start: bool = False, show: bool = False
+    filename: str, episodes: int, *, r_limit: float|None = None, randomize_start: bool = False, show: bool = False
 ) -> str:
     """Perform the analysis for the report on one trained data set, providing a string on results.
 
@@ -45,8 +45,8 @@ def analyse_trained(
     info["environment"]["render_mode"] = "none"
     info["q_agent"]["use_file"] = "r"  # keep file unchanged
     info["q_agent"]["auto_run"] = episodes
-    r_limit = info["environment"]["reward_limit"]
-    info["environment"]["reward_limit"] = r_limit  # standardized for analysis
+    if r_limit is not None:
+        info["environment"]["reward_limit"] = r_limit  # standardized for analysis
     info["environment"]["randomize_start"] = randomize_start
     env = AntiPendulumEnv(build_crane, conf=AntiPendulumConfig(**info["environment"]))
     _agent = QLearningAgent(env, conf=QLearningConfig(**info["q_agent"]), q_values=q_values)
