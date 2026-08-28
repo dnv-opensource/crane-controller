@@ -398,7 +398,9 @@ class ProximalPolicyOptimizationAgent:
         env_u = self.env.unwrapped
         energy_final = 0.5 * float(env_u.wire.cm_v[0]) ** 2  # type: ignore[attr-defined]
         if env_u.conf.continuous_actions:  # type: ignore[attr-defined]
-            acc_final = float(np.asarray(last_action).flat[0]) * float(env_u.conf.acc)  # type: ignore[attr-defined]
+            # action_space bounds are already ±conf.acc (physical units) — same as
+            # step()'s continuous branch, do not rescale by acc again.
+            acc_final = float(np.asarray(last_action).flat[0])
         else:
             acc_final = float(env_u.action_to_acc[int(last_action)])  # type: ignore[attr-defined]
         return EpisodeResult(
