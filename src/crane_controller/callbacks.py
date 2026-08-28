@@ -75,6 +75,11 @@ class EpRewardLogCallback(BaseCallback):
         self._surv_theta_dev_sum: float = 0.0
         self._surv_theta_dev_n: int = 0
 
+    @property
+    def rows(self) -> list[dict[str, float]]:
+        """Per-log-interval training stats collected so far (also written to csv_path)."""
+        return self._rows
+
     def _diag(self, key: str) -> float | None:
         """Read a value from SB3's internal logger; returns None if not yet available."""
         try:

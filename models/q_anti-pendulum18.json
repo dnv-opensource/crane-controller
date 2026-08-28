@@ -1,0 +1,128 @@
+{
+   "environment": {
+      "length": 10.0,
+      "mass": 1.0,
+      "q_factor": 1000,
+      "acc": 0.1,
+      "start_speed": 2.0,
+      "randomize_start": false,
+      "render_mode": "data",
+      "rail_limit": 10.0,
+      "seed": 1,
+      "reward_limit": -0.01,
+      "dt": 1.0,
+      "discrete": "phase",
+      "reward_fac": {
+         "energy": 1.0,
+         "positional": 0.0015,
+         "time": 0.0,
+         "position": 0.5,
+         "acceleration": 0.01,
+         "terminal_penalty": 0.0,
+         "angle": 0.0,
+         "angular_velocity": 0.0,
+         "crane_velocity": 0.0,
+         "crane_acceleration": 0.0,
+         "angular_acceleration": 0.0,
+         "t_min_crane": 0.0
+      },
+      "continuous_actions": false,
+      "discount": 0.7,
+      "discretization": {
+         "angle": [
+            -0.5585053606381855,
+            -0.2792526803190927,
+            -0.13962634015954636,
+            -0.06981317007977318,
+            -0.03490658503988659,
+            -0.017453292519943295,
+            0.0,
+            0.017453292519943295,
+            0.03490658503988659,
+            0.06981317007977318,
+            0.13962634015954636,
+            0.2792526803190927,
+            0.5585053606381855
+         ],
+         "speed": [
+            -5.0,
+            -4.0,
+            -3.0,
+            -2.0,
+            -1.0,
+            0.0,
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            5.0
+         ],
+         "c-pos": [
+            -2.0,
+            -1.0,
+            -0.5,
+            -0.25,
+            -0.125,
+            0.0,
+            0.125,
+            0.25,
+            0.5,
+            1.0,
+            2.0
+         ],
+         "c-speed": [
+            -2.0,
+            -1.0,
+            -0.5,
+            -0.25,
+            -0.125,
+            0.0,
+            0.125,
+            0.25,
+            0.5,
+            1.0,
+            2.0
+         ],
+         "avg-acc": [
+            -1.25,
+            -1.0,
+            -0.75,
+            -0.5,
+            -0.25,
+            0.0,
+            0.25,
+            0.5,
+            0.75,
+            1.0,
+            1.25
+         ]
+      },
+      "coasting": true
+   },
+   "q_agent": {
+      "learning_rate": 0.2,
+      "epsilon_decay": 0.0001,
+      "final_epsilon": 0.1,
+      "discount_factor": 0.95,
+      "q_default": null,
+      "strategy": "default",
+      "filename": "C:\\Users\\eis\\Documents\\Projects\\Simulation_Model_Assurance\\osp\\packages\\crane-controller\\models\\q_anti-pendulum18.json",
+      "use_file": "rw",
+      "episodes": 0,
+      "steps": 0,
+      "epsilon": 1.0,
+      "num_terminated": 0,
+      "num_truncated": 0,
+      "auto_run": 20000,
+      "max_steps": 1000,
+      "start_training": "unknown",
+      "end_training": "unknown"
+   },
+   "q_values": {
+      "(6, 7, 5, 5, 5)": [
+         0.0,
+         0.0,
+         0.0
+      ]
+   }
+}

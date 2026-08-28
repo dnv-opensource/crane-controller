@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import gymnasium as gym
@@ -16,6 +16,7 @@ from gymnasium import spaces
 from py_crane.animation import AnimatePlayBackLines
 from py_crane.boom import Wire
 
+from crane_controller.crane_factory import build_crane
 from crane_controller.experiment_config import RewardConfig
 
 if TYPE_CHECKING:
@@ -24,11 +25,48 @@ if TYPE_CHECKING:
     from matplotlib.lines import Line2D
     from py_crane.crane import Crane
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 MIN_PLAYBACK_FRAMES = 2
 POLAR_Z_TOLERANCE = 0.1
 EPS = 1e-10
+
+
+def make_discretization(discrete: str) -> dict[str, tuple[float, ...]]:
+    """Prepare and return a discretization from a name.
+
+    Args:
+        discrete: the name of the discretization.
+
+    Returns:
+        discretization dict
+    """
+    if discrete == "energy":  # oriented along energy and distance with binary 'regions'
+        return {
+            "angle": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
+            "distance": (0.0, 0.5, 1.0, 2.0),
+            "pos": (0.0, 1.0),
+            "speed": (0.0, 1.0),
+            "c-pos": (0.0, 1.0),
+            "c-speed": (0.0, 1.0),
+            "avg-acc": tuple(np.linspace(-1.25, 1.25, 11)),
+        }
+    if discrete == "phase-min":  # similar to 'phase' but much less categories
+        return {
+            "angle": tuple(np.radians((-16.0, -4.0, -1.0, 0.0, 1.0, 4.0, 16.0))),
+            "speed": tuple(np.linspace(-4.0, 4.0, 5)),  # only x-component to preserve sign!
+            "c-pos": (-2.0, -0.5, -0.125, 0, 0.125, 0.5, 2.0),
+            "c-speed": (-2.0, -0.5, -0.125, 0, 0.125, 0.5, 2.0),
+            "avg-acc": (-1.1, -1, -0.5, 0.0, 0.5, 1.0, 1.1),
+        }
+    # oriented along 'phase' of load and crane. Used also as fallback discretization
+    return {
+        "angle": tuple(np.radians((-32.0, -16.0, -8.0, -4.0, -2.0, -1.0, 0.0, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0))),
+        "speed": tuple(np.linspace(-5.0, 5.0, 11)),  # only x-component to preserve sign!
+        "c-pos": (-2.0, -1.0, -0.5, -0.25, -0.125, 0, 0.125, 0.25, 0.5, 1.0, 2.0),
+        "c-speed": (-2.0, -1.0, -0.5, -0.25, -0.125, 0, 0.125, 0.25, 0.5, 1.0, 2.0),
+        "avg-acc": tuple(np.linspace(-1.25, 1.25, 11)),
+    }
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -36,12 +74,14 @@ class AntiPendulumConfig:
     """Configuration parameters for AntiPendulum environment.
 
     Args:
+        length: the length of the crane wire (and the pedestal)
+        mass: mass of the crane load
+        q_factor: the damping factor of the pendulum action
         acc: Acceleration magnitude applied to the crane.
         start_speed: Fixed start speed in m/s. A negative value causes a random speed
            in the range ``[-|start_speed|, |start_speed|]`` each episode
         randomize_start: Optional randomize the start speed within +/- start_speed
         render_mode: One of the modes listed in ``metadata["render_modes"]``
-        size: Axis length in all directions
         rail_limit: Half-span of the crane rail in metres (default 10.0). The crane spans
             ``+-rail_limit``; within PPO an episode is truncated when ``|x| > rail_limit``.
         seed: Seed for repeatable random numbers.
@@ -53,10 +93,15 @@ class AntiPendulumConfig:
         continuous_actions: If True, the action space is ``Box([-1], [1])`` and an action value
             in ``[-1, 1]`` is scaled by ``acc`` to produce the crane acceleration.
             If False, the action space is ``Discrete(3)`` with mapping``0=-acc, 1=0, 2=+acc`` (Q-agent compatible).
-        length: the length of the crane wire (and the pedestal)
-        q_factor: the damping factor of the pendulum action
+        discretization: dict of discretization tuples, relevant for discrete != 'none'
+        coasting: Allow coasting as one of the actions (acceleration = 0.0)
     """
 
+    # crane configuration
+    length: float = 10.0
+    mass: float = 1.0
+    q_factor: float = 50.0
+    # environment for use by agent
     acc: float = 0.1
     start_speed: float = 1.0
     randomize_start: bool = False
@@ -65,12 +110,12 @@ class AntiPendulumConfig:
     seed: int | None = None
     reward_limit: float | None = None
     dt: float = 1.0
-    discrete: dict[str, tuple[float | int, ...]] | str = "none"
+    discrete: str = "none"
+    discretization: dict[str, tuple[float, ...]] | None = None
     reward_fac: RewardConfig | None = None
     continuous_actions: bool = False
     discount: float = 0.8
-    length: float = 10.0
-    q_factor: float = 50.0
+    coasting: bool = True
 
 
 class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
@@ -92,43 +137,38 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         "show-len-1": False,
         "x-max": None,
     }
-    DISCRETE: ClassVar[dict[str, dict[str, tuple[float | int, ...]]]] = {
-        "energy": {  # oriented along energy and distance with binary 'regions'
-            "angle": (0.0, 1.0, 5.0, 10.0, 20.0, 30.0, 90.0),
-            "distance": (0.0, 0.5, 1.0, 2.0),
-            "pos": (0, 1),
-            "speed": (0, 1),
-            "c-pos": (0, 1),
-            "c-speed": (0, 1),
-            "avg-acc": tuple(np.linspace(-1.25, 1.25, 11)),
-        },
-        "phase": {  # oriented along 'phase' of load and crane
-            "angle": tuple(np.radians((-32.0, -16.0, -8.0, -4.0, -2.0, -1.0, 0.0, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0))),
-            "speed": tuple(np.linspace(-5.0, 5.0, 11)),  # only x-component to preserve sign!
-            "c-pos": (-2.0, -1.0, -0.5, -0.25, -0.125, 0, 0.125, 0.25, 0.5, 1.0, 2.0),
-            "c-speed": (-2.0, -1.0, -0.5, -0.25, -0.125, 0, 0.125, 0.25, 0.5, 1.0, 2.0),
-            "avg-acc": tuple(np.linspace(-1.25, 1.25, 11)),
-        },
-    }
 
-    def __init__(self, crane: Callable[..., Crane], conf: AntiPendulumConfig | None = None) -> None:
+    def __init__(self, crane: Callable[..., Crane] | None = None, conf: AntiPendulumConfig | None = None) -> None:
         """Initialize the anti-pendulum environment.
 
         Args:
             crane: Factory callable that creates the crane object.
             conf: Configuration parameters as dataclass. See AntiPendulumConfig.
         """
-        self.crane_maker = crane
+        if crane is None:
+            self.crane_maker = build_crane
+        else:
+            self.crane_maker = crane
         self.conf = AntiPendulumConfig() if conf is None else conf
         self.render_mode: str | None = self.conf.render_mode  # gymnasium convention: expose as direct attribute
-        self.crane: Crane = crane(length=self.conf.length, q_factor=self.conf.q_factor)
+        self.crane: Crane = self.crane_maker(length=self.conf.length, mass=self.conf.mass, q_factor=self.conf.q_factor)
         self.wire: Wire = self.crane.boom_by_name("wire")  # type: ignore[assignment]  # Wire is a sub-class of Boom
         assert isinstance(self.wire, Wire), "Need a crane wire!"
         assert self.conf.render_mode in AntiPendulumEnv.metadata["render_modes"], (  # type: ignore[operator]  # metadata values are typed as object
             f"render_mode: {self.conf.render_mode}"
         )
-        self.reward_fac = self.conf.reward_fac if self.conf.reward_fac is not None else RewardConfig()
-        self.reward_stats: list[list[float]] = []
+        self.reward_fac = (
+            self.conf.reward_fac
+            if isinstance(self.conf.reward_fac, RewardConfig)
+            else (RewardConfig() if self.conf.reward_fac is None else RewardConfig.from_dict(self.conf.reward_fac))
+        )
+        self.reward_stats: dict[str, list[float]] = {
+            "steps": [],  # number of steps in episode
+            "reward": [],  # final reward
+            "status": [],  # -1:truncated, 0: max steps, 1: terminated
+            "start": [],  # start reward
+            "relaxation": [],  # reward relaxation time (exponential model)
+        }
         self._playback: list[list[float]] = []
         self.rewards: list[float] = []
         if self.conf.render_mode == "reward-tracking":
@@ -137,13 +177,13 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             self.traces: dict[str, list[float]] = {"c_x": [], "c_v": [], "l_x": [], "l_v": [], "acc": []}
 
         self.observation_space: spaces.Box | spaces.Discrete  # pyright: ignore[reportMissingTypeArgument]  # Discrete type arg not needed here
-        self.discrete: dict[str, tuple[float | int, ...]]
+        self.discrete: dict[str, tuple[float, ...]]
         # Continuous observations are crane position, crane velocity, wire polar angle, and load x-velocity.
         max_speed = np.sqrt(9.81 * self.wire.length)  # speed for pendulum at +/- 90 deg. Polar as deflection from -z
         self.acc_hist: float = 0.0  # used for acceleration history discretization
 
         if self.conf.discrete != "none":
-            self.observation_space, self.discrete = self.init_discrete(self.conf.discrete)  # type: ignore[assignment]
+            self.observation_space, self.discrete = self.init_discrete()  # type: ignore[assignment]
         else:
             self.discrete = {}
             self.spaces_min = np.array([-self.conf.rail_limit, -max_speed, 0.0, -max_speed], dtype=np.float64)
@@ -152,86 +192,80 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
 
         self.tau_max = self.distance_max / self.conf.acc / self.conf.dt  # time with min. speed from 0 to end
 
-        self.nresets: int = 0
-        _ = super().reset(seed=self.conf.seed)
+        self.nresets: int = -1
+        self.seed = self.conf.seed  # might be changed if training is continued from saved values
+        _ = super().reset(seed=self.seed)
         self.initial_speed: float = self.conf.start_speed
         self.figsize: tuple[float, float] = (-self.conf.rail_limit, self.conf.rail_limit)  # animation window
         self.nsuccess: int = 0
         self.reward = 0.0  # a basic reward (pendulum energy + distance measure)
 
         if self.conf.continuous_actions:
-            self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)  # type: ignore[assignment]
-        else:
+            self.action_space = spaces.Box(low=-self.conf.acc, high=self.conf.acc, shape=(1,), dtype=np.float32)  # type: ignore[assignment]
+        elif self.conf.coasting:
             # Discrete actions: 0 = -acc (left), 1 = 0 (coast), 2 = +acc (right)
-            self.action_space = spaces.Discrete(3, start=0, seed=42, dtype=np.int64)
-        self.action_to_acc = {0: -self.conf.acc, 1: 0.0, 2: self.conf.acc}
+            self.action_space = spaces.Discrete(3, start=0, seed=self.conf.seed, dtype=np.int64)
+            self.action_to_acc = {0: -self.conf.acc, 1: 0.0, 2: self.conf.acc}
+        else:
+            self.action_space = spaces.Discrete(2, start=0, seed=self.conf.seed, dtype=np.int64)
+            self.action_to_acc = {0: -self.conf.acc, 1: self.conf.acc}
         self.steps: int = 0
         self.time: float = 0.0
         self.obs: tuple[int, ...] | np.ndarray  # previous observation
         self.energy0: float = 0.0  # save the initial energy (set by reset())
 
-    def init_discrete(
-        self,
-        spec: dict[str, tuple[float | int, ...]] | str = "energy",
-    ) -> tuple[spaces.MultiDiscrete, dict[str, tuple[float | int, ...]]]:
+    def init_discrete(self) -> tuple[spaces.MultiDiscrete, dict[str, tuple[float, ...]]]:
         """Translate the observation-space spec into a MultiDiscrete space.
 
-        See .DISCRETE with respect to pre-defined default discretizations
-
-        Args:
-            spec: Optional non-default mapping of observation dimension names to category boundaries.
+        See AntiPendulumConfig for pre-defined discretizations.
 
         Returns:
         -------
             The constructed ``MultiDiscrete`` space and the spec
         """
         self.acc_hist = 0.0
-        if spec == "energy":
-            base_spec = AntiPendulumEnv.DISCRETE["energy"].copy()
+        if self.conf.discretization is not None:
+            _spec = self.conf.discretization.copy()
+        elif self.conf.discrete == "energy":
+            base_spec = make_discretization(self.conf.discrete).copy()
             # We replace the angle with pendulum energy levels, which are easier to use for observation calculation
             angle = base_spec.pop("angle")
             energy = [9.81 * self.wire.length * (1.0 - np.cos(np.radians(a))) for a in angle]
             _spec = {"energy": tuple(energy)}
             _spec.update(base_spec)
-        elif spec == "phase":
-            _spec = AntiPendulumEnv.DISCRETE["phase"].copy()
+        elif self.conf.discrete in ("phase", "phase-min"):
+            _spec = make_discretization(self.conf.discrete).copy()
         else:
-            if not isinstance(spec, dict):
-                raise KeyError(f"Unknown spec key {spec} for discretization") from None
-            _spec = spec.copy()
+            raise KeyError(f"Unknown discretization spec {self.conf.discrete} for discretization") from None
 
         return (spaces.MultiDiscrete(np.array([len(_spec[k]) for k in _spec])), _spec)
 
     @property
     def energy_max(self) -> float:
         """Return the maximum energy as property."""
-        try:
+        if self.conf.discrete == "energy":
             return self.discrete["energy"][-1]
-        except KeyError:
-            try:
-                return 0.5 * self.discrete["speed"][-1] ** 2
-            except KeyError as _err2:
-                return 0.5 * AntiPendulumEnv.DISCRETE["phase"]["speed"] ** 2  # type: ignore[operator]  # metadata values are typed as object
+        if self.conf.discrete in ("phase", "phase-min"):
+            return 0.5 * self.discrete["speed"][-1] ** 2
+        return 0.5 * make_discretization("phase")["speed"][-1] ** 2
 
     @property
     def distance_max(self) -> float:
         """Return the max. distance as property."""
-        try:
+        if self.conf.discrete == "energy" and "distance" in self.discrete:
             return self.discrete["distance"][-1]
-        except KeyError:
-            try:
-                return self.discrete["c-pos"][-1]
-            except KeyError as _err2:
-                return AntiPendulumEnv.DISCRETE["phase"]["c-pos"][-1]
+        if self.conf.discrete in ("phase", "phase-min") and "c-pos" in self.discrete:
+            return self.discrete["c-pos"][-1]
+        return make_discretization("phase")["c-pos"][-1]
 
     @property
     def speed_max(self) -> float:
         """Return the maximum speed as property."""
-        try:
+        if self.conf.discrete == "energy":
             return self.distance_max / self.conf.dt / 10
-        except KeyError as _err:
-            logger.exception("'distance' not part of discretization. => maximum speed value is not defined.")
-            return float("inf")
+        if self.conf.discrete in ("phase", "phase-min"):
+            return self.discrete["c-speed"][-1]
+        return make_discretization("phase")["c-speed"][-1]
 
     def _reward_plot_init(self, marker: str = "") -> Line2D:
         point = plt.plot(0, 0, marker)[0] if marker else plt.plot(0, 0)[0]
@@ -268,7 +302,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         )
         ani.do_animation()
 
-    def show_plot(self, episode: int, save_path: str | None = None) -> None:
+    def show_plot(self, episode: int = -1, save_path: str | None = None) -> None:
         """Plot detailed traces for a single episode.
 
         Args:
@@ -283,7 +317,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         ax1.plot(times, self.traces["l_x"], label="load angle", color="blue")
         ax2.plot(times, self.traces["l_v"], label="load speed", color="red")
         ax2.plot(times, damping, label="natural damping +", color="green", linestyle="--")
-        ax2.plot(times, -damping, label="natural damping −", color="green", linestyle="--")
+        ax2.plot(times, -damping, label="natural damping −", color="green", linestyle="--")  # noqa: RUF001
         ax3.plot(times, self.traces["c_x"], label="crane pos", color="blue")
         ax3.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7, label="origin")
         ax4.plot(times, self.traces["c_v"], label="crane speed", color="red")
@@ -343,7 +377,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             Discretised observation as tuple of integers according to discretization definition + truncation (bool).
         """
         self.acc_hist = self.conf.discount * self.acc_hist + (1.0 - self.conf.discount) * acc
-        if "distance" in self.discrete:
+        if self.conf.discrete == "energy":
             obs = [
                 _level(energy, self.discrete["energy"]),
                 _level(abs(self.crane.position[0]), self.discrete["distance"]),
@@ -353,16 +387,17 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
                 int(self.crane.velocity[0] < 0.0),
                 _level(self.acc_hist, self.discrete["avg-acc"]),
             ]
-        elif "speed" in self.discrete:
+        elif self.conf.discrete in ("phase", "phase-min"):
+            angle = np.pi - self.wire.boom[1]
             obs = [
-                _level(np.pi - self.wire.boom[1], self.discrete["angle"]),
+                _level(angle if self.wire.direction[0] >= 0 else -angle, self.discrete["angle"]),
                 _level(self.wire.cm_v[0], self.discrete["speed"]),  # only x-component, to keep sign!
                 _level(self.crane.position[0], self.discrete["c-pos"]),
                 _level(self.crane.velocity[0], self.discrete["c-speed"]),
                 _level(self.acc_hist, self.discrete["avg-acc"]),
             ]
         else:
-            raise ValueError(f"Unknown discretization {self.discrete}.") from None
+            raise ValueError(f"Unknown discretization {self.conf.discrete}.") from None
         trunc = any(i < 0 for i in obs)
         return (tuple(obs), trunc)
 
@@ -405,7 +440,6 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         else:
             self.obs, _truncate = self._get_continuous_obs()
             truncate = bool(_truncate)
-
         if self.conf.render_mode == "plot":
             self.traces["c_x"].append(self.crane.position[0])
             self.traces["c_v"].append(self.crane.velocity[0])
@@ -469,10 +503,11 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         seed: int | None = None,
         options: dict[str, object] | None = None,
     ) -> tuple[tuple[int, ...] | np.ndarray, dict[str, float | int]]:
-        """Reset the environment for a new episode.
+        """Reset the environment for a new episode. Used mainly by agent.
 
         Args:
-            seed (int): Optional random seed (default None).
+            seed: Optional random seed (default None).
+            init: Additional reset activities when initializing (e.g. plotting)
             options (dict[str, object]): Optional additional arguments to super().reset(). Default None.
 
         Returns:
@@ -481,19 +516,25 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         """
         self.reset_crane()
 
-        if self.nresets <= 0:  # reset during instantiation. Initialize
-            if self.conf.render_mode == "data":
+        if isinstance(options, dict) and "init" in options:  # reset during instantiation. Initialize
+            init = options.pop("init")
+            if init and self.conf.render_mode == "data":
                 self._reward_point = self._reward_plot_init("b.")
+                self.nresets = -1
 
         else:  # reset between episodes. Data are available
-            self.reward_stats.append([self.steps, self.reward])
-            if self.conf.render_mode == "data":
-                self._reward_point.set_data([r[0] for r in self.reward_stats], [r[1] for r in self.reward_stats])
+            self.reward_stats_calc(len(self.rewards))
+            if self.conf.render_mode == "data":  # plot reward per step
+                x = self.reward_stats["steps"]
+                y = self.reward_stats["reward"]
+                self._reward_point.set_data(x, y)
+                _ = plt.xlim((min(x), max(x)))
+                _ = plt.ylim((min(y), max(y)))
                 plt.pause(1e-10)
-            elif self.conf.render_mode == "play-back" and len(self._playback):
+            elif self.conf.render_mode == "play-back" and len(self._playback):  # crane animation
                 self.show_animation()
                 self._playback = []
-            elif self.conf.render_mode == "plot":
+            elif self.conf.render_mode == "plot":  # detailed plot of load and crane movement
                 self.show_plot(self.nresets)
 
         _ = super().reset(seed=seed, options=options)
@@ -506,7 +547,9 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         else:
             self.wire.cm_v[0] = self.conf.start_speed  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
         self.initial_speed = float(self.wire.cm_v[0])  # pyright: ignore[reportUnknownMemberType]  # dynamic attr on Wire
-        _obs, self.reward, _ = self._get_obs()
+        self.acc_hist = 0.0
+        self.obs, self.reward, self.trunc = self._get_obs()
+        self.term = False
         if self.conf.render_mode == "play-back":
             self._append_playback(0.0)
         self.steps = 0
@@ -533,18 +576,17 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         else:
             action_idx = int(action)
             if action_idx not in self.action_to_acc:
-                action_idx += 1
+                raise KeyError(f"The action {action} is not in space {self.action_to_acc}") from None
             acc = self.action_to_acc[action_idx]
         self.crane.d_velocity[0] = acc
         self.steps += 1
         _ = self.crane.do_step(self.time, self.conf.dt)
         self.time += self.conf.dt
 
-        obs, self.reward, truncated = self._get_obs(acc)
-        if truncated and self.reward_fac.terminal_penalty != 0.0:
+        obs, self.reward, self.trunc = self._get_obs(acc)
+        if self.trunc and self.reward_fac.terminal_penalty != 0.0:
             self.reward += self.reward_fac.terminal_penalty
-        if self.conf.render_mode != "none":
-            self.rewards.append(float(self.reward))
+        self.rewards.append(float(self.reward))
 
         if self.conf.render_mode == "play-back":
             self._append_playback(self.steps)
@@ -553,13 +595,13 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
             _ = plt.xlim((0, len(self.rewards)))
             _ = plt.ylim((min(self.rewards), max(self.rewards)))
             plt.pause(1e-10)
-        terminated = self.conf.reward_limit is not None and self.reward > self.conf.reward_limit
-        if terminated:
+        self.term = self.conf.reward_limit is not None and self.reward > self.conf.reward_limit
+        if self.term:
             self.nsuccess += 1
         info = self._get_info(self.reward, self.steps)
-        if truncated > 0:
+        if self.trunc > 0:
             info["crash"] = True
-        return obs, self.reward, terminated, (truncated > 0), info
+        return obs, self.reward, self.term, (self.trunc > 0), info
 
     def render(self, save_path: str | None = None) -> None:
         """Render the current episode.
@@ -581,20 +623,24 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         speed: np.ndarray | float,
         direction: np.ndarray | float,
         w_speed: np.ndarray | float,
-    ) -> None:
+    ) -> tuple[np.ndarray | tuple[int, ...], float, int]:
         """Set the state of the pendulum. Used for test purposes.
 
         Args:
             pos: crane position as vector or only x component
             speed: crane speed as vector or only x component
-            direction: wire direction vector or polar angle in radians
+            direction: wire direction vector or angle in x-z-plane in radians
             w_speed: load speed vector or x-value of speed
+
+        Returns:
+            ``(observation, reward, truncate_flag)`` as ``self._get_obs()``
         """
+        self.reset_crane()
         self.crane.position = pos if isinstance(pos, np.ndarray) else np.array((pos, 0, 0), float)
         self.crane.velocity = speed if isinstance(speed, np.ndarray) else np.array((speed, 0, 0), float)
         self.crane.d_velocity = np.array((0, 0, 0), float)
         self.crane.boom0.update_child()
-        self.wire.origin_v = self.crane.velocity
+        self.wire.origin_v = self.crane.velocity.copy()
         self.wire.origin_acc = np.array((0, 0, 0), float)
         self.wire.direction = (
             direction
@@ -604,26 +650,130 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         self.wire.boom[1:] = cartesian_to_spherical(self.wire.direction)[1:]
         self.wire._c_m = self.wire.origin + self.wire.direction * self.wire.length  # noqa: SLF001
         self.wire.cm_acc = np.array((0, 0, 0), float)
-        if isinstance(w_speed, np.ndarray) or float(w_speed) > EPS:
+        if not isinstance(w_speed, np.ndarray) and float(w_speed) > EPS:
             z_fac = -self.wire.direction[0] / self.wire.direction[2]  # ensure orthogonality of speed to direction
             self.wire.cm_v = w_speed * np.array((1, 0, z_fac), float) if isinstance(w_speed, float) else w_speed
         else:
+            if isinstance(w_speed, np.ndarray) and np.dot(w_speed, self.wire.direction) > EPS:
+                raise ValueError(f"Speed {w_speed} is not orthogonal to the wire {self.wire.direction}") from None
             self.wire.cm_v = w_speed if isinstance(w_speed, np.ndarray) else np.array((w_speed, 0, 0), float)
+        return self._get_obs()
+
+    def get_state(self, *, as_x: bool = True) -> tuple[float, ...]:
+        """Get the current state of the pendulum.
+
+        Args:
+            as_x: Get only the x-components of the wire state (x-position and x-speed).
+               Otherwise angle wrt. z and speed orthogonal to wire.
+
+        Returns:
+            a tuple of all state variables (crane-x, crane-v_x, wire-x/angle, wire-v_x/wire-|v|)
+        """
+        if as_x:
+            return (
+                self.crane.position[0],
+                self.crane.velocity[0],
+                self.wire.length * self.wire.direction[0],
+                self.wire.cm_v[0],
+            )
+        v = np.sqrt(np.dot(self.wire.cm_v, self.wire.cm_v))
+        return (
+            self.crane.position[0],
+            self.crane.velocity[0],
+            np.pi - np.arctan2(self.wire.direction[0], self.wire.direction[2]),
+            v if self.wire.cm_v[0] >= 0 else -v,
+        )
+
+    def analyse_observation(  # noqa: C901
+        self,
+        obs: tuple[int, ...],
+        samples: int = 100,
+        plot: tuple[tuple[int, int], ...] = ((0, 1), (2, 3)),
+        *,
+        show: bool = False,
+    ) -> None:
+        """Analyse a given discrete obesrvation tuple with respect to rewards that can be gained.
+
+        Args:
+            obs: discrete observation tuple to be analysed.
+               If a value is set to -1, the respective observation element can span the whole range
+            samples: number of samples to run in the analysis
+            plot: tuples of two indices for which to plot reward. E.g. Phase angles
+            show: optional show analysis results
+        """
+
+        def min_max(i: int, o: int) -> tuple[float, float]:
+            """Get the min and max values from the discretization."""
+            key = list(self.discrete.keys())[i]
+            if o == -1:
+                return self.discrete[key][0], self.discrete[key][-1]
+            if o == len(self.discrete[key]):
+                return self.discrete[key][o], self.discrete[key][o]  # single value at right end
+            return (self.discrete[key][o], self.discrete[key][o + 1])
+
+        def col(a: int) -> str:
+            return ["blue", "green", "red"][a]
+
+        acc_reward: list[float] = [0.0, 0.0, 0.0]
+        data: list[list[float]] = [[] for _ in range(len(plot) * 3 * 3)]  # plot*action*3D
+        info = "Analysis of "
+
+        for n in range(samples):
+            state: list[float] = []
+            for i, o in enumerate(obs):
+                key = list(self.discrete.keys())[i]
+                mm = min_max(i, o)
+                state.append(self.np_random.uniform(*mm))
+                if n == 0:
+                    if i == 0:
+                        info += f"{key}:{np.degrees(mm[0]):2.3f}-{np.degrees(mm[1]):2.3f}, "
+                    else:
+                        info += f"{key}:{mm[0]:2.3f}-{mm[1]:2.3f}, "
+            for a in range(3):
+                acc = (a - 1) * self.conf.acc
+                self.set_state(
+                    pos=self.wire.length * np.sin(state[0]), speed=state[1], direction=state[2], w_speed=state[3]
+                )
+                _, _r0, _ = self._get_obs(0.0)
+                self.step(a)
+                _obs, _r, _t = self._get_obs(acc)
+                acc_reward[a] += _r - _r0
+
+                i = 0
+                for k in range(len(plot)):
+                    data[i].append(state[plot[k][0]])
+                    data[i + 1].append(state[plot[k][1]])
+                    data[i + 2].append(_r - _r0)
+                    i += 3
+
+        LOGGER.info(f"Rewards: {[acc_reward[a] / samples for a in range(3)]}")
+        if len(plot) and show:
+            ax: list[int] = []
+            fig = plt.figure()  # type: ignore[reportAttributeAccessIssue]
+            idx = 0
+            for k in range(len(plot)):
+                for a in range(3):
+                    ax.append(fig.add_subplot(3, 2, idx + 1, projection="3d"))
+                    ax[idx].scatter(  # type: ignore[reportAttributeAccessIssue]
+                        *data[a * len(plot) * 3 + k * 3 : a * len(plot) * 3 + (k + 1) * 3], c=col(a), marker="."
+                    )
+                    idx += 1
+            plt.show()
 
     def get_parameters(self) -> dict[str, Any]:
         """Return the environment parameter settings as dict."""
-        return {
-            "wire-length": self.wire.length,
-            "wire-q-factor": self.wire.q_factor,
-            "reward-factors": self.reward_fac,
-            "acceleration": self.conf.acc,
-            "step-size": self.conf.dt,
-            "observations-discretization": None if not hasattr(self, "discrete") else self.discrete,
-            "reward_limit": self.conf.reward_limit,
-            "start-load-speed": self.conf.start_speed,
-        }
+        info = asdict(self.conf)
+        if "discretization" in info and self.conf.discrete != "none":
+            if info["discretization"] is None:
+                info["discretization"] = self.discrete
+            vals = info["discretization"]
+            _vals: dict[str, list[float]] = {}
+            for k, v in vals.items():
+                _vals.update({k: [float(_v) for _v in v]})  # make it serializable - list
+            info["discretization"] = _vals
+        return info
 
-    def reward_stats_calc(self, steps: int) -> tuple[Any, ...]:
+    def reward_stats_calc(self, steps: int) -> None:
         """After an episode is run, analyse the .rewards list statistically.
 
         * number of steps for the episode
@@ -634,17 +784,14 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
 
         Args:
             steps (int): number of steps in this episode.
-
-        Returns:
-            tuple of all statistics calculated
         """
         rewards = np.array(self.rewards, float)
-        avg = np.average(rewards)
-        std = np.std(rewards)
-        avg_gain = np.average(rewards[1:] - rewards[:-1])
-        std_gain = np.std(rewards[1:] - rewards[:-1])
-        gain_trend = np.average(rewards[2:] - 2 * rewards[1:-1] + rewards[:-2])
-        return (steps, avg, std, avg_gain, std_gain, gain_trend)
+        self.reward_stats["steps"].append(steps)  # number of steps in episode
+        self.reward_stats["reward"].append(float(rewards[-1]))  # final reward
+        self.reward_stats["status"].append(-1 if self.trunc else (1 if self.term else 0))
+        m, c = np.linalg.lstsq(np.stack([np.arange(steps), np.ones(steps)]).T, np.log(np.abs(rewards)))[0]
+        self.reward_stats["start"].append(-np.exp(c))  # start reward
+        self.reward_stats["relaxation"].append(-1 / m)  # reward relaxation time (exponential model)
 
 
 def _level(val: float, categories: tuple[float, ...]) -> int:
