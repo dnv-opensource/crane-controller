@@ -522,7 +522,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
                 self._reward_point = self._reward_plot_init("b.")
                 self.nresets = -1
 
-        else:  # reset between episodes. Data are available
+        elif self.rewards:  # reset between episodes, only if data is available
             self.reward_stats_calc(len(self.rewards))
             if self.conf.render_mode == "data":  # plot reward per step
                 x = self.reward_stats["steps"]
