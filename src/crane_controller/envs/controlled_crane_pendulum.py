@@ -572,7 +572,9 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
                 (observation, reward, terminated, truncated, info)
         """
         if self.conf.continuous_actions:
-            acc = float(np.asarray(action).flat[0]) * self.conf.acc
+            # action_space bounds are already ±self.conf.acc (physical units), so the
+            # sampled action is the acceleration directly — do not rescale by acc again.
+            acc = float(np.asarray(action).flat[0])
         else:
             action_idx = int(action)
             if action_idx not in self.action_to_acc:
