@@ -199,6 +199,7 @@ def main() -> None:
                 rail_limit=config.training.rail_limit,
                 reward_limit=config.training.reward_limit,
                 continuous_actions=args.continuous_actions,
+                acc=config.training.acc,
             ),
         },
         max_episode_steps=mep,

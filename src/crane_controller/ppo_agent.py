@@ -108,6 +108,17 @@ class ProximalPolicyOptimizationAgent:
         Timesteps collected per environment before each gradient update (default 2048).
         Increasing to 8192 gives ~11 complete episodes per update instead of ~3,
         producing more stable gradient estimates for long-horizon tasks.
+    log_std_init : float or None, optional
+        Initial log standard deviation for the continuous-action Gaussian policy
+        (default None - use SB3's default of 0.0, i.e. initial std=1.0). SB3's
+        default is far wider than the action box at any `conf.acc` (box
+        half-width = `conf.acc`, so std=1.0 dwarfs it regardless of magnitude),
+        so nearly every raw sampled action clips to the boundary before training
+        has shaped anything - the root cause of a persistent bang-bang chatter
+        that never settled (see project_ppo_acc_squared_bug.md). Rule of thumb:
+        set this to ``log(box_half_width / 2.5)`` so ~99% of raw samples land
+        inside the box. `train_ppo.py` auto-derives this from `acc` when not
+        set explicitly.
     """
 
     def __init__(  # noqa: PLR0913,PLR0917
@@ -123,6 +134,7 @@ class ProximalPolicyOptimizationAgent:
         learning_rate: float = 3e-4,
         clip_range: float = 0.2,
         n_steps: int = 2048,
+        log_std_init: float | None = None,
     ) -> None:
         """Set up the agent for training. Use :meth:`load` for inference."""
         self.save_path = save_path
@@ -134,6 +146,7 @@ class ProximalPolicyOptimizationAgent:
             env_kwargs=env_kwargs,
         )
         self.vec_env = VecNormalize(raw_vec_env, norm_obs=True, norm_reward=True)
+        policy_kwargs = {"log_std_init": log_std_init} if log_std_init is not None else None
         self.model = PPO(
             "MlpPolicy",
             self.vec_env,
@@ -143,6 +156,7 @@ class ProximalPolicyOptimizationAgent:
             learning_rate=learning_rate,
             clip_range=clip_range,
             n_steps=n_steps,
+            policy_kwargs=policy_kwargs,
             verbose=1 if n_envs == 1 else 0,
         )
         self.env: AntiPendulumEnv = self.vec_env.venv.envs[0]  # type: ignore[attr-defined]
