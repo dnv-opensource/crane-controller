@@ -95,8 +95,9 @@ def main() -> None:  # noqa: PLR0915
     _ = parser.add_argument(
         "--seed",
         type=int,
-        default=None,
-        help="Random seed for PPO initialisation. Omit for non-deterministic training.",
+        default=config.training.seed,
+        help="Random seed for PPO initialisation (default from --config, or None for "
+        "non-deterministic training). Pass explicitly to override.",
     )
     _ = parser.add_argument(
         "--ent-coef",
