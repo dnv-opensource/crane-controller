@@ -18,7 +18,7 @@
     "n_envs": 32,
     "gamma": 0.99,
     "save_path": "models/hybrid_cv01_disc_s42.zip",
-    "seed": null,
+    "seed": 42,
     "ent_coef": 0.0,
     "learning_rate": 0.0003,
     "clip_range": 0.2,
@@ -28,7 +28,9 @@
     "start_speed": 1.0,
     "continuous_actions": false,
     "reward_limit": 50.0,
-    "max_episode_steps": 1000
+    "log_std_init": null,
+    "max_episode_steps": 1000,
+    "acc": 0.1
   },
   "config_source": "experiments/hybrid_cv01_disc_s42.yaml"
 }

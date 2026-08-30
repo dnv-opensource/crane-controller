@@ -173,15 +173,15 @@ value\_loss↓ (row 2 col 2), |x|↓ (bottom row).*
 
 | Metric | cont | disc |
 |---|---|---|
-| rail\_hit → 0% (permanent) | 950 k steps | **850 k steps** |
-| ep\_len hits maximum (1 000) | 1.0 M steps | **850 k steps** |
+| rail\_hit → 0% (permanent) | 950 k steps | **800 k steps** |
+| ep\_len hits maximum (1 000) | 1.0 M steps | **900 k steps** |
 | Value instabilities | none | **none** |
-| Explained variance at 3 M | **0.986** | 0.954 |
+| Explained variance at 3 M | **0.986** | 0.971 |
 | Mean \|x\| at 3 M (training log) | 0.015 m | **≈ 0 m** |
 
-Both variants eliminate crashes early and permanently — discrete slightly ahead (850 k vs
+Both variants eliminate crashes early and permanently — discrete slightly ahead (800 k vs
 950 k steps). Neither variant produces a value-function instability event. Explained
-variance is close between the two, with continuous now marginally ahead (0.986 vs 0.954).
+variance is close between the two, with continuous now marginally ahead (0.986 vs 0.971).
 
 ### 4.2  Phase 1 — Survival (0 – 700 k steps)
 
@@ -192,7 +192,7 @@ crash. Physical metrics are not meaningful here because all episodes end in cras
 ### 4.3  Phase 2 — Crash elimination
 
 `hybrid_cv01` eliminates crashes decisively: rail_hit_pct falls from 100% to 0% by
-**950 k steps** (continuous) / **850 k steps** (discrete) and never returns. The explicit
+**950 k steps** (continuous) / **800 k steps** (discrete) and never returns. The explicit
 position-penalty terms give the agent a direct incentive to stay away from the rail at
 every step.
 
@@ -208,7 +208,7 @@ training run.
 Explained variance climbs monotonically in both variants. Policy becomes increasingly
 deterministic in the discrete case (entropy_loss → 0); the continuous policy's entropy
 continues to rise slowly through 3 M steps without destabilising training. The continuous
-variant reaches marginally higher final EV (0.986) than discrete (0.954) — both represent
+variant reaches marginally higher final EV (0.986) than discrete (0.971) — both represent
 a well-calibrated critic, with the continuous variant's larger action space no longer
 imposing a value-estimation penalty.
 
@@ -226,30 +226,34 @@ start. Each episode runs for the full 1 000-step budget.
 
 ![Speed sweep comparison — hybrid_cv01_s5775, continuous vs discrete](_static/fig2_sweep_s5775.png)
 
-*Figure 2. Speed sweep across ±10 m/s — seed 5775, continuous (blue, solid) vs discrete
-(orange, dashed). Top row: final crane position (cm), final crane velocity (m/s), settle
-step vs |speed|. Bottom row: final pendulum angle (rad), final pendulum angular velocity
-(rad/s), final crane acceleration (m/s²).*
+*Figure 2. Speed sweep across ±10 m/s — seed 5775, continuous (blue) vs discrete (orange).
+Top row: final crane position (cm), final crane velocity (m/s), settle step vs |speed|.
+Bottom row: final pendulum angle (rad), final pendulum angular velocity (rad/s), final
+crane acceleration (m/s²). The single discrete spike near +8.2 m/s (visible in every panel)
+is the lone rail-contact episode discussed in §5.2.*
 
 ### 5.1  Summary
 
 | Metric | cont | disc |
 |---|---|---|
-| Crash-free episodes | 100/100 | 100/100 |
+| Crash-free episodes | 100/100 | 99/100 |
 | Non-converging | 0 | **0** |
-| Mean \|x\_pos\| | 0.66 cm | **≈ 0 cm** (machine ε) |
-| Settle-step range | 67–246 steps | **7–126 steps** |
-| Mean settle step | 184.5 | **71.8** |
+| Mean \|x\_pos\| | 0.66 cm | **≈ 0 cm** (machine ε, 99/100) |
+| Settle-step range | 67–246 steps | **7–129 steps** |
+| Mean settle step | 184.5 | **73.7** |
 
 ### 5.2  Robustness across the speed range
 
-Both variants are **100% crash-free** across the full ±10 m/s range. This is a consequence
-of `randomize_start = true` during training: the agent was exposed to a range of initial
-conditions during learning, and the learned policy generalises without crashing far beyond
-that range.
+The continuous variant is **100% crash-free** across the full ±10 m/s range. The discrete
+variant crashes once, at a single swept speed (8.2 m/s, rail contact at step 16) — the
+immediately adjacent speeds (8.0 and 8.4 m/s) settle normally, so this is an isolated
+single-run transient (one seed, one episode per speed), not a systematic failure. Both
+variants' broad robustness is a consequence of `randomize_start = true` during training:
+the agent was exposed to a range of initial conditions during learning, and the learned
+policy generalises far beyond that range.
 
-Final crane position is **essentially constant across all 100 speed points** (flat curve in
-Figure 2, left panel) — the agent always converges to the same physical attractor
+Final crane position is **essentially constant across nearly all 100 speed points** (flat
+curve in Figure 2, left panel) — the agent always converges to the same physical attractor
 regardless of how fast the crane was initially moving. Settle step is **not** constant: it
 rises smoothly with |initial speed| (Figure 2, centre panel) — more initial momentum takes
 more time to brake, with no anomalous outliers in either variant.
@@ -262,15 +266,17 @@ against other terms. With `Discrete(3)` there is no intermediate force: every st
 either full brake, coast, or full drive. The agent must commit to a bang-bang sequence
 that lands on $x = 0$ exactly, which the dense position-penalty term directly rewards.
 
-The result is machine-epsilon final position (1e-14 – 1e-17 m) for all 100 evaluation
-speeds vs a constant 0.66 cm for the continuous variant.
+The result is machine-epsilon final position (1e-14 – 1e-17 m) for 99 of 100 evaluation
+speeds (seed 5775; the hundredth is the single rail-contact episode from §5.2) vs a
+constant 0.66 cm for the continuous variant. Seed 42's discrete run is slightly less
+clean — see §6.2.
 
 ### 5.4  Settle step and speed
 
 Settle step rises roughly linearly with |initial speed|: higher initial momentum requires
 more braking time. With dt = 1.0 s per step, the range of 67–246 steps (continuous) and
-7–126 steps (discrete) corresponds to **67–246 s** and **7–126 s** of simulated time
-respectively. At speed = ±10 m/s the discrete agent settles at ~110–112 steps — close to
+7–129 steps (discrete) corresponds to **67–246 s** and **7–129 s** of simulated time
+respectively. At speed = ±10 m/s the discrete agent settles at ~112–117 steps — close to
 the theoretical bang-bang minimum $v/a = 10/0.1 = 100$ s; the continuous agent takes
 considerably longer (~243 s) at the same speed, reflecting its smoother, less aggressive
 braking profile.
@@ -287,15 +293,17 @@ angle, pendulum angular velocity.*
 ![hybrid_cv01_disc_s5775 — detailed sweep](_static/hybrid_cv01_disc_s5775_detail.png)
 
 *Figure 4. `hybrid_cv01_disc_s5775` (discrete) — nine sweep metrics across ±10 m/s.
-Note the x\_pos\_m panel: all values at machine-epsilon level (1e-14 – 1e-17 m).*
+x\_pos\_m panel: machine-epsilon level (1e-14 – 1e-17 m) for 99 of 100 speeds; one
+rail-contact episode at 8.2 m/s (visible as the single nocrash%↑ dip).*
 
 ---
 
 ## 6  Seed 42
 
 Seed 42 covers both continuous and discrete action spaces, following the same structure as
-§4–§5 for seed 5775. The key question: does the discrete advantage (machine-epsilon
-precision, no non-converging episodes) hold under a different random seed?
+§4–§5 for seed 5775. The key question: does the discrete advantage (near-machine-epsilon
+precision, no non-converging episodes) hold under a different random seed? It largely does,
+with a single-run caveat — see §6.2.
 
 ### 6.1  Training dynamics
 
@@ -306,38 +314,45 @@ and discrete (orange, dashed).*
 
 | Metric | cont | disc |
 |---|---|---|
-| rail\_hit → 0% (permanent) | **700 k steps** | 1 000 k steps |
-| ep\_len hits maximum (1 000) | **750 k steps** | 1 200 k steps |
+| rail\_hit → 0% (permanent) | **700 k steps** | 1 050 k steps |
+| ep\_len hits maximum (1 000) | **750 k steps** | 1 150 k steps |
 | Value instabilities | none | none |
-| Explained variance at 3 M | **0.987** | 0.931 |
+| Explained variance at 3 M | **0.987** | 0.928 |
 | Mean \|x\| at 3 M (training log) | 0.008 m | **≈ 0 m** |
 
 For seed 42 the continuous variant eliminates crashes substantially earlier than discrete
-(700 k vs 1 000 k steps) and reaches a higher final EV (0.987 vs 0.931) — the same EV
+(700 k vs 1 050 k steps) and reaches a higher final EV (0.987 vs 0.928) — the same EV
 pattern as seed 5775: continuous now edges out discrete on critic accuracy for both seeds.
 
 ### 6.2  Speed sweep
 
 ![Speed sweep — hybrid_cv01_s42, continuous vs discrete](_static/fig_sweep_s42.png)
 
-*Figure 6. Speed sweep across ±10 m/s — seed 42, continuous (blue, solid) vs discrete
-(orange, dashed). Top row: final crane position (cm), final crane velocity (m/s), settle
-step vs |speed|. Bottom row: final pendulum angle (rad), final pendulum angular velocity
-(rad/s), final crane acceleration (m/s²).*
+*Figure 6. Speed sweep across ±10 m/s — seed 42, continuous (blue) vs discrete (orange).
+Top row: final crane position (cm), final crane velocity (m/s), settle step vs |speed|.
+Bottom row: final pendulum angle (rad), final pendulum angular velocity (rad/s), final
+crane acceleration (m/s²). The ten discrete downspikes to −10 cm in the |x| panel are the
+±0.1 m offset attractor discussed below.*
 
 | Metric | cont | disc |
 |---|---|---|
 | Crash-free episodes | 100/100 | 100/100 |
 | Non-converging | 0 | **0** |
-| Mean \|x\_pos\| | 0.39 cm | **≈ 0 cm** (machine ε) |
-| Settle-step range | 95–218 steps | **6–129 steps** |
-| Mean settle step | 168.8 | **74.0** |
+| Mean \|x\_pos\| | 0.39 cm | ≈ 1.0 cm (90/100 at machine ε) |
+| Settle-step range | 95–218 steps | **14–126 steps** |
+| Mean settle step | 168.8 | **74.2** |
 
 Both variants achieve zero non-converging episodes and zero crashes across the full ±10 m/s
-range. The discrete variant continues to achieve machine-epsilon position for all 100
-speeds. Unlike seed 5775, the continuous policy's final position (0.39 cm) is tighter than
-seed 5775's (0.66 cm) — the two seeds bracket a modest range of continuous-variant
-precision, with no anomalous outlier speeds in either seed.
+range. The discrete variant reaches machine-epsilon final position for **90 of 100** swept
+speeds; the other ten (−8.4, −6.4, −5.0, −3.8, +0.8, +1.0, +3.4, +3.6, +5.2, +9.0 m/s)
+converge instead to a **±0.1 m offset attractor** — the crane parks one deadband-width off
+centre and toggles ±$a_\text{max}$ across it rather than landing exactly on $x = 0$. This
+lifts the discrete mean |x\_pos| to ≈ 1.0 cm, still below the continuous variant's 0.39 cm
+but no longer machine-epsilon everywhere. The effect is a single-run artefact: one training
+seed, one episode per evaluated speed, no averaging — seed 5775's discrete run misses only
+once (§5), and an earlier unseeded seed-42 discrete run reached $x = 0$ at every speed.
+Continuous-variant final position (0.39 cm for s42, 0.66 cm for s5775) has no anomalous
+outlier speeds in either seed.
 
 ### 6.3  Detailed sweep metrics
 
@@ -350,7 +365,9 @@ whole range.*
 ![hybrid_cv01_disc_s42 — detailed sweep](_static/hybrid_cv01_disc_s42_detail.png)
 
 *Figure 8. `hybrid_cv01_disc_s42` (discrete) — nine sweep metrics across ±10 m/s.
-All 100 episodes converge; x\_pos at machine-epsilon level throughout.*
+All 100 episodes converge crash-free; x\_pos at machine-epsilon level for 90 of 100 speeds,
+with ten at a ±0.1 m offset attractor (see §6.2 — visible as ten downward spikes to
+−0.1 m in the x\_pos\_m panel).*
 
 ### 6.4  Episode trajectories
 
@@ -359,12 +376,13 @@ pendulum angle, pendulum angular velocity, crane acceleration, and reward — on
 per quantity, over the full episode. They complement the sweep figures by showing *how*
 the agent moves, not just the final values.
 
-**A — Discrete, 1.0 m/s — fast bang-bang settle**
+**A — Discrete, 1.2 m/s — fast bang-bang settle**
 
-![Episode: disc s42, start speed +1.0 m/s](_static/episode_disc_s42_v1p0.png)
+![Episode: disc s42, start speed +1.2 m/s](_static/episode_disc_s42_v1p2.png)
 
-*Figure 9. `hybrid_cv01_disc_s42`, start speed +1.0 m/s, 250 steps.
-Settles at step 28. Three-phase bang-bang: full brake → coast → done.*
+*Figure 9. `hybrid_cv01_disc_s42`, start speed +1.2 m/s.
+Settles at step 23, final position machine-epsilon. Three-phase bang-bang:
+full brake → coast → done.*
 
 **B — Continuous, 5.0 m/s — smooth mid-range convergence**
 
@@ -378,9 +396,9 @@ oscillation rather than persistent full-amplitude bang-bang switching.*
 
 ![Episode: disc s42, start speed +5.0 m/s](_static/episode_disc_s42_v5p0.png)
 
-*Figure 11. `hybrid_cv01_disc_s42`, start speed +5.0 m/s, 200 steps.
-Settles at step 50 (125 steps earlier than continuous), final position machine-epsilon.
-Action is always ±0.1 or 0 — no intermediate values.*
+*Figure 11. `hybrid_cv01_disc_s42`, start speed +5.0 m/s.
+Settles at step 73 (102 steps earlier than the continuous variant at this speed), final
+position machine-epsilon. Action is always ±0.1 or 0 — no intermediate values.*
 
 **D — Continuous, 9.0 m/s — convergence**
 
@@ -394,8 +412,10 @@ speed, consistent with the model's zero-crash record across the full ±10 m/s sw
 
 ![Episode: disc s42, start speed +9.0 m/s](_static/episode_disc_s42_v9p0.png)
 
-*Figure 13. `hybrid_cv01_disc_s42`, start speed +9.0 m/s, 200 steps.
-Settles at step 76, final position machine-epsilon.*
+*Figure 13. `hybrid_cv01_disc_s42`, start speed +9.0 m/s.
+Settles at step 111 at a −0.10 m offset — one of the ten swept speeds that converge to the
+±0.1 m attractor rather than exactly zero (§6.2), shown here for contrast with the
+machine-epsilon cases above.*
 
 ---
 
@@ -405,10 +425,11 @@ Settles at step 76, final position machine-epsilon.*
 
 | Metric | s5775 · cont | s5775 · disc | s42 · cont | s42 · disc |
 |---|---|---|---|---|
-| Time to crash-free | 950 k steps | **850 k steps** | **700 k steps** | 1 000 k steps |
-| EV at 3 M | **0.986** | 0.954 | **0.987** | 0.931 |
-| Final position | 0.66 cm | **≈ 0 cm** | 0.39 cm | **≈ 0 cm** |
-| Settle range | 67–246 s | **7–126 s** | 95–218 s | **6–129 s** |
+| Time to crash-free | 950 k steps | **800 k steps** | **700 k steps** | 1 050 k steps |
+| EV at 3 M | **0.986** | 0.971 | **0.987** | 0.928 |
+| Final position | 0.66 cm | **≈ 0 cm** (99/100) | 0.39 cm | ≈ 1.0 cm (90/100 ≈ 0) |
+| Settle range | 67–246 s | **7–129 s** | 95–218 s | **14–126 s** |
+| Sweep crashes (of 100) | 0 | 1 | 0 | 0 |
 | Non-converging | 0 | **0** | 0 | **0** |
 
 ### 7.2  Training consistency
@@ -422,25 +443,33 @@ either variant, for either seed.
 ### 7.3  Seed robustness
 
 Continuous-variant final position varies modestly across seeds (0.66 cm for s5775 vs
-0.39 cm for s42), while the discrete variant stays at machine-epsilon precision for both.
-Both seeds are 100% crash-free across the full ±10 m/s range for both action spaces. The
-multi-term reward constrains the value landscape tightly, leaving little room for
-seed-specific failure modes beyond this modest continuous-precision spread.
+0.39 cm for s42) with no outlier speeds. The discrete variant is at machine-epsilon
+precision for 99/100 (s5775) and 90/100 (s42) swept speeds; the misses are one
+rail-contact transient (s5775, at 8.2 m/s) and a ±0.1 m offset attractor at ten seed-42
+speeds. Both are single-run artefacts — one seed, one episode per speed — not systematic:
+the continuous side is crash-free at every speed for both seeds, the discrete side is
+crash-free at every speed for seed 42 and at 99/100 for seed 5775, and an earlier unseeded
+seed-42 discrete run reached $x = 0$ at every speed. The multi-term reward constrains the
+value landscape tightly, leaving only these small single-run deviations.
 
 ### 7.4  Effect of discretisation
 
-Switching to `Discrete(3)` (bang-bang actions) consistently improves final position
-precision across both seeds, confirmed by four independent training runs — final crane
-position drops from a constant 0.39–0.66 cm (continuous) to machine-epsilon level
-(1e-14 – 1e-17 m, discrete) for every evaluated speed in both seeds. With a continuous
-action space the agent can settle at sub-optimal intermediate forces; with `Discrete(3)`
-it must commit to a bang-bang sequence that lands precisely at $x = 0$, which the dense
-position-penalty term directly rewards.
+Switching to `Discrete(3)` (bang-bang actions) improves final position precision for the
+large majority of evaluated speeds — final crane position drops from a constant
+0.39–0.66 cm (continuous) to machine-epsilon level (1e-14 – 1e-17 m) for 90/100 (seed 42)
+and 99/100 (seed 5775) swept speeds. With a continuous action space the agent can settle
+at sub-optimal intermediate forces; with `Discrete(3)` it must commit to a bang-bang
+sequence that lands precisely at $x = 0$, which the dense position-penalty term directly
+rewards. The discrete exceptions are a ±0.1 m offset attractor at ten seed-42 speeds and
+one rail-contact transient at seed 5775; both are single-run (one seed, one episode per
+speed), and an earlier unseeded seed-42 discrete run reached $x = 0$ at every speed. Mean
+discrete |x\_pos| is ≈ 0 cm (s5775) and ≈ 1.0 cm (s42), still at or below the continuous
+variant's 0.39–0.66 cm.
 
-Discretisation also settles faster: mean settle step drops from 184.5 → 71.8 s (s5775) and
-168.8 → 74.0 s (s42) going from continuous to discrete. Discretisation does **not**,
+Discretisation also settles faster: mean settle step drops from 184.5 → 73.7 s (s5775) and
+168.8 → 74.2 s (s42) going from continuous to discrete. Discretisation does **not**,
 however, consistently improve the critic's explained variance in this data — continuous
-now edges out discrete on EV for both seeds (0.986–0.987 vs 0.931–0.954), the reverse of
+now edges out discrete on EV for both seeds (0.986–0.987 vs 0.928–0.971), the reverse of
 an earlier training run. Position precision and settle speed are the discretisation
 benefits that hold robustly; EV is not.
 
