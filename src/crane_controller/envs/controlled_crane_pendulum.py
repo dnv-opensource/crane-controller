@@ -612,7 +612,9 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         ----------
         save_path : str or None, optional
             If set and render_mode is ``"plot"``, save the figure to this path
-            instead of showing it interactively (default None).
+            instead of showing it interactively (default None). Trajectory
+            traces are only recorded while ``render_mode == "plot"``, so that
+            mode is required for a figure to be produced at all.
         """
         if self.conf.render_mode == "play-back":
             self.show_animation()

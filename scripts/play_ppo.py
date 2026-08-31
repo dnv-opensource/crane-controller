@@ -135,8 +135,13 @@ def main() -> None:
     _ = parser.add_argument(
         "--randomize-start",
         action=argparse.BooleanOptionalAction,
-        default=config.training.randomize_start,
-        help="Randomise initial pendulum speed each episode (default from model sidecar).",
+        default=None,
+        help=(
+            "Randomise initial pendulum speed each episode. Default: the model "
+            "sidecar's value for single-speed playback, but forced OFF for "
+            "--speed-sweep so each row uses its exact requested speed. Pass "
+            "--randomize-start to re-enable it for a sweep."
+        ),
     )
     _ = parser.add_argument(
         "--start-speed",
@@ -165,8 +170,14 @@ def main() -> None:
         "--save-png",
         "--no-save-png",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Save 7-panel trajectory plot per episode alongside the model (default True).",
+        default=None,
+        help=(
+            "Save the per-episode trajectory plot alongside the model. Default: on "
+            "for single-speed playback, off for --speed-sweep (which would otherwise "
+            "write one PNG per swept speed). Recording traces needs render_mode "
+            "'plot'; --render-mode none is promoted to 'plot' (file only, no window) "
+            "when this is on, but --render-mode play-back cannot also save."
+        ),
     )
     _ = parser.add_argument(
         "--save-csv",
@@ -183,6 +194,31 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.save_png is None:
+        args.save_png = not args.speed_sweep
+
+    if args.randomize_start is None:
+        args.randomize_start = False if args.speed_sweep else config.training.randomize_start
+        if args.speed_sweep and config.training.randomize_start:
+            LOGGER.info(
+                "--speed-sweep: randomize_start forced off (sidecar has it on) so each "
+                "swept speed is exact; pass --randomize-start to override."
+            )
+
+    # Trajectory traces are only recorded while render_mode == "plot" (see
+    # AntiPendulumEnv.step). Make --save-png actually take effect instead of
+    # silently doing nothing when the user asked not to render to a window.
+    render_mode = args.render_mode
+    if args.save_png:
+        if render_mode == "none":
+            render_mode = "plot"
+            LOGGER.info("--save-png: rendering to file (render_mode 'plot', no window).")
+        elif render_mode != "plot":
+            LOGGER.warning(
+                "--save-png has no effect with --render-mode %s; use 'plot' (or 'none') to save PNGs.",
+                render_mode,
+            )
+
     mep = args.max_episode_steps if args.max_episode_steps is not None else config.training.max_episode_steps
     speeds = SWEEP_SPEEDS if args.speed_sweep else [args.start_speed]
 
@@ -194,7 +230,7 @@ def main() -> None:
             "conf": AntiPendulumConfig(
                 start_speed=speeds[0],
                 randomize_start=args.randomize_start,
-                render_mode=args.render_mode,
+                render_mode=render_mode,
                 reward_fac=config.reward,
                 rail_limit=config.training.rail_limit,
                 reward_limit=config.training.reward_limit,
