@@ -324,6 +324,13 @@ For seed 42 the continuous variant eliminates crashes substantially earlier than
 (700 k vs 1 050 k steps) and reaches a higher final EV (0.987 vs 0.928) — the same EV
 pattern as seed 5775: continuous now edges out discrete on critic accuracy for both seeds.
 
+The discrete `expl_var` curve in Figure 5 dips sharply (to ≈ 0.04) around 800 k–1.05 M
+steps before recovering to 0.93. This coincides with the discrete crash-elimination window
+(`rail_hit%` still falling over the same interval): the policy is changing fast enough that
+the critic briefly loses its fit, then re-converges once the policy stabilises. It is a
+normal pre-convergence transient, not a value-function instability event — EV is monotone
+non-decreasing from 1.05 M onward for both variants.
+
 ### 6.2  Speed sweep
 
 ![Speed sweep — hybrid_cv01_s42, continuous vs discrete](_static/fig_sweep_s42.png)
