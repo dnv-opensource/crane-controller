@@ -160,6 +160,21 @@ class TrainingConfig:
         100). Replaces the previous hardcoded value of 3000; shorter episodes
         let the discount factor propagate rail-penalty credit meaningfully
         (``0.99^100 ≈ 0.37`` vs ``0.99^3000 ≈ 10^-13``).
+    acc : float
+        Crane acceleration magnitude in ``[-acc, +acc]`` (default 0.1, matching
+        Sig's Q-learning agent). Continuous-action training at this value used to
+        converge to a persistent bang-bang chatter that never settled; the fix is
+        ``log_std_init`` (see below), not shrinking this value - ``0.1`` is fine
+        to leave at its default. See ``project_ppo_acc_squared_bug.md`` for the
+        full investigation, including a weaker-actuator alternative that also
+        works but sacrifices control authority.
+    log_std_init : float or None
+        Initial log standard deviation for the continuous-action Gaussian policy
+        (default None - auto-derived from ``acc`` as ``log(acc / 2.5)`` by
+        ``train_ppo.py`` so ~99% of raw samples start inside the action box; see
+        ``ProximalPolicyOptimizationAgent``'s docstring and
+        ``project_ppo_acc_squared_bug.md``). Pass explicitly to override, e.g.
+        ``0.0`` for SB3's own default (std=1.0).
     """
 
     steps: int = 100_000
@@ -176,7 +191,9 @@ class TrainingConfig:
     start_speed: float = 1.0
     continuous_actions: bool = True
     reward_limit: float = 50.0
+    log_std_init: float | None = None
     max_episode_steps: int = 1000
+    acc: float = 0.1
 
     @classmethod
     def from_dict(cls, d: Mapping[str, object]) -> TrainingConfig:
@@ -194,6 +211,7 @@ class TrainingConfig:
         """
         defaults = cls()
         seed_raw = d.get("seed", defaults.seed)
+        log_std_init_raw = d.get("log_std_init", defaults.log_std_init)
         return cls(
             steps=int(d.get("steps", defaults.steps)),  # type: ignore[arg-type,call-overload]
             n_envs=int(d.get("n_envs", defaults.n_envs)),  # type: ignore[arg-type,call-overload]
@@ -210,6 +228,8 @@ class TrainingConfig:
             continuous_actions=bool(d.get("continuous_actions", defaults.continuous_actions)),
             reward_limit=float(d.get("reward_limit", defaults.reward_limit)),  # type: ignore[arg-type]
             max_episode_steps=int(d.get("max_episode_steps", defaults.max_episode_steps)),  # type: ignore[arg-type,call-overload]
+            acc=float(d.get("acc", defaults.acc)),  # type: ignore[arg-type]
+            log_std_init=float(log_std_init_raw) if isinstance(log_std_init_raw, (int, float)) else None,
         )
 
 

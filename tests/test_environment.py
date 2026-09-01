@@ -256,6 +256,24 @@ def test_step_accepts_correct_action(crane: Callable[..., Crane], continuous_act
     assert obs.shape == (4,)
 
 
+def test_continuous_action_applies_full_acceleration(crane: Callable[..., Crane]) -> None:
+    """step()'s applied acceleration matches conf.acc at the action-space boundary.
+
+    Regression test: continuous Box bounds are ``(-conf.acc, conf.acc)`` (physical units),
+    so a boundary action must produce ``d_velocity == conf.acc``, not ``conf.acc ** 2``
+    from an extra, redundant scaling in step().
+    """
+    conf = AntiPendulumConfig(continuous_actions=True, acc=0.4)
+    env = AntiPendulumEnv(crane, conf=conf)
+    _ = env.reset(options={"init": True})
+    action = np.array([conf.acc], dtype=np.float32)  # boundary of the action space
+    _ = env.step(action)
+    applied_acc = env.crane.d_velocity[0]
+    assert abs(applied_acc - conf.acc) < 1e-6, (
+        f"Expected acceleration {conf.acc}, got {applied_acc} (acc**2 would be {conf.acc**2})"
+    )
+
+
 def test_discrete_observations(crane: Callable[..., Crane], *, show: bool):
     """Test the transitions with respect to categories in the discrete observation space."""
     env = AntiPendulumEnv(crane, conf=AntiPendulumConfig(continuous_actions=False, discrete="phase"))

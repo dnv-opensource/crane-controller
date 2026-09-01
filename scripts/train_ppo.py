@@ -15,6 +15,7 @@ Examples:
 
 import argparse
 import logging
+import math
 from pathlib import Path
 
 from crane_controller.crane_factory import build_crane
@@ -94,8 +95,9 @@ def main() -> None:  # noqa: PLR0915
     _ = parser.add_argument(
         "--seed",
         type=int,
-        default=None,
-        help="Random seed for PPO initialisation. Omit for non-deterministic training.",
+        default=config.training.seed,
+        help="Random seed for PPO initialisation (default from --config, or None for "
+        "non-deterministic training). Pass explicitly to override.",
     )
     _ = parser.add_argument(
         "--ent-coef",
@@ -153,7 +155,31 @@ def main() -> None:  # noqa: PLR0915
         default=config.training.max_episode_steps,
         help="TimeLimit cap per episode (default 1000).",
     )
+    _ = parser.add_argument(
+        "--acc",
+        type=float,
+        default=config.training.acc,
+        help="Crane acceleration magnitude in [-acc, +acc] (default 0.1). Continuous-action "
+        "training chatters and never settles at 0.1; try 0.01 for genuine rest "
+        "(see project_ppo_acc_squared_bug.md).",
+    )
+    _ = parser.add_argument(
+        "--log-std-init",
+        type=float,
+        default=config.training.log_std_init,
+        help="Initial log std for the continuous-action Gaussian policy. Default: "
+        "auto-derived as log(acc/2.5) so ~99%% of raw samples start inside the action "
+        "box (avoids clip-dominated early training, see project_ppo_acc_squared_bug.md). "
+        "Pass explicitly to override, e.g. 0.0 for SB3's own default (std=1.0). Only "
+        "affects fresh training, not --resume-from.",
+    )
     args = parser.parse_args()
+
+    # Auto-derive log_std_init from acc when not explicitly set, so it stays correctly
+    # sized for whatever acc this run uses (important once acc is swept/randomized across
+    # experiments, not just fixed at 0.1) — see project_ppo_acc_squared_bug.md.
+    if args.log_std_init is None and args.continuous_actions:
+        args.log_std_init = math.log(args.acc / 2.5)
 
     # Resolve final reward config: explicit --reward-fac beats loaded YAML/defaults.
     reward_config = RewardConfig(*args.reward_fac) if args.reward_fac is not None else config.reward
@@ -175,6 +201,8 @@ def main() -> None:  # noqa: PLR0915
             start_speed=args.start_speed,
             continuous_actions=args.continuous_actions,
             max_episode_steps=args.max_episode_steps,
+            acc=args.acc,
+            log_std_init=args.log_std_init,
         ),
         config_source=pre_args.config,
     )
@@ -219,6 +247,7 @@ def main() -> None:  # noqa: PLR0915
                 gamma=args.gamma,
                 save_path=args.save_path,
                 continuous_actions=args.continuous_actions,
+                acc=args.acc,
             ),
             config_source=pre_args.config,
         )
@@ -236,6 +265,7 @@ def main() -> None:  # noqa: PLR0915
                     rail_limit=args.rail_limit,
                     reward_limit=resume_config.training.reward_limit,
                     continuous_actions=args.continuous_actions,
+                    acc=resume_config.training.acc,
                 ),
             },
             save_path=args.save_path,
@@ -263,6 +293,7 @@ def main() -> None:  # noqa: PLR0915
                     rail_limit=experiment_config.training.rail_limit,
                     reward_limit=experiment_config.training.reward_limit,
                     continuous_actions=args.continuous_actions,
+                    acc=experiment_config.training.acc,
                 ),
             },
             save_path=args.save_path,
@@ -273,6 +304,7 @@ def main() -> None:  # noqa: PLR0915
             clip_range=args.clip_range,
             n_steps=args.n_steps,
             max_episode_steps=experiment_config.training.max_episode_steps,
+            log_std_init=experiment_config.training.log_std_init,
         )
         csv_path = str(Path(args.save_path).with_name(Path(args.save_path).stem + "_log.csv"))
         agent.do_training(args.steps, csv_path=csv_path)

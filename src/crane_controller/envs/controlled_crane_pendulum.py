@@ -522,7 +522,7 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
                 self._reward_point = self._reward_plot_init("b.")
                 self.nresets = -1
 
-        else:  # reset between episodes. Data are available
+        elif self.rewards:  # reset between episodes, only if data is available
             self.reward_stats_calc(len(self.rewards))
             if self.conf.render_mode == "data":  # plot reward per step
                 x = self.reward_stats["steps"]
@@ -572,7 +572,9 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
                 (observation, reward, terminated, truncated, info)
         """
         if self.conf.continuous_actions:
-            acc = float(np.asarray(action).flat[0]) * self.conf.acc
+            # action_space bounds are already ±self.conf.acc (physical units), so the
+            # sampled action is the acceleration directly — do not rescale by acc again.
+            acc = float(np.asarray(action).flat[0])
         else:
             action_idx = int(action)
             if action_idx not in self.action_to_acc:
@@ -610,7 +612,9 @@ class AntiPendulumEnv(gym.Env[tuple[int, ...] | np.ndarray, int]):
         ----------
         save_path : str or None, optional
             If set and render_mode is ``"plot"``, save the figure to this path
-            instead of showing it interactively (default None).
+            instead of showing it interactively (default None). Trajectory
+            traces are only recorded while ``render_mode == "plot"``, so that
+            mode is required for a figure to be produced at all.
         """
         if self.conf.render_mode == "play-back":
             self.show_animation()

@@ -167,20 +167,29 @@ models/*_meta.json
 models/*_vecnorm.pkl
 
 # Pre-trained hybrid_cv01 models — explicitly tracked
+# VecNormalize stats are tracked too: play_ppo.py normalises observations from
+# <stem>_vecnorm.pkl at inference, so a model is not reproducible without it.
 !models/ppo_hcv01_*.zip
 !models/ppo_hcv01_*_vecnorm.pkl
 !models/ppo_hcv01_*_meta.json
 !models/hybrid_cv01_s42.zip
 !models/hybrid_cv01_s42_meta.json
+!models/hybrid_cv01_s42_vecnorm.pkl
 !models/hybrid_cv01_disc_s42.zip
 !models/hybrid_cv01_disc_s42_meta.json
+!models/hybrid_cv01_disc_s42_vecnorm.pkl
 !models/hybrid_cv01_s5775.zip
 !models/hybrid_cv01_s5775_meta.json
+!models/hybrid_cv01_s5775_vecnorm.pkl
 !models/hybrid_cv01_disc_s5775.zip
 !models/hybrid_cv01_disc_s5775_meta.json
+!models/hybrid_cv01_disc_s5775_vecnorm.pkl
 
 # Q-agent test artifacts
 tests/test_working_directory/*.json
+
+# Claude Code local session/config
+.claude/
 
 # Local dev docs (not for the repo)
 for_sig.md
