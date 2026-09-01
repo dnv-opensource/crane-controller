@@ -1,0 +1,46 @@
+ClipReward
+==========
+
+.. currentmodule:: crane_controller.wrappers.clip_reward
+
+.. autoclass:: ClipReward
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~ClipReward.__init__
+      ~ClipReward.class_name
+      ~ClipReward.close
+      ~ClipReward.get_wrapper_attr
+      ~ClipReward.has_wrapper_attr
+      ~ClipReward.render
+      ~ClipReward.reset
+      ~ClipReward.reward
+      ~ClipReward.set_wrapper_attr
+      ~ClipReward.step
+      ~ClipReward.wrapper_spec
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~ClipReward.action_space
+      ~ClipReward.metadata
+      ~ClipReward.np_random
+      ~ClipReward.np_random_seed
+      ~ClipReward.observation_space
+      ~ClipReward.render_mode
+      ~ClipReward.spec
+      ~ClipReward.unwrapped
+   
+   

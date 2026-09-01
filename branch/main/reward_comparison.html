@@ -1,0 +1,1046 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Assurance case notes" href="assurance.html"><link rel="prev" title="Introduction" href="README.html">
+        <link rel="prefetch" href="_static/crane-controller.svg" as="image">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>hybrid_cv01 crane controller — seed sensitivity and action space comparison - crane-controller 0.0.1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_argparse_cli.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">crane-controller 0.0.1</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/crane-controller.svg" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">crane-controller 0.0.1</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">Introduction</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">hybrid_cv01</span></code> crane controller — seed sensitivity and action space comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="assurance.html">Assurance case notes</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="crane_controller.html">crane-controller package</a><input aria-label="Toggle navigation of crane-controller package" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="_autosummary/crane_controller.envs.html">crane_controller.envs</a><input aria-label="Toggle navigation of crane_controller.envs" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.envs.controlled_crane_pendulum.html">crane_controller.envs.controlled_crane_pendulum</a><input aria-label="Toggle navigation of crane_controller.envs.controlled_crane_pendulum" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.envs.controlled_crane_pendulum.AntiPendulumConfig.html">AntiPendulumConfig</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.envs.controlled_crane_pendulum.AntiPendulumEnv.html">AntiPendulumEnv</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.envs.controlled_mobile_crane.html">crane_controller.envs.controlled_mobile_crane</a><input aria-label="Toggle navigation of crane_controller.envs.controlled_mobile_crane" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.envs.controlled_mobile_crane.Actions.html">Actions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.envs.controlled_mobile_crane.ControlledCraneEnv.html">ControlledCraneEnv</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.envs.simple_test_env.html">crane_controller.envs.simple_test_env</a><input aria-label="Toggle navigation of crane_controller.envs.simple_test_env" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.envs.simple_test_env.Config.html">Config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.envs.simple_test_env.SimpleTestEnv.html">SimpleTestEnv</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="_autosummary/crane_controller.wrappers.html">crane_controller.wrappers</a><input aria-label="Toggle navigation of crane_controller.wrappers" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.wrappers.clip_reward.html">crane_controller.wrappers.clip_reward</a><input aria-label="Toggle navigation of crane_controller.wrappers.clip_reward" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.wrappers.clip_reward.ClipReward.html">ClipReward</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.wrappers.discrete_actions.html">crane_controller.wrappers.discrete_actions</a><input aria-label="Toggle navigation of crane_controller.wrappers.discrete_actions" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.wrappers.discrete_actions.DiscreteActions.html">DiscreteActions</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.wrappers.reacher_weighted_reward.html">crane_controller.wrappers.reacher_weighted_reward</a><input aria-label="Toggle navigation of crane_controller.wrappers.reacher_weighted_reward" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.wrappers.reacher_weighted_reward.ReacherRewardWrapper.html">ReacherRewardWrapper</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="_autosummary/crane_controller.wrappers.relative_position.html">crane_controller.wrappers.relative_position</a><input aria-label="Toggle navigation of crane_controller.wrappers.relative_position" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="_autosummary/crane_controller.wrappers.relative_position.RelativePosition.html">RelativePosition</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="_autosummary/crane_controller.algorithm.html">crane_controller.algorithm</a><input aria-label="Toggle navigation of crane_controller.algorithm" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="_autosummary/crane_controller.algorithm.AlgorithmAgent.html">AlgorithmAgent</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/crane_controller.crane_factory.html">crane_controller.crane_factory</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="_autosummary/crane_controller.ppo_agent.html">crane_controller.ppo_agent</a><input aria-label="Toggle navigation of crane_controller.ppo_agent" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="_autosummary/crane_controller.ppo_agent.EpisodeResult.html">EpisodeResult</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_autosummary/crane_controller.ppo_agent.ProximalPolicyOptimizationAgent.html">ProximalPolicyOptimizationAgent</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="_autosummary/crane_controller.q_agent.html">crane_controller.q_agent</a><input aria-label="Toggle navigation of crane_controller.q_agent" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="_autosummary/crane_controller.q_agent.QLearningAgent.html">QLearningAgent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_autosummary/crane_controller.q_agent.QLearningConfig.html">QLearningConfig</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="STYLEGUIDE.html">Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LICENSE.html">LICENSE</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/reward_comparison.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section class="tex2jax_ignore mathjax_ignore" id="hybrid-cv01-crane-controller-seed-sensitivity-and-action-space-comparison">
+<h1><code class="docutils literal notranslate"><span class="pre">hybrid_cv01</span></code> crane controller — seed sensitivity and action space comparison<a class="headerlink" href="#hybrid-cv01-crane-controller-seed-sensitivity-and-action-space-comparison" title="Link to this heading">¶</a></h1>
+<p><strong>Scope</strong>: seeds 5775 and 42 · 3 000 000 training steps each · PPO (Stable-Baselines3) · continuous and discrete action spaces</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">hybrid_cv01</span></code> reward was trained on the anti-pendulum crane environment with identical
+PPO hyperparameters across two seeds (5775 and 42) and two action spaces (continuous and
+discrete). This document covers training dynamics, seed sensitivity, and the effect of
+discretising the action space on final position precision.</p>
+<hr class="docutils" />
+<section id="reward-design">
+<h2>1  Reward design<a class="headerlink" href="#reward-design" title="Link to this heading">¶</a></h2>
+<p>The agent receives a dense signal at every step composed of several explicit penalty terms:
+position offset from centre, crane velocity, crane acceleration, and total mechanical energy.
+Each term has a hand-tuned weight. The agent is told <em>what to achieve</em> (stop here, stop
+gently, use little energy) directly.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[r_t = \underbrace{-\!\left(g\,z_\mathrm{load} + \tfrac{1}{2}v_\mathrm{load}^2\right)}_{\text{pendulum energy}} - 0.1\,|x| - 0.1\,\dot{x}^2 + \delta_\mathrm{crash}\cdot(-5)\]</div>
+</div>
+<p>The <em>pendulum energy</em> term is the negative total mechanical energy of the load: most positive
+(least negative) when the pendulum hangs stationary, decreasing as it swings. The <span class="math notranslate nohighlight">\(-|x|\)</span>
+and <span class="math notranslate nohighlight">\(-\dot{x}^2\)</span> terms penalise crane offset and crane speed directly. The <span class="math notranslate nohighlight">\(-5\)</span> terminal
+penalty fires once on rail collision.</p>
+<p><em>Notation: <span class="math notranslate nohighlight">\(x\)</span> = crane position (m), <span class="math notranslate nohighlight">\(\dot{x}\)</span> = crane velocity (m/s),
+<span class="math notranslate nohighlight">\(z_\mathrm{load}\)</span> = vertical coordinate of the pendulum bob with <span class="math notranslate nohighlight">\(g = 9.81\)</span> m/s²,
+<span class="math notranslate nohighlight">\(v_\mathrm{load}\)</span> = load speed (m/s).</em></p>
+</section>
+<hr class="docutils" />
+<section id="simulation-environment">
+<h2>2  Simulation environment<a class="headerlink" href="#simulation-environment" title="Link to this heading">¶</a></h2>
+<section id="physical-parameters">
+<h3>2.1  Physical parameters<a class="headerlink" href="#physical-parameters" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Symbol</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Timestep</p></td>
+<td><p>dt</p></td>
+<td><p>1.0 s / step</p></td>
+</tr>
+<tr class="row-odd"><td><p>Max crane acceleration</p></td>
+<td><p><span class="math notranslate nohighlight">\(a_\text{max}\)</span></p></td>
+<td><p>0.1 m/s²</p></td>
+</tr>
+<tr class="row-even"><td><p>Rail limit</p></td>
+<td><p><span class="math notranslate nohighlight">\(x_\text{limit}\)</span></p></td>
+<td><p>±2.0 m</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><em>dt = 1.0 s/step means one simulated second per control step.
+Settle step and simulated seconds are numerically equal.</em></p>
+</section>
+<section id="episode-and-training-parameters">
+<h3>2.2  Episode and training parameters<a class="headerlink" href="#episode-and-training-parameters" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>max_episode_steps</p></td>
+<td><p>1 000</p></td>
+</tr>
+<tr class="row-odd"><td><p>Total training steps</p></td>
+<td><p>3 000 000</p></td>
+</tr>
+<tr class="row-even"><td><p>randomize_start</p></td>
+<td><p>True (training) / False (evaluation)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Seeds</p></td>
+<td><p>5775 and 42</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="ppo-hyperparameters-stable-baselines3">
+<h3>2.3  PPO hyperparameters (Stable-Baselines3)<a class="headerlink" href="#ppo-hyperparameters-stable-baselines3" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>gamma</p></td>
+<td><p>0.99</p></td>
+</tr>
+<tr class="row-odd"><td><p>learning_rate</p></td>
+<td><p>3 × 10⁻⁴</p></td>
+</tr>
+<tr class="row-even"><td><p>n_steps</p></td>
+<td><p>4 096</p></td>
+</tr>
+<tr class="row-odd"><td><p>n_envs</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p>clip_range</p></td>
+<td><p>0.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>ent_coef</p></td>
+<td><p>0.0</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>For the continuous action space, the Gaussian policy’s initial standard deviation
+(<code class="docutils literal notranslate"><span class="pre">log_std_init</span></code>) is auto-derived from <span class="math notranslate nohighlight">\(a_\text{max}\)</span> rather than left at Stable-Baselines3’s
+default — see §3.1’s <code class="docutils literal notranslate"><span class="pre">entropy_loss</span></code> note and the project’s <code class="docutils literal notranslate"><span class="pre">ppo_agent.py</span></code> docstring for why
+this matters for continuous control at this action scale.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="metric-glossary">
+<h2>3  Metric glossary<a class="headerlink" href="#metric-glossary" title="Link to this heading">¶</a></h2>
+<section id="ppo-algorithm-metrics">
+<h3>3.1  PPO algorithm metrics<a class="headerlink" href="#ppo-algorithm-metrics" title="Link to this heading">¶</a></h3>
+<p>These quantities are produced by the PPO optimiser at each update step. They describe how
+the <em>learning process itself</em> is behaving, not the crane directly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">explained_variance</span></code>
+: The value function (critic network) continuously predicts the total future reward from the
+current state. Explained variance measures how accurate those predictions are.
+Think of it like the innovation in a Kalman filter: a value of <strong>1.0</strong> means perfect
+predictions; <strong>0.0</strong> means the critic is no better than always guessing the average;
+<strong>negative</strong> means the critic is actively worse than guessing — it is confident but wrong.
+Healthy range once the agent is past the crash-avoidance phase: <strong>0.5 – 0.9</strong>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">value_loss</span></code>
+: The mean-squared error between the critic’s predictions and the actual observed returns.
+Lower is better. Healthy behaviour: starts high, falls monotonically, converges near zero.
+<em>Trap</em>: a very low value_loss coexisting with negative explained_variance signals that
+the critic has collapsed to predicting a near-constant for all states (zero variance in
+predictions → low MSE, but zero predictive power).</p>
+<p><code class="docutils literal notranslate"><span class="pre">approx_kl</span></code>
+: KL divergence between the old policy and the updated policy after one optimisation step.
+Measures how much the agent’s decision-making changed this update. Healthy: small and
+stable (0.01 – 0.05). Large values indicate an aggressive or destabilising update.</p>
+<p><code class="docutils literal notranslate"><span class="pre">clip_fraction</span></code>
+: PPO limits how large each policy update can be via a clipping ratio. This metric is the
+fraction of training samples that hit that limiter — analogous to a saturation nonlinearity
+in a controller. Healthy: 0.10 – 0.25. Consistently above 0.35 suggests the optimiser
+is fighting against the clip and update quality may degrade.</p>
+<p><code class="docutils literal notranslate"><span class="pre">entropy_loss</span></code>
+: Stable-Baselines3 logs <span class="math notranslate nohighlight">\(-\text{entropy}\)</span> of the policy distribution. More negative =
+more random / exploratory. With <code class="docutils literal notranslate"><span class="pre">ent_coef</span> <span class="pre">=</span> <span class="pre">0</span></code> (as in both configs here), there is no
+explicit entropy bonus, so nothing in the loss opposes entropy drifting up over training —
+a rising <code class="docutils literal notranslate"><span class="pre">entropy_loss</span></code> here does not by itself indicate a problem; what matters is
+whether the resulting action distribution stays well inside the action box (see §3.3).</p>
+<p><code class="docutils literal notranslate"><span class="pre">policy_gradient_loss</span></code>
+: The PPO surrogate objective value. Negative means the gradient is pointing in a
+direction that increases expected reward. Should remain stable and negative.</p>
+</section>
+<section id="training-performance-metrics">
+<h3>3.2  Training performance metrics<a class="headerlink" href="#training-performance-metrics" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ep_len_mean</span></code>
+: Average episode length (simulation steps). The episode ends when the crane hits the rail
+(crash) or reaches <code class="docutils literal notranslate"><span class="pre">max_episode_steps</span></code> (1 000 steps). Healthy: grows from ~20 (constant
+crashing) to 1 000.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rew_per_step</span></code>
+: Total episode reward divided by episode length — a normalised reward signal that removes
+the confounding effect of episode length changing over training. Healthy: increases
+(becomes less negative) over time.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rail_hit_pct</span></code>
+: Percentage of episodes that ended by the crane hitting the rail. Healthy: starts at 100%
+(random policy crashes immediately), falls to 0% and stays there.</p>
+</section>
+<section id="physical-crane-metrics">
+<h3>3.3  Physical crane metrics<a class="headerlink" href="#physical-crane-metrics" title="Link to this heading">¶</a></h3>
+<p>These appear in the log only once some episodes survive without crashing. They measure what
+the crane actually does at episode end, independent of the reward formulation.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mean_x_pos_abs</span></code>
+: Mean absolute crane position from centre (metres). Falls toward 0 as training progresses.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mean_x_vel_abs</span></code>
+: Mean absolute crane velocity (m/s). Falls toward 0 as the crane learns to stop cleanly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mean_energy</span></code>
+: Residual mechanical energy in the crane–pendulum system at episode end. Falls toward 0
+as motion ceases.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mean_theta_dot_abs</span></code>
+: Mean absolute pendulum angular velocity (rad/s). Falls toward 0 as the pendulum damps
+out.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mean_theta_dev</span></code>
+: Mean angular deviation of the pendulum from the upright position. Falls toward 0 as the
+pendulum stays balanced.</p>
+<p><code class="docutils literal notranslate"><span class="pre">t_min_settle_step</span></code>
+: The simulation step at which the episode’s <span class="math notranslate nohighlight">\(t_\text{min}\)</span> value first drops below the
+settle threshold and stays there — i.e. the moment the crane is judged to be
+<em>effectively at rest</em>. The simulation timestep is <strong>dt = 1.0 s</strong>, so settle step and
+simulated seconds are numerically equal (settle_step 87 = 87 s of simulation time).
+Lower is faster convergence.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="training-dynamics-seed-5775">
+<h2>4  Training dynamics — seed 5775<a class="headerlink" href="#training-dynamics-seed-5775" title="Link to this heading">¶</a></h2>
+<p><img alt="Training curves for hybrid_cv01_s5775 — continuous and discrete" src="_images/fig1_training_s5775.png" /></p>
+<p><em>Figure 1. Twelve training metrics over 3 M steps for seed 5775 — continuous (blue, solid)
+and discrete (orange, dashed). Key panels: rail_hit%↓ (top-left), expl_var↑ (row 2 col 1),
+value_loss↓ (row 2 col 2), |x|↓ (bottom row).</em></p>
+<section id="summary">
+<h3>4.1  Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>cont</p></th>
+<th class="head"><p>disc</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>rail_hit → 0% (permanent)</p></td>
+<td><p>950 k steps</p></td>
+<td><p><strong>800 k steps</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>ep_len hits maximum (1 000)</p></td>
+<td><p>1.0 M steps</p></td>
+<td><p><strong>900 k steps</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>Value instabilities</p></td>
+<td><p>none</p></td>
+<td><p><strong>none</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>Explained variance at 3 M</p></td>
+<td><p><strong>0.986</strong></p></td>
+<td><p>0.971</p></td>
+</tr>
+<tr class="row-even"><td><p>Mean |x| at 3 M (training log)</p></td>
+<td><p>0.015 m</p></td>
+<td><p><strong>≈ 0 m</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Both variants eliminate crashes early and permanently — discrete slightly ahead (800 k vs
+950 k steps). Neither variant produces a value-function instability event. Explained
+variance is close between the two, with continuous now marginally ahead (0.986 vs 0.971).</p>
+</section>
+<section id="phase-1-survival-0-700-k-steps">
+<h3>4.2  Phase 1 — Survival (0 – 700 k steps)<a class="headerlink" href="#phase-1-survival-0-700-k-steps" title="Link to this heading">¶</a></h3>
+<p>The agent starts with a random policy. The crane hits the rail within roughly 20 steps
+every episode. Episode length grows slowly as the agent learns to delay the inevitable
+crash. Physical metrics are not meaningful here because all episodes end in crashes.</p>
+</section>
+<section id="phase-2-crash-elimination">
+<h3>4.3  Phase 2 — Crash elimination<a class="headerlink" href="#phase-2-crash-elimination" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">hybrid_cv01</span></code> eliminates crashes decisively: rail_hit_pct falls from 100% to 0% by
+<strong>950 k steps</strong> (continuous) / <strong>800 k steps</strong> (discrete) and never returns. The explicit
+position-penalty terms give the agent a direct incentive to stay away from the rail at
+every step.</p>
+</section>
+<section id="phase-3-mid-training-convergence">
+<h3>4.4  Phase 3 — Mid-training convergence<a class="headerlink" href="#phase-3-mid-training-convergence" title="Link to this heading">¶</a></h3>
+<p>Both variants continue to improve smoothly through the middle of training, with explained
+variance climbing and value loss falling in both cases. No instability events (sharp EV
+collapses or reward-distribution discontinuities) are observed in either variant for this
+training run.</p>
+</section>
+<section id="phase-4-convergence-1-5-m-3-m">
+<h3>4.5  Phase 4 — Convergence (1.5 M → 3 M)<a class="headerlink" href="#phase-4-convergence-1-5-m-3-m" title="Link to this heading">¶</a></h3>
+<p>Explained variance climbs monotonically in both variants. Policy becomes increasingly
+deterministic in the discrete case (entropy_loss → 0); the continuous policy’s entropy
+continues to rise slowly through 3 M steps without destabilising training. The continuous
+variant reaches marginally higher final EV (0.986) than discrete (0.971) — both represent
+a well-calibrated critic, with the continuous variant’s larger action space no longer
+imposing a value-estimation penalty.</p>
+<p><strong>Why does EV matter?</strong> The actor (policy) is updated using gradients derived partly from
+the critic’s value estimates. Higher EV means each policy update is based on a less biased
+signal, producing tighter convergence.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="speed-sweep-seed-5775">
+<h2>5  Speed sweep — seed 5775<a class="headerlink" href="#speed-sweep-seed-5775" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">hybrid_cv01_s5775</span></code> was evaluated at 100 initial crane speeds uniformly spaced from −10.0
+to +10.0 m/s (step 0.2 m/s) with the pendulum initially at rest upright. No randomised
+start. Each episode runs for the full 1 000-step budget.</p>
+<p><img alt="Speed sweep comparison — hybrid_cv01_s5775, continuous vs discrete" src="_images/fig2_sweep_s5775.png" /></p>
+<p><em>Figure 2. Speed sweep across ±10 m/s — seed 5775, continuous (blue) vs discrete (orange).
+Top row: final crane position (cm), final crane velocity (m/s), settle step vs |speed|.
+Bottom row: final pendulum angle (rad), final pendulum angular velocity (rad/s), final
+crane acceleration (m/s²). The single discrete spike near +8.2 m/s (visible in every panel)
+is the lone rail-contact episode discussed in §5.2.</em></p>
+<section id="id1">
+<h3>5.1  Summary<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>cont</p></th>
+<th class="head"><p>disc</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Crash-free episodes</p></td>
+<td><p>100/100</p></td>
+<td><p>99/100</p></td>
+</tr>
+<tr class="row-odd"><td><p>Non-converging</p></td>
+<td><p>0</p></td>
+<td><p><strong>0</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>Mean |x_pos|</p></td>
+<td><p>0.66 cm</p></td>
+<td><p><strong>≈ 0 cm</strong> (machine ε, 99/100)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Settle-step range</p></td>
+<td><p>67–246 steps</p></td>
+<td><p><strong>7–129 steps</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>Mean settle step</p></td>
+<td><p>184.5</p></td>
+<td><p><strong>73.7</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="robustness-across-the-speed-range">
+<h3>5.2  Robustness across the speed range<a class="headerlink" href="#robustness-across-the-speed-range" title="Link to this heading">¶</a></h3>
+<p>The continuous variant is <strong>100% crash-free</strong> across the full ±10 m/s range. The discrete
+variant crashes once, at a single swept speed (8.2 m/s, rail contact at step 16) — the
+immediately adjacent speeds (8.0 and 8.4 m/s) settle normally, so this is an isolated
+single-run transient (one seed, one episode per speed), not a systematic failure. Both
+variants’ broad robustness is a consequence of <code class="docutils literal notranslate"><span class="pre">randomize_start</span> <span class="pre">=</span> <span class="pre">true</span></code> during training:
+the agent was exposed to a range of initial conditions during learning, and the learned
+policy generalises far beyond that range.</p>
+<p>Final crane position is <strong>essentially constant across nearly all 100 speed points</strong> (flat
+curve in Figure 2, left panel) — the agent always converges to the same physical attractor
+regardless of how fast the crane was initially moving. Settle step is <strong>not</strong> constant: it
+rises smoothly with |initial speed| (Figure 2, centre panel) — more initial momentum takes
+more time to brake, with no anomalous outliers in either variant.</p>
+</section>
+<section id="effect-of-discretisation-on-precision">
+<h3>5.3  Effect of discretisation on precision<a class="headerlink" href="#effect-of-discretisation-on-precision" title="Link to this heading">¶</a></h3>
+<p>With a continuous action space the agent can select any force in <span class="math notranslate nohighlight">\([-a_\text{max},
++a_\text{max}]\)</span>, including sub-optimal intermediate values that balance the position penalty
+against other terms. With <code class="docutils literal notranslate"><span class="pre">Discrete(3)</span></code> there is no intermediate force: every step is
+either full brake, coast, or full drive. The agent must commit to a bang-bang sequence
+that lands on <span class="math notranslate nohighlight">\(x = 0\)</span> exactly, which the dense position-penalty term directly rewards.</p>
+<p>The result is machine-epsilon final position (1e-14 – 1e-17 m) for 99 of 100 evaluation
+speeds (seed 5775; the hundredth is the single rail-contact episode from §5.2) vs a
+constant 0.66 cm for the continuous variant. Seed 42’s discrete run is slightly less
+clean — see §6.2.</p>
+</section>
+<section id="settle-step-and-speed">
+<h3>5.4  Settle step and speed<a class="headerlink" href="#settle-step-and-speed" title="Link to this heading">¶</a></h3>
+<p>Settle step rises roughly linearly with |initial speed|: higher initial momentum requires
+more braking time. With dt = 1.0 s per step, the range of 67–246 steps (continuous) and
+7–129 steps (discrete) corresponds to <strong>67–246 s</strong> and <strong>7–129 s</strong> of simulated time
+respectively. At speed = ±10 m/s the discrete agent settles at ~112–117 steps — close to
+the theoretical bang-bang minimum <span class="math notranslate nohighlight">\(v/a = 10/0.1 = 100\)</span> s; the continuous agent takes
+considerably longer (~243 s) at the same speed, reflecting its smoother, less aggressive
+braking profile.</p>
+</section>
+<section id="detailed-sweep-metrics">
+<h3>5.5  Detailed sweep metrics<a class="headerlink" href="#detailed-sweep-metrics" title="Link to this heading">¶</a></h3>
+<p><img alt="hybrid_cv01_s5775 continuous — detailed sweep" src="_images/hybrid_cv01_s5775_detail.png" /></p>
+<p><em>Figure 3. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_s5775</span></code> continuous — nine sweep metrics across ±10 m/s.
+Top row: crash rate, reward per step, energy fraction. Middle row: settle step, final
+crane position, final crane velocity. Bottom row: final crane acceleration, pendulum
+angle, pendulum angular velocity.</em></p>
+<p><img alt="hybrid_cv01_disc_s5775 — detailed sweep" src="_images/hybrid_cv01_disc_s5775_detail.png" /></p>
+<p><em>Figure 4. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_disc_s5775</span></code> (discrete) — nine sweep metrics across ±10 m/s.
+x_pos_m panel: machine-epsilon level (1e-14 – 1e-17 m) for 99 of 100 speeds; one
+rail-contact episode at 8.2 m/s (visible as the single nocrash%↑ dip).</em></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="seed-42">
+<h2>6  Seed 42<a class="headerlink" href="#seed-42" title="Link to this heading">¶</a></h2>
+<p>Seed 42 covers both continuous and discrete action spaces, following the same structure as
+§4–§5 for seed 5775. The key question: does the discrete advantage (near-machine-epsilon
+precision, no non-converging episodes) hold under a different random seed? It largely does,
+with a single-run caveat — see §6.2.</p>
+<section id="training-dynamics">
+<h3>6.1  Training dynamics<a class="headerlink" href="#training-dynamics" title="Link to this heading">¶</a></h3>
+<p><img alt="Training curves for hybrid_cv01_s42 — continuous and discrete" src="_images/fig_training_s42.png" /></p>
+<p><em>Figure 5. Twelve training metrics over 3 M steps for seed 42 — continuous (blue, solid)
+and discrete (orange, dashed).</em></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>cont</p></th>
+<th class="head"><p>disc</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>rail_hit → 0% (permanent)</p></td>
+<td><p><strong>700 k steps</strong></p></td>
+<td><p>1 050 k steps</p></td>
+</tr>
+<tr class="row-odd"><td><p>ep_len hits maximum (1 000)</p></td>
+<td><p><strong>750 k steps</strong></p></td>
+<td><p>1 150 k steps</p></td>
+</tr>
+<tr class="row-even"><td><p>Value instabilities</p></td>
+<td><p>none</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p>Explained variance at 3 M</p></td>
+<td><p><strong>0.987</strong></p></td>
+<td><p>0.928</p></td>
+</tr>
+<tr class="row-even"><td><p>Mean |x| at 3 M (training log)</p></td>
+<td><p>0.008 m</p></td>
+<td><p><strong>≈ 0 m</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>For seed 42 the continuous variant eliminates crashes substantially earlier than discrete
+(700 k vs 1 050 k steps) and reaches a higher final EV (0.987 vs 0.928) — the same EV
+pattern as seed 5775: continuous now edges out discrete on critic accuracy for both seeds.</p>
+<p>The discrete <code class="docutils literal notranslate"><span class="pre">expl_var</span></code> curve in Figure 5 dips sharply (to ≈ 0.04) around 800 k–1.05 M
+steps before recovering to 0.93. This coincides with the discrete crash-elimination window
+(<code class="docutils literal notranslate"><span class="pre">rail_hit%</span></code> still falling over the same interval): the policy is changing fast enough that
+the critic briefly loses its fit, then re-converges once the policy stabilises. It is a
+normal pre-convergence transient, not a value-function instability event — EV is monotone
+non-decreasing from 1.05 M onward for both variants.</p>
+</section>
+<section id="speed-sweep">
+<h3>6.2  Speed sweep<a class="headerlink" href="#speed-sweep" title="Link to this heading">¶</a></h3>
+<p><img alt="Speed sweep — hybrid_cv01_s42, continuous vs discrete" src="_images/fig_sweep_s42.png" /></p>
+<p><em>Figure 6. Speed sweep across ±10 m/s — seed 42, continuous (blue) vs discrete (orange).
+Top row: final crane position (cm), final crane velocity (m/s), settle step vs |speed|.
+Bottom row: final pendulum angle (rad), final pendulum angular velocity (rad/s), final
+crane acceleration (m/s²). The ten discrete downspikes to −10 cm in the |x| panel are the
+±0.1 m offset attractor discussed below.</em></p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>cont</p></th>
+<th class="head"><p>disc</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Crash-free episodes</p></td>
+<td><p>100/100</p></td>
+<td><p>100/100</p></td>
+</tr>
+<tr class="row-odd"><td><p>Non-converging</p></td>
+<td><p>0</p></td>
+<td><p><strong>0</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>Mean |x_pos|</p></td>
+<td><p>0.39 cm</p></td>
+<td><p>≈ 1.0 cm (90/100 at machine ε)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Settle-step range</p></td>
+<td><p>95–218 steps</p></td>
+<td><p><strong>14–126 steps</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>Mean settle step</p></td>
+<td><p>168.8</p></td>
+<td><p><strong>74.2</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Both variants achieve zero non-converging episodes and zero crashes across the full ±10 m/s
+range. The discrete variant reaches machine-epsilon final position for <strong>90 of 100</strong> swept
+speeds; the other ten (−8.4, −6.4, −5.0, −3.8, +0.8, +1.0, +3.4, +3.6, +5.2, +9.0 m/s)
+converge instead to a <strong>±0.1 m offset attractor</strong> — the crane parks one deadband-width off
+centre and toggles ±<span class="math notranslate nohighlight">\(a_\text{max}\)</span> across it rather than landing exactly on <span class="math notranslate nohighlight">\(x = 0\)</span>. This
+lifts the discrete mean |x_pos| to ≈ 1.0 cm, still below the continuous variant’s 0.39 cm
+but no longer machine-epsilon everywhere. The effect is a single-run artefact: one training
+seed, one episode per evaluated speed, no averaging — seed 5775’s discrete run misses only
+once (§5), and an earlier unseeded seed-42 discrete run reached <span class="math notranslate nohighlight">\(x = 0\)</span> at every speed.
+Continuous-variant final position (0.39 cm for s42, 0.66 cm for s5775) has no anomalous
+outlier speeds in either seed.</p>
+</section>
+<section id="id2">
+<h3>6.3  Detailed sweep metrics<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<p><img alt="hybrid_cv01_s42 continuous — detailed sweep" src="_images/hybrid_cv01_s42_detail.png" /></p>
+<p><em>Figure 7. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_s42</span></code> continuous — nine sweep metrics across ±10 m/s. Settle step
+scales smoothly with |speed| with no anomalous outliers; final position is flat across the
+whole range.</em></p>
+<p><img alt="hybrid_cv01_disc_s42 — detailed sweep" src="_images/hybrid_cv01_disc_s42_detail.png" /></p>
+<p><em>Figure 8. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_disc_s42</span></code> (discrete) — nine sweep metrics across ±10 m/s.
+All 100 episodes converge crash-free; x_pos at machine-epsilon level for 90 of 100 speeds,
+with ten at a ±0.1 m offset attractor (see §6.2 — visible as ten downward spikes to
+−0.1 m in the x_pos_m panel).</em></p>
+</section>
+<section id="episode-trajectories">
+<h3>6.4  Episode trajectories<a class="headerlink" href="#episode-trajectories" title="Link to this heading">¶</a></h3>
+<p>The plots below show time-series for individual episodes: crane position, velocity,
+pendulum angle, pendulum angular velocity, crane acceleration, and reward — one panel
+per quantity, over the full episode. They complement the sweep figures by showing <em>how</em>
+the agent moves, not just the final values.</p>
+<p><strong>A — Discrete, 1.2 m/s — fast bang-bang settle</strong></p>
+<p><img alt="Episode: disc s42, start speed +1.2 m/s" src="_images/episode_disc_s42_v1p2.png" /></p>
+<p><em>Figure 9. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_disc_s42</span></code>, start speed +1.2 m/s.
+Settles at step 23, final position machine-epsilon. Three-phase bang-bang:
+full brake → coast → done.</em></p>
+<p><strong>B — Continuous, 5.0 m/s — smooth mid-range convergence</strong></p>
+<p><img alt="Episode: cont s42, start speed +5.0 m/s" src="_images/episode_cont_s42_v5p0.png" /></p>
+<p><em>Figure 10. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_s42</span></code> (continuous), start speed +5.0 m/s, 300 steps.
+Settles at step 175, final position −0.39 cm. Action (acc panel) is a smoothly decaying
+oscillation rather than persistent full-amplitude bang-bang switching.</em></p>
+<p><strong>C — Discrete, 5.0 m/s — bang-bang contrast at same speed</strong></p>
+<p><img alt="Episode: disc s42, start speed +5.0 m/s" src="_images/episode_disc_s42_v5p0.png" /></p>
+<p><em>Figure 11. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_disc_s42</span></code>, start speed +5.0 m/s.
+Settles at step 73 (102 steps earlier than the continuous variant at this speed), final
+position machine-epsilon. Action is always ±0.1 or 0 — no intermediate values.</em></p>
+<p><strong>D — Continuous, 9.0 m/s — convergence</strong></p>
+<p><img alt="Episode: cont s42, start speed +9.0 m/s" src="_images/episode_cont_s42_v9p0.png" /></p>
+<p><em>Figure 12. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_s42</span></code> (continuous), start speed +9.0 m/s, 300 steps.
+Settles at step 201, final position −0.39 cm. No crash and no non-convergence at this
+speed, consistent with the model’s zero-crash record across the full ±10 m/s sweep.</em></p>
+<p><strong>E — Discrete, 9.0 m/s — bang-bang at high speed</strong></p>
+<p><img alt="Episode: disc s42, start speed +9.0 m/s" src="_images/episode_disc_s42_v9p0.png" /></p>
+<p><em>Figure 13. <code class="docutils literal notranslate"><span class="pre">hybrid_cv01_disc_s42</span></code>, start speed +9.0 m/s.
+Settles at step 111 at a −0.10 m offset — one of the ten swept speeds that converge to the
+±0.1 m attractor rather than exactly zero (§6.2), shown here for contrast with the
+machine-epsilon cases above.</em></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="conclusion">
+<h2>7  Conclusion<a class="headerlink" href="#conclusion" title="Link to this heading">¶</a></h2>
+<section id="quantitative-summary">
+<h3>7.1  Quantitative summary<a class="headerlink" href="#quantitative-summary" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>s5775 · cont</p></th>
+<th class="head"><p>s5775 · disc</p></th>
+<th class="head"><p>s42 · cont</p></th>
+<th class="head"><p>s42 · disc</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Time to crash-free</p></td>
+<td><p>950 k steps</p></td>
+<td><p><strong>800 k steps</strong></p></td>
+<td><p><strong>700 k steps</strong></p></td>
+<td><p>1 050 k steps</p></td>
+</tr>
+<tr class="row-odd"><td><p>EV at 3 M</p></td>
+<td><p><strong>0.986</strong></p></td>
+<td><p>0.971</p></td>
+<td><p><strong>0.987</strong></p></td>
+<td><p>0.928</p></td>
+</tr>
+<tr class="row-even"><td><p>Final position</p></td>
+<td><p>0.66 cm</p></td>
+<td><p><strong>≈ 0 cm</strong> (99/100)</p></td>
+<td><p>0.39 cm</p></td>
+<td><p>≈ 1.0 cm (90/100 ≈ 0)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Settle range</p></td>
+<td><p>67–246 s</p></td>
+<td><p><strong>7–129 s</strong></p></td>
+<td><p>95–218 s</p></td>
+<td><p><strong>14–126 s</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>Sweep crashes (of 100)</p></td>
+<td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>0</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>Non-converging</p></td>
+<td><p>0</p></td>
+<td><p><strong>0</strong></p></td>
+<td><p>0</p></td>
+<td><p><strong>0</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="training-consistency">
+<h3>7.2  Training consistency<a class="headerlink" href="#training-consistency" title="Link to this heading">¶</a></h3>
+<p>Both seeds eliminate crashes within roughly the first third of training and never return
+to crashing thereafter. The dense, multi-term reward provides unambiguous per-step feedback
+on position, velocity, and energy simultaneously, giving the value function a
+well-constrained learning target. No value-function instability events were observed in
+either variant, for either seed.</p>
+</section>
+<section id="seed-robustness">
+<h3>7.3  Seed robustness<a class="headerlink" href="#seed-robustness" title="Link to this heading">¶</a></h3>
+<p>Continuous-variant final position varies modestly across seeds (0.66 cm for s5775 vs
+0.39 cm for s42) with no outlier speeds. The discrete variant is at machine-epsilon
+precision for 99/100 (s5775) and 90/100 (s42) swept speeds; the misses are one
+rail-contact transient (s5775, at 8.2 m/s) and a ±0.1 m offset attractor at ten seed-42
+speeds. Both are single-run artefacts — one seed, one episode per speed — not systematic:
+the continuous side is crash-free at every speed for both seeds, the discrete side is
+crash-free at every speed for seed 42 and at 99/100 for seed 5775, and an earlier unseeded
+seed-42 discrete run reached <span class="math notranslate nohighlight">\(x = 0\)</span> at every speed. The multi-term reward constrains the
+value landscape tightly, leaving only these small single-run deviations.</p>
+</section>
+<section id="effect-of-discretisation">
+<h3>7.4  Effect of discretisation<a class="headerlink" href="#effect-of-discretisation" title="Link to this heading">¶</a></h3>
+<p>Switching to <code class="docutils literal notranslate"><span class="pre">Discrete(3)</span></code> (bang-bang actions) improves final position precision for the
+large majority of evaluated speeds — final crane position drops from a constant
+0.39–0.66 cm (continuous) to machine-epsilon level (1e-14 – 1e-17 m) for 90/100 (seed 42)
+and 99/100 (seed 5775) swept speeds. With a continuous action space the agent can settle
+at sub-optimal intermediate forces; with <code class="docutils literal notranslate"><span class="pre">Discrete(3)</span></code> it must commit to a bang-bang
+sequence that lands precisely at <span class="math notranslate nohighlight">\(x = 0\)</span>, which the dense position-penalty term directly
+rewards. The discrete exceptions are a ±0.1 m offset attractor at ten seed-42 speeds and
+one rail-contact transient at seed 5775; both are single-run (one seed, one episode per
+speed), and an earlier unseeded seed-42 discrete run reached <span class="math notranslate nohighlight">\(x = 0\)</span> at every speed. Mean
+discrete |x_pos| is ≈ 0 cm (s5775) and ≈ 1.0 cm (s42), still at or below the continuous
+variant’s 0.39–0.66 cm.</p>
+<p>Discretisation also settles faster: mean settle step drops from 184.5 → 73.7 s (s5775) and
+168.8 → 74.2 s (s42) going from continuous to discrete. Discretisation does <strong>not</strong>,
+however, consistently improve the critic’s explained variance in this data — continuous
+now edges out discrete on EV for both seeds (0.986–0.987 vs 0.928–0.971), the reverse of
+an earlier training run. Position precision and settle speed are the discretisation
+benefits that hold robustly; EV is not.</p>
+<hr class="docutils" />
+<p><em>Analysis covers <code class="docutils literal notranslate"><span class="pre">hybrid_cv01</span></code> across seeds 5775 and 42, continuous and discrete action spaces.</em></p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="assurance.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Assurance case notes</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="README.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Introduction</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, DNV AS. All rights reserved.
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">hybrid_cv01</span></code> crane controller — seed sensitivity and action space comparison</a><ul>
+<li><a class="reference internal" href="#reward-design">1  Reward design</a></li>
+<li><a class="reference internal" href="#simulation-environment">2  Simulation environment</a><ul>
+<li><a class="reference internal" href="#physical-parameters">2.1  Physical parameters</a></li>
+<li><a class="reference internal" href="#episode-and-training-parameters">2.2  Episode and training parameters</a></li>
+<li><a class="reference internal" href="#ppo-hyperparameters-stable-baselines3">2.3  PPO hyperparameters (Stable-Baselines3)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#metric-glossary">3  Metric glossary</a><ul>
+<li><a class="reference internal" href="#ppo-algorithm-metrics">3.1  PPO algorithm metrics</a></li>
+<li><a class="reference internal" href="#training-performance-metrics">3.2  Training performance metrics</a></li>
+<li><a class="reference internal" href="#physical-crane-metrics">3.3  Physical crane metrics</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#training-dynamics-seed-5775">4  Training dynamics — seed 5775</a><ul>
+<li><a class="reference internal" href="#summary">4.1  Summary</a></li>
+<li><a class="reference internal" href="#phase-1-survival-0-700-k-steps">4.2  Phase 1 — Survival (0 – 700 k steps)</a></li>
+<li><a class="reference internal" href="#phase-2-crash-elimination">4.3  Phase 2 — Crash elimination</a></li>
+<li><a class="reference internal" href="#phase-3-mid-training-convergence">4.4  Phase 3 — Mid-training convergence</a></li>
+<li><a class="reference internal" href="#phase-4-convergence-1-5-m-3-m">4.5  Phase 4 — Convergence (1.5 M → 3 M)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#speed-sweep-seed-5775">5  Speed sweep — seed 5775</a><ul>
+<li><a class="reference internal" href="#id1">5.1  Summary</a></li>
+<li><a class="reference internal" href="#robustness-across-the-speed-range">5.2  Robustness across the speed range</a></li>
+<li><a class="reference internal" href="#effect-of-discretisation-on-precision">5.3  Effect of discretisation on precision</a></li>
+<li><a class="reference internal" href="#settle-step-and-speed">5.4  Settle step and speed</a></li>
+<li><a class="reference internal" href="#detailed-sweep-metrics">5.5  Detailed sweep metrics</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#seed-42">6  Seed 42</a><ul>
+<li><a class="reference internal" href="#training-dynamics">6.1  Training dynamics</a></li>
+<li><a class="reference internal" href="#speed-sweep">6.2  Speed sweep</a></li>
+<li><a class="reference internal" href="#id2">6.3  Detailed sweep metrics</a></li>
+<li><a class="reference internal" href="#episode-trajectories">6.4  Episode trajectories</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#conclusion">7  Conclusion</a><ul>
+<li><a class="reference internal" href="#quantitative-summary">7.1  Quantitative summary</a></li>
+<li><a class="reference internal" href="#training-consistency">7.2  Training consistency</a></li>
+<li><a class="reference internal" href="#seed-robustness">7.3  Seed robustness</a></li>
+<li><a class="reference internal" href="#effect-of-discretisation">7.4  Effect of discretisation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

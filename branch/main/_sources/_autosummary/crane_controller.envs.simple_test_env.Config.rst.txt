@@ -1,0 +1,36 @@
+Config
+======
+
+.. currentmodule:: crane_controller.envs.simple_test_env
+
+.. autoclass:: Config
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~Config.__init__
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~Config.acc
+      ~Config.pos0
+      ~Config.pos1
+      ~Config.pos_range
+      ~Config.seed
+      ~Config.speed0
+      ~Config.speed1
+      ~Config.speed_range
+   
+   

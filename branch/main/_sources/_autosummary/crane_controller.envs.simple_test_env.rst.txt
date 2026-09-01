@@ -1,0 +1,18 @@
+crane\_controller.envs.simple\_test\_env
+========================================
+
+.. automodule:: crane_controller.envs.simple_test_env
+   :members:
+   :exclude-members: Config,SimpleTestEnv,
+   
+
+
+   
+   .. rubric:: Classes
+   .. autosummary::
+      :toctree:
+      :template: custom-class.rst
+   
+      Config
+      SimpleTestEnv
+   

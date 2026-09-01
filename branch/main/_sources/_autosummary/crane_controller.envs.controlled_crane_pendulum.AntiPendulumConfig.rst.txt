@@ -1,0 +1,45 @@
+AntiPendulumConfig
+==================
+
+.. currentmodule:: crane_controller.envs.controlled_crane_pendulum
+
+.. autoclass:: AntiPendulumConfig
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~AntiPendulumConfig.__init__
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~AntiPendulumConfig.length
+      ~AntiPendulumConfig.mass
+      ~AntiPendulumConfig.q_factor
+      ~AntiPendulumConfig.acc
+      ~AntiPendulumConfig.start_speed
+      ~AntiPendulumConfig.randomize_start
+      ~AntiPendulumConfig.render_mode
+      ~AntiPendulumConfig.rail_limit
+      ~AntiPendulumConfig.seed
+      ~AntiPendulumConfig.reward_limit
+      ~AntiPendulumConfig.dt
+      ~AntiPendulumConfig.discrete
+      ~AntiPendulumConfig.discretization
+      ~AntiPendulumConfig.reward_fac
+      ~AntiPendulumConfig.continuous_actions
+      ~AntiPendulumConfig.discount
+      ~AntiPendulumConfig.coasting
+   
+   

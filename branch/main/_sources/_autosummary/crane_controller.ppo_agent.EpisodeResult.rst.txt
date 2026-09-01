@@ -1,0 +1,45 @@
+EpisodeResult
+=============
+
+.. currentmodule:: crane_controller.ppo_agent
+
+.. autoclass:: EpisodeResult
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~EpisodeResult.__init__
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~EpisodeResult.start_speed
+      ~EpisodeResult.ep_steps
+      ~EpisodeResult.ep_reward
+      ~EpisodeResult.terminated
+      ~EpisodeResult.truncated
+      ~EpisodeResult.no_crash
+      ~EpisodeResult.t_min_start
+      ~EpisodeResult.t_min_min
+      ~EpisodeResult.t_min_final
+      ~EpisodeResult.t_min_mean_last100
+      ~EpisodeResult.t_min_settle_step
+      ~EpisodeResult.x_pos_final
+      ~EpisodeResult.x_vel_final
+      ~EpisodeResult.theta_final
+      ~EpisodeResult.theta_dot_final
+      ~EpisodeResult.energy_final
+      ~EpisodeResult.acc_final
+   
+   

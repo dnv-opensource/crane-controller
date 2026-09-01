@@ -1,0 +1,47 @@
+SimpleTestEnv
+=============
+
+.. currentmodule:: crane_controller.envs.simple_test_env
+
+.. autoclass:: SimpleTestEnv
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~SimpleTestEnv.__init__
+      ~SimpleTestEnv.calc_reward
+      ~SimpleTestEnv.close
+      ~SimpleTestEnv.get_parameters
+      ~SimpleTestEnv.get_wrapper_attr
+      ~SimpleTestEnv.has_wrapper_attr
+      ~SimpleTestEnv.initialize
+      ~SimpleTestEnv.render
+      ~SimpleTestEnv.reset
+      ~SimpleTestEnv.set_wrapper_attr
+      ~SimpleTestEnv.show_plot
+      ~SimpleTestEnv.step
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~SimpleTestEnv.metadata
+      ~SimpleTestEnv.np_random
+      ~SimpleTestEnv.np_random_seed
+      ~SimpleTestEnv.render_mode
+      ~SimpleTestEnv.spec
+      ~SimpleTestEnv.unwrapped
+      ~SimpleTestEnv.action_space
+      ~SimpleTestEnv.observation_space
+   
+   

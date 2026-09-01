@@ -1,0 +1,45 @@
+QLearningConfig
+===============
+
+.. currentmodule:: crane_controller.q_agent
+
+.. autoclass:: QLearningConfig
+   :members:
+   :show-inheritance:
+
+
+   
+   .. automethod:: __init__
+   
+   .. rubric:: Methods
+   .. autosummary::
+   
+      ~QLearningConfig.__init__
+   
+   
+
+
+   
+   
+   .. rubric:: Attributes
+   .. autosummary::
+   
+      ~QLearningConfig.learning_rate
+      ~QLearningConfig.epsilon_decay
+      ~QLearningConfig.final_epsilon
+      ~QLearningConfig.discount_factor
+      ~QLearningConfig.q_default
+      ~QLearningConfig.strategy
+      ~QLearningConfig.filename
+      ~QLearningConfig.use_file
+      ~QLearningConfig.episodes
+      ~QLearningConfig.steps
+      ~QLearningConfig.epsilon
+      ~QLearningConfig.num_terminated
+      ~QLearningConfig.num_truncated
+      ~QLearningConfig.auto_run
+      ~QLearningConfig.max_steps
+      ~QLearningConfig.start_training
+      ~QLearningConfig.end_training
+   
+   
