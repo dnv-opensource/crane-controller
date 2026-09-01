@@ -204,7 +204,7 @@ speed sweep (see ``docs/source/reward_comparison.md`` for detailed analysis).
 +------------------------------------------+----------+------+
 | ``hybrid_cv01_s42.zip``                  | Box      | 42   |
 +------------------------------------------+----------+------+
-| ``hybrid_cv01_s5775.zip``               | Box      | 5775 |
+| ``hybrid_cv01_s5775.zip``                | Box      | 5775 |
 +------------------------------------------+----------+------+
 
 Each model bundle requires three files: ``.zip`` (policy), ``_vecnorm.pkl`` (observation
